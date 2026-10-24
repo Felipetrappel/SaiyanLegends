@@ -1,0 +1,46 @@
+name: Gerar APK (Android)
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/android.yml']
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: 17 }
+      - name: Montar projeto Capacitor
+        run: |
+          mkdir -p www
+          cp -r index.html css js assets icons manifest.webmanifest sw.js www/
+          npm init -y >/dev/null
+          npm i @capacitor/core@6 @capacitor/cli@6 @capacitor/android@6
+          npx cap init "Saiyan Legends" com.felipe.saiyanlegends --web-dir www
+          npx cap add android
+          npx cap sync android
+      - name: Ajustar app (horizontal, tela cheia, ícone)
+        run: |
+          M=android/app/src/main/AndroidManifest.xml
+          sed -i -E 's#(android:name="[^"]*MainActivity")#\1 android:screenOrientation="sensorLandscape"#' $M
+          S=android/app/src/main/res/values/styles.xml
+          sed -i '/<style name="AppTheme.NoActionBar"/,/<\/style>/ s#</style>#<item name="android:windowFullscreen">true</item></style>#' $S
+          R=android/app/src/main/res
+          rm -rf $R/mipmap-anydpi-v26
+          for d in mdpi:48 hdpi:72 xhdpi:96 xxhdpi:144 xxxhdpi:192; do
+            n=${d%%:*}; s=${d##*:}
+            for f in ic_launcher ic_launcher_round ic_launcher_foreground; do
+              convert icons/icon-512.png -resize ${s}x${s} $R/mipmap-$n/$f.png
+            done
+          done
+          grep -n "Orientation" $M; grep -n Fullscreen $S
+      - name: Compilar APK
+        working-directory: android
+        run: ./gradlew assembleDebug --no-daemon
+      - uses: actions/upload-artifact@v4
+        with:
+          name: SaiyanLegends-APK
+          path: android/app/build/outputs/apk/debug/app-debug.apk
