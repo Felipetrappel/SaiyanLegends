@@ -1,0 +1,8 @@
+{
+  "name": "saiyan-legends-server",
+  "version": "1.0.0",
+  "description": "Servidor de salas multiplayer do Saiyan Legends Online (sem dependências)",
+  "main": "server.js",
+  "scripts": { "start": "node server.js" },
+  "engines": { "node": ">=18" }
+}
