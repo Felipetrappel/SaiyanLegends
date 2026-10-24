@@ -4,6 +4,12 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Saiyan Legends Online</title>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#12002a">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
 <link rel="stylesheet" href="css/main-menu.css">
 </head>
 <body>
@@ -22,5 +28,6 @@
 <script src="js/main-menu.js"></script>
 <script src="js/room-screens.js"></script>
 <script src="js/audio.js"></script>
+<script>if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));</script>
 </body>
 </html>
