@@ -145,7 +145,7 @@ function stageScreen(p, loaded) {
   const cv = el('canvas'), hud = el('div', 'hud'); p.append(cv, hud);
   const scene = new SL.GameScene(cv, loaded, rooms.room.players, rooms.me.id, { authority: () => rooms.isHost, net: { send: d => rooms.send(d) } }); scene.attachControls(p);   // multiplayer: posições/golpes vão pelo servidor
   hud.append(el('span', 'hudtitle', { textContent: 'MAP: ' + mapName(rooms.room.map) }),
-    S.btn('DEBUG (F3)', e => { scene.toggleDebug(); e.currentTarget.blur(); }, true));
+    S.btn('CONTROLES', e => { scene.toggleEdit(); e.currentTarget.blur(); }, true), S.btn('DEBUG (F3)', e => { scene.toggleDebug(); e.currentTarget.blur(); }, true));
   const endBtn = hud.appendChild(S.btn('END MATCH', e => { e.currentTarget.blur(); rooms.finishGame().catch(() => {}); })), who = el('span', 'hudtitle');
   hud.append(who, S.btn('LEAVE ROOM', leave, true));
   const upd = r => { if (r.state !== 'IN_GAME') return S.open('lobby'); scene.syncRoster(r.players); endBtn.style.display = rooms.isHost ? '' : 'none'; who.textContent = rooms.room.name + ' · ' + r.players.length + '/' + r.maxPlayers; };   // host pode mudar (criador saiu)

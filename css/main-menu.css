@@ -101,3 +101,19 @@ html,body{height:100%;margin:0;overflow:hidden;background:var(--ink);color:#f6e9
 .optrow{text-align:left;color:var(--gold);font-weight:700;margin-bottom:2px}
 .optval{display:block;margin:0 0 16px;color:#e4d3fb}
 .hud .hudmute{padding:6px 12px;min-width:44px}
+
+/* Personalizar controles (js/controls-editor.js) */
+.ctl.custom{top:0;padding:0}
+.ctl.custom .move,.ctl.custom .acts{display:contents}
+.ctl.custom .cbtn{position:absolute;margin:calc(var(--s)/-2) 0 0 calc(var(--s)/-2);opacity:var(--op,.9)}
+.ctl.custom .move{--s:clamp(54px,13vmin,96px)}
+.ctl.editing .cbtn{outline:2px dashed rgba(255,211,77,.55);outline-offset:2px;cursor:grab}
+.ctl.editing .cbtn.sel{outline:3px solid #ffd34d;box-shadow:0 0 12px rgba(255,211,77,.8)}
+.cedit{position:absolute;z-index:8;top:50%;left:50%;transform:translate(-50%,-50%);width:min(60vw,340px);max-height:88%;overflow:auto;padding:8px 10px;border:2px solid var(--gold);border-radius:8px;background:rgba(14,3,36,.93);color:#fff;font:600 12px/1.25 system-ui,sans-serif;text-align:left;touch-action:manipulation}
+.cedit .chead{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:4px;color:var(--gold)}
+.cedit .chint{margin:0 0 4px;color:#cdb8f5;font-size:11px}
+.cedit .crow{display:grid;grid-template-columns:92px 1fr 40px;gap:6px;align-items:center;margin:2px 0}
+.cedit .crow em{font-style:normal;text-align:right;color:var(--gold)}
+.cedit input[type=range]{width:100%;margin:0;accent-color:var(--gold)}
+.cedit .pbtn{padding:5px 10px;font-size:12px}
+.cedit>.pbtn{margin-top:4px;width:100%}

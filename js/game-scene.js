@@ -74,7 +74,7 @@ class GameScene {
   input() { // teclado + botões na tela; ações de um toque (voar/poder) chegam como "pressed"
     const P = this.pad, N = this.pend, inp = { left: this.held('left') || P.left, right: this.held('right') || P.right, up: this.held('up') || P.jump || N.jump, down: this.held('down'), guard: !!P.guard, meditate: this.held('meditate') || !!P.meditate,
       pressed: { attack: this.held('attack') || P.attack || N.attack, fly: N.fly, power: N.power, transform: N.transform, special: N.special, barrage: N.barrage, sun: N.sun } };
-    this.pend = {}; return inp;
+    this.pend = {}; if (this.editing) { inp.left = inp.right = inp.up = inp.guard = inp.meditate = false; for (const k in inp.pressed) inp.pressed[k] = false; } return inp;
   }
   /* Controles na tela com os PNGs recortados das imagens enviadas (assets/ui/pad): só as setas ← e → à esquerda; à direita a grade 3×3:
      Z · especial · escudo / rosa · azul(poder) · punho / amarelo · meditar · BOTA. A BOTA é o PULAR (segure = sobe) e o toque duplo liga/desliga o VOO. */
@@ -84,7 +84,7 @@ class GameScene {
       const img = Object.assign(document.createElement('img'), { src, alt: '', draggable: false }); if (o.rot) img.style.transform = `rotate(${o.rot}deg)`; b.append(img);
       if (o.text) b.append(Object.assign(document.createElement('span'), { className: 'lbl', textContent: o.text }));
       if (o.fill) b.append(Object.assign(document.createElement('i'), { className: 'fill' }));
-      b.addEventListener('pointerdown', e => { e.preventDefault(); try { b.setPointerCapture(e.pointerId); } catch (_) {} b.classList.add('on'); this.pend[key] = true;
+      b.addEventListener('pointerdown', e => { if (this.editing) return; e.preventDefault(); try { b.setPointerCapture(e.pointerId); } catch (_) {} b.classList.add('on'); this.pend[key] = true;
         if (o.dbl) { const t = performance.now(); if (t - (b._tap || -1e9) < 320) { this.pend[o.dbl] = true; b._tap = -1e9; } else b._tap = t; }   // toque duplo: liga/desliga o voo
         if (mode === 'hold') this.pad[key] = true; });   // o toque rápido também conta (dura menos que 1 quadro)
       ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(n => b.addEventListener(n, () => { b.classList.remove('on'); if (mode === 'hold') this.pad[key] = false; }));
@@ -100,6 +100,7 @@ class GameScene {
     const bars = document.createElement('div'); bars.className = 'bars';
     bars.innerHTML = '<div class="meters"><div class="bar hp"><i></i><b>HP</b></div><div class="bar en"><i></i><b>EN</b></div></div>';
     bars.prepend(SL.Characters.portrait(this.me.player.character, 1)); host.append(bars, root);
+    if (this.initCustomize) this.initCustomize(root, host);   // controles personalizáveis (js/controls-editor.js)
     this.ui = { hp: bars.querySelector('.hp i'), en: bars.querySelector('.en i'), power, z, sp, pk, yl, md, bt };
   }
   resize() {
