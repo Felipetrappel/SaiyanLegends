@@ -99,11 +99,11 @@ if (M) {
 
 /* botão 🔊 no HUD da partida (os controles de toque ficam livres) */
 function addHudButton() {
-  const hud = document.querySelector('.stage .hud'); if (!hud || hud.querySelector('.hudmute')) return;
+  const hud = document.querySelector('.stage .gbtns') || document.querySelector('.stage .hud'); if (!hud || hud.querySelector('.hudmute')) return;
   const b = Object.assign(document.createElement('button'), { type: 'button', className: 'pbtn ghost hudmute' });
-  const sync = () => { b.textContent = state.muted ? '🔇' : '🔊'; b.setAttribute('aria-label', state.muted ? 'Ativar som' : 'Silenciar'); };
+  const sync = () => { b.textContent = state.muted ? '🔇 SOM DESLIGADO' : '🔊 SOM LIGADO'; b.setAttribute('aria-label', state.muted ? 'Ativar som' : 'Silenciar'); };
   b.onclick = e => { api.toggleMute(); e.currentTarget.blur(); }; sync(); api.on('change', sync);
-  hud.insertBefore(b, hud.children[1] || null);
+  hud.insertBefore(b, hud.children[0] || null);
 }
 
 /* tecla M liga/desliga o som */

@@ -144,14 +144,18 @@ function stageScreen(p, loaded) {
   p.classList.add('stage');
   const cv = el('canvas'), hud = el('div', 'hud'); p.append(cv, hud);
   const scene = new SL.GameScene(cv, loaded, rooms.room.players, rooms.me.id, { authority: () => rooms.isHost, net: { send: d => rooms.send(d) } }); scene.attachControls(p);   // multiplayer: posições/golpes vão pelo servidor
-  hud.append(el('span', 'hudtitle', { textContent: 'MAP: ' + mapName(rooms.room.map) }),
-    S.btn('CONTROLES', e => { scene.toggleEdit(); e.currentTarget.blur(); }, true), S.btn('DEBUG (F3)', e => { scene.toggleDebug(); e.currentTarget.blur(); }, true));
-  const endBtn = hud.appendChild(S.btn('END MATCH', e => { e.currentTarget.blur(); rooms.finishGame().catch(() => {}); })), who = el('span', 'hudtitle');
-  hud.append(who, S.btn('LEAVE ROOM', leave, true));
+  /* Um único botão ⚙ no topo; tudo o mais (som, controles, debug, encerrar, sair) fica dentro do menu dele */
+  const gear = el('button', 'pbtn ghost gear', { type: 'button', textContent: '⚙', title: 'Menu', ariaLabel: 'Menu da partida' }), menu = el('div', 'gmenu'), list = el('div', 'gbtns'),
+    who = el('div', 'ginfo'), closeMenu = () => menu.classList.remove('open'), item = (label, fn, ghost = true) => S.btn(label, e => { e.currentTarget.blur(); fn(e); }, ghost);
+  const endBtn = item('END MATCH', () => { closeMenu(); rooms.finishGame().catch(() => {}); }, false);
+  list.append(item('CONTROLES', () => { closeMenu(); scene.toggleEdit(); }), item('DEBUG (F3)', () => { closeMenu(); scene.toggleDebug(); }), endBtn, item('LEAVE ROOM', () => { closeMenu(); leave(); }), item('FECHAR', closeMenu));
+  menu.append(el('div', 'ginfo', { textContent: 'MAP: ' + mapName(rooms.room.map) }), who, list); p.append(menu); hud.append(gear);
+  gear.onclick = e => { e.currentTarget.blur(); menu.classList.toggle('open'); };
+  const outside = e => { if (menu.classList.contains('open') && !menu.contains(e.target) && e.target !== gear) closeMenu(); }; document.addEventListener('pointerdown', outside, true);
   const upd = r => { if (r.state !== 'IN_GAME') return S.open('lobby'); scene.syncRoster(r.players); endBtn.style.display = rooms.isHost ? '' : 'none'; who.textContent = rooms.room.name + ' · ' + r.players.length + '/' + r.maxPlayers; };   // host pode mudar (criador saiu)
   const closed = () => S.close(), data = e => scene.onNet(e.from, e.data);
   rooms.on('room:update', upd); rooms.on('room:closed', closed); rooms.on('net:data', data); upd(rooms.room);
-  return () => { scene.destroy(); rooms.off('room:update', upd); rooms.off('room:closed', closed); rooms.off('net:data', data); };
+  return () => { scene.destroy(); rooms.off('room:update', upd); rooms.off('room:closed', closed); rooms.off('net:data', data); document.removeEventListener('pointerdown', outside, true); };
 }
 
 S.register('game', { sticky: true, noFocus: true, build(p) {
