@@ -149,10 +149,12 @@ function stageScreen(p, loaded) {
     who = el('div', 'ginfo'), closeMenu = () => menu.classList.remove('open'), item = (label, fn, ghost = true) => S.btn(label, e => { e.currentTarget.blur(); fn(e); }, ghost);
   const endBtn = item('END MATCH', () => { closeMenu(); rooms.finishGame().catch(() => {}); }, false);
   list.append(item('CONTROLES', () => { closeMenu(); scene.toggleEdit(); }), item('DEBUG (F3)', () => { closeMenu(); scene.toggleDebug(); }), endBtn, item('LEAVE ROOM', () => { closeMenu(); leave(); }), item('FECHAR', closeMenu));
-  menu.append(el('div', 'ginfo', { textContent: 'MAP: ' + mapName(rooms.room.map) }), who, list); p.append(menu); hud.append(gear);
+  const plist = el('div', 'gplayers'), vrow = el('label', 'gvol'), vol = el('input', '', { type: 'range', min: 0, max: 100, step: 1 }), vval = el('em'), AU = window.SaiyanAudio;
+  if (AU) { const sync = () => { vol.value = Math.round(AU.state.volume * 100); vval.textContent = AU.state.muted ? 'mudo' : vol.value + '%'; }; vol.addEventListener('input', () => { AU.setVolume(vol.value / 100); if (AU.state.muted && vol.value > 0) AU.setMuted(false); }); AU.on('change', sync); sync(); vrow.append(el('span', '', { textContent: 'Volume' }), vol, vval); }
+  menu.append(el('div', 'ginfo', { textContent: 'MAP: ' + mapName(rooms.room.map) }), who, plist, vrow, list); p.append(menu); hud.append(gear);
   gear.onclick = e => { e.currentTarget.blur(); menu.classList.toggle('open'); };
   const outside = e => { if (menu.classList.contains('open') && !menu.contains(e.target) && e.target !== gear) closeMenu(); }; document.addEventListener('pointerdown', outside, true);
-  const upd = r => { if (r.state !== 'IN_GAME') return S.open('lobby'); scene.syncRoster(r.players); endBtn.style.display = rooms.isHost ? '' : 'none'; who.textContent = rooms.room.name + ' · ' + r.players.length + '/' + r.maxPlayers; };   // host pode mudar (criador saiu)
+  const upd = r => { if (r.state !== 'IN_GAME') return S.open('lobby'); scene.syncRoster(r.players); endBtn.style.display = rooms.isHost ? '' : 'none'; who.textContent = rooms.room.name + ' · Jogadores ' + r.players.length + '/' + r.maxPlayers; plist.textContent = r.players.map(x => (x.name || '?') + (x.id === r.hostId ? ' ★' : '') + (x.bot ? ' (bot)' : '')).join(' · '); };   // host pode mudar (criador saiu)
   const closed = () => S.close(), data = e => scene.onNet(e.from, e.data);
   rooms.on('room:update', upd); rooms.on('room:closed', closed); rooms.on('net:data', data); upd(rooms.room);
   return () => { scene.destroy(); rooms.off('room:update', upd); rooms.off('room:closed', closed); rooms.off('net:data', data); document.removeEventListener('pointerdown', outside, true); };

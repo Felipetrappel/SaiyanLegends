@@ -127,3 +127,6 @@ html,body{height:100%;margin:0;overflow:hidden;background:var(--ink);color:#f6e9
 .ginfo{color:var(--gold);font-weight:700;font-size:13px;line-height:1.3;text-align:left}
 .gbtns{display:grid;grid-template-columns:1fr 1fr;gap:6px}
 .gbtns .pbtn{width:100%;padding:8px 10px;font-size:13px}
+.gplayers{font-size:12px;line-height:1.35;color:#e9ddff;text-align:left}
+.gvol{display:grid;grid-template-columns:60px 1fr 44px;gap:6px;align-items:center;font:600 12px system-ui,sans-serif;color:#fff}
+.gvol input{width:100%;margin:0;accent-color:var(--gold)}.gvol em{font-style:normal;text-align:right;color:var(--gold)}
