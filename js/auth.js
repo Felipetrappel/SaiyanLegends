@@ -1,4 +1,4 @@
-/* Conta do jogador: cadastro com código enviado ao Gmail, login com senha, sair. Fala com /api/auth/* do servidor (server/auth.js).
+/* Conta do jogador: cadastro com NOME e SENHA, login, sair. Fala com /api/auth/* do servidor (server/auth.js).
  * Quando o servidor exige login (REQUIRE_LOGIN=1), as telas online (CONNECT, CREATE ROOM, CODE, ROOM LIST) pedem a conta antes.
  * A conta fica salva neste aparelho (localStorage 'sl.account'); o id do jogador passa a ser o da conta (o mesmo em qualquer aparelho). */
 (() => {
@@ -27,9 +27,8 @@ const Auth = {
     try { cfg = await api('config'); } catch (_) { /* servidor fora do ar: o modo offline já avisa */ }
     if (acct) { try { const m = await api('me', { token: acct.token }); acct.name = m.name; localStorage.setItem(KEY, JSON.stringify(acct)); } catch (e) { if (e.status === 401) { localStorage.removeItem(KEY); acct = null; if (!sessionStorage.getItem('sl_authfix')) { sessionStorage.setItem('sl_authfix', '1'); location.reload(); } } } }
   },
-  sendCode: (email, purpose) => api('code', { email, purpose }),
-  async finish(d) { try { localStorage.setItem(KEY, JSON.stringify({ token: d.token, pid: d.pid, name: d.name, email: d.email })); sessionStorage.removeItem('sl_authfix'); } catch (_) {} },
-  register: b => api('register', b), login: b => api('login', b), reset: b => api('reset', b),
+  async finish(d) { try { localStorage.setItem(KEY, JSON.stringify({ token: d.token, pid: d.pid, name: d.name })); sessionStorage.removeItem('sl_authfix'); } catch (_) {} },
+  register: b => api('register', b), login: b => api('login', b),
   async logout() { const t = Auth.token(); try { await api('logout', { token: t }); } catch (_) {} try { localStorage.removeItem(KEY); sessionStorage.removeItem('sl_pid'); } catch (_) {} location.reload(); }
 };
 SL.Auth = Auth; Auth.ready = Auth.init();
