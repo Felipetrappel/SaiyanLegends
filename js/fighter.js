@@ -231,9 +231,10 @@ class Fighter {
     if (this.form > 0 && (this.form -= dt) <= 0) this.endForm();                                        // a transformação acaba sozinha
     if (Math.abs(this.kb) > 5) { b.moveX(this.kb * dt); this.kb *= Math.pow(.001, dt); } else this.kb = 0;   // recuo (respeita a colisão)
     const dir = (inp.right ? 1 : 0) - (inp.left ? 1 : 0);
+    if (inp.flyHold !== undefined) b.flying = !!inp.flyHold;   // VOAR = segurar: enquanto segura, voa; soltou, a gravidade volta
     if (!this.busy) {
       if (dir) this.face = dir;
-      if (p.fly) b.flying = !b.flying;                                                                      // VOAR liga/desliga; ao desligar a gravidade volta
+      if (p.fly && inp.flyHold === undefined) b.flying = !b.flying;   // bots: ainda alternam; jogadores usam SEGURAR (flyHold)                                                                      // VOAR liga/desliga; ao desligar a gravidade volta
       if (p.power && this.powerReady) { this.energy -= this.powerCost; this.set(this.def.cast ? 'cast' : 'charge'); }   // 1) CHARGE
       else if (p.transform && this.form) { this.endForm(); this.acd.transform = ABIL.transform.cd; }      // Z de novo: volta ao normal
       else if (p.transform && this.can('transform')) { this.energy -= ABIL.transform.cost; this.set('transform'); }
