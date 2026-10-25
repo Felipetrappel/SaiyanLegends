@@ -24,6 +24,7 @@ const toLobby = box => p => attempt(box, p.then(() => S.open('lobby')));
 function nameField(p) {
   const i = el('input', '', { value: rooms.me.name, maxLength: 16, placeholder: 'Your name' });
   i.setAttribute('aria-label', 'Your name'); i.addEventListener('input', () => rooms.setName(i.value)); p.append(i);
+  if (SL.Auth && SL.Auth.user) { i.value = SL.Auth.user.name; i.readOnly = true; i.title = 'Apelido da sua conta'; }
 }
 
 /* Linha de estado da conexão: deixa claro se há servidor online ou se está no modo offline (salas só neste navegador). */

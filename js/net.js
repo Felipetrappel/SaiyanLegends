@@ -42,7 +42,7 @@ class RemoteRoomService extends Emitter {
   }
   _reconnect() { clearTimeout(this._rt); this._rt = setTimeout(() => this._open(null, null), Math.min(5000, 500 * 2 ** this.retry++)); }
   async _hello() {
-    const r = await this._req('hello', { pid: this.ident.pid, token: this.ident.token, name: this.ident.name }, true);
+    const r = await this._req('hello', { pid: this.ident.pid, token: this.ident.token, name: this.ident.name, auth: SL.Auth ? SL.Auth.token() : '' }, true);
     this.ident.token = r.token; this.ident.save('token', r.token); this.online = true; this.lastMsg = Date.now();
     clearInterval(this._ka); this._ka = setInterval(() => { // keepalive: sem resposta por 25s = conexão morta → reconecta
       if (!this.online) return; if (Date.now() - this.lastMsg > 25000) { try { this.ws.close(); } catch (_) {} return; } this._raw({ op: 'ping' }); }, 8000);

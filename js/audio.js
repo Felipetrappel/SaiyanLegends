@@ -91,7 +91,7 @@ if (M) {
     vol.addEventListener('input', () => { api.setVolume(vol.value / 100); if (state.muted && vol.value > 0) api.setMuted(false); });
     p.append(el('h2', '', { textContent: 'Opções' }), el('div', 'optrow', { innerHTML: '<span>Música</span>' }), vol, val,
       el('div', 'row', {}), );
-    p.lastChild.append(mute, S.btn('Voltar', () => S.close(), true));
+    p.lastChild.append(mute, ...(window.SL && SL.Auth ? [S.btn(SL.Auth.user ? '👤 ' + SL.Auth.user.name : '👤 Conta', () => S.open('account'), true)] : []), S.btn('Voltar', () => S.close(), true));
     api.on('change', sync); sync();
     return () => api.off('change', sync);
   } });

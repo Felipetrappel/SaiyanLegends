@@ -20,6 +20,7 @@ const ORIGINS = (process.env.ORIGINS || '').split(',').map(s => s.trim()).filter
 const SERVE_STATIC = process.env.STATIC !== '0', ROOT = path.resolve(__dirname, '..');
 const MAPS = ['forest'], MAX_PLAYERS = 8, MIN_TO_START = 1, MAX_PAYLOAD = 16 * 1024;
 const log = (...a) => console.log(new Date().toISOString().slice(11, 19), ...a);
+const AUTH = require('./auth').create(log);   // contas (cadastro por e-mail do Gmail); só obrigatório com REQUIRE_LOGIN=1
 
 /* ───────────────────────── WebSocket mínimo (RFC 6455) ───────────────────────── */
 const GUID = '258EAFA5-E914-47DA-95CA-C5AB0DC85B11';
@@ -116,7 +117,7 @@ const need = (s, host) => {
 };
 const inState = (r, ...ok) => { if (!ok.includes(r.state)) throw E('Ação indisponível agora (estado ' + r.state + ').'); };
 const newId = () => { let id; do id = String(100000 + crypto.randomInt(900000)); while (rooms.has(id)); return id; };
-const mkPlayer = (s, p) => ({ id: s.pid, name: clean(p && p.name, 16) || s.name || 'Player', bot: false, character: clean(p && p.character, 24) || 'street' });
+const mkPlayer = (s, p) => ({ id: s.pid, name: (s.acct ? s.name : clean(p && p.name, 16)) || s.name || 'Player', bot: false, character: clean(p && p.character, 24) || 'street' });
 
 const OPS = {
   list: () => ({ rooms: listAll() }),
@@ -161,14 +162,27 @@ function relay(s, m) { // retransmite para os OUTROS jogadores da sala (nunca pa
 }
 
 function handle(ws, text, conn) {
+  /* Com contas: o hello precisa de um token válido (obrigatório se REQUIRE_LOGIN=1; se vier um token válido, a identidade é a da conta) */
+  if (!conn.authDone) {
+    let m0; try { m0 = JSON.parse(text); } catch (_) { return; }
+    if (m0 && m0.op === 'hello') {
+      return AUTH.verify(m0.auth).then(u => {
+        if (!u && AUTH.required) return ws.send(JSON.stringify({ id: m0.id, ok: false, error: 'Entre na sua conta para jogar online.', login: true }));
+        if (u) { m0.pid = u.pid; m0.name = u.name; m0.acct = true; }
+        handle(ws, JSON.stringify(m0), Object.assign(conn, { authDone: true }));
+      }).catch(() => ws.send(JSON.stringify({ id: m0.id, ok: false, error: 'Falha ao verificar a conta. Tente de novo.' })));
+    }
+  }
+  conn.authDone = false;
   if (++conn.rate.n > 200) { conn.rate.drops++; if (conn.rate.drops > 400) ws.close(1008); return; }   // anti-flood (200 msgs/s)
   let m; try { m = JSON.parse(text); } catch (_) { return; } if (!m || typeof m !== 'object') return;
   if (m.op === 'hello') {
     const pid = clean(m.pid, 40), tok = clean(m.token, 64);
     if (!/^[\w-]{8,40}$/.test(pid)) return ws.send(JSON.stringify({ id: m.id, ok: false, error: 'Identificação inválida.' }));
     let s = sessions.get(pid);
-    if (s && s.token !== tok) return ws.send(JSON.stringify({ id: m.id, ok: false, error: 'Identificação já em uso.' }));
+    if (s && s.token !== tok && !m.acct) return ws.send(JSON.stringify({ id: m.id, ok: false, error: 'Identificação já em uso.' }));
     if (!s) { s = { pid, token: crypto.randomBytes(16).toString('hex'), name: clean(m.name, 16) || 'Player', ws: null, roomId: null, timer: null }; sessions.set(pid, s); }
+    if (m.acct) { s.acct = true; s.name = clean(m.name, 16) || s.name; if (tok !== s.token) s.token = crypto.randomBytes(16).toString('hex'); } else if (s.acct) return ws.send(JSON.stringify({ id: m.id, ok: false, error: 'Identificação já em uso.' }));
     if (s.ws && s.ws !== ws && s.ws.open) { const old = s.ws; old.onclose = null; clients.delete(old); old.send(JSON.stringify({ push: 'replaced' })); old.close(4000); }   // mesma identidade em outra aba/conexão: a nova assume
     clearTimeout(s.timer); s.timer = null; s.ws = ws; conn.s = s;
     const r = s.roomId && rooms.get(s.roomId);
@@ -188,6 +202,7 @@ const MIME = { '.webmanifest': 'application/manifest+json', '.html': 'text/html;
 const server = http.createServer((req, res) => {
   const url = new URL(req.url, 'http://x'); let p;
   try { p = decodeURIComponent(url.pathname); } catch (_) { res.writeHead(400); return res.end(); }
+  if (AUTH.http(req, res, p)) return;
   if (p === '/healthz') { res.writeHead(200, { 'content-type': 'application/json', 'access-control-allow-origin': '*' }); return res.end(JSON.stringify({ ok: true, rooms: listAll().length, players: sessions.size })); }
   if (!SERVE_STATIC) { res.writeHead(404); return res.end('Not found'); }
   if (p.endsWith('/')) p += 'index.html';

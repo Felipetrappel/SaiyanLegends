@@ -28,6 +28,7 @@ function identity() {
   const mk = n => { const a = new Uint8Array(n); (window.crypto || {}).getRandomValues ? crypto.getRandomValues(a) : a.forEach((_, i) => { a[i] = Math.random() * 256; }); return [...a].map(x => x.toString(16).padStart(2, '0')).join(''); };
   let pid, token, name;
   try { pid = sessionStorage.getItem('sl_pid'); token = sessionStorage.getItem('sl_token'); name = sessionStorage.getItem('sl_name'); } catch (_) {}
+  try { const a = JSON.parse(localStorage.getItem('sl.account') || 'null'); if (a && a.pid && a.token) { pid = a.pid; name = a.name; } } catch (_) {}   // conta: o id e o apelido vêm dela
   if (!pid) { pid = 'u' + mk(10); try { sessionStorage.setItem('sl_pid', pid); } catch (_) {} }
   return { pid, token: token || '', name: name || '', save(k, v) { try { sessionStorage.setItem('sl_' + k, v); } catch (_) {} } };
 }
