@@ -226,7 +226,7 @@ class Fighter {
     if (this.kiRate !== 1 && (this.state === 'charge' || this.state === 'cast')) this.t += dt * (this.kiRate - 1);   // bots: escala o tempo de carregar Ki
     this.comboT = Math.max(0, this.comboT - dt); this.cd = Math.max(0, this.cd - dt); this.pcd = Math.max(0, this.pcd - dt); this.flash = Math.max(0, this.flash - dt);
     if (this.dead) { this.rt -= dt; if (this.rt <= 0) this.respawn(); return; }
-    this.energy = Math.min(CFG.energy, this.energy + CFG.regen * (this.form ? ABIL.form.regen : 1) * dt);
+    if (this.bot || this.dummy) this.energy = Math.min(CFG.energy, this.energy + CFG.regen * (this.form ? ABIL.form.regen : 1) * dt);   // Ki NÃO recarrega sozinho: o jogador carrega na mão (botão MEDITAR / tecla M). Só bots e o boneco de treino recarregam sozinhos.
     for (const k in this.acd) if (this.acd[k] > 0) this.acd[k] -= dt;
     if (this.form > 0 && (this.form -= dt) <= 0) this.endForm();                                        // a transformação acaba sozinha
     if (Math.abs(this.kb) > 5) { b.moveX(this.kb * dt); this.kb *= Math.pow(.001, dt); } else this.kb = 0;   // recuo (respeita a colisão)
@@ -257,10 +257,10 @@ class Fighter {
       else if (cs.seg.fire && !this.fired) { this.fired = true; const h = this.hand(this.castFrame(cs)); this.launch(world, new Shot(this, this.def.cast, h.x, h.y, this.face), { t: 'shot', x: h.x, y: h.y }); }
     }
     else if (this.state === 'transform') {                                                                       // Z: aura (anim. de carregar) → ganha a forma
-      if (this.t >= 1) { this.form = ABIL.form.dur; this.dmgMul *= ABIL.form.dmg; b.speed = this.baseSpeed * ABIL.form.speed; this.acd.transform = ABIL.transform.cd; (world.effects ||= []).push(new Ring(this.def, b.x, b.y - 20, 8, 70, .4, '#ffd34d')); this.set('idle'); }
+      if (this.t >= .05) { this.form = ABIL.form.dur; this.dmgMul *= ABIL.form.dmg; b.speed = this.baseSpeed * ABIL.form.speed; this.acd.transform = ABIL.transform.cd; (world.effects ||= []).push(new Ring(this.def, b.x, b.y - 20, 8, 70, .4, '#ffd34d')); this.set('idle'); }
     }
     else if (this.state === 'meditate') {                                                                       // meditar: segura para recarregar Ki
-      if (!inp.meditate || !b.grounded || this.energy >= CFG.energy) this.set('idle'); else this.energy = Math.min(CFG.energy, this.energy + ABIL.meditateRate * dt);
+      if (!inp.meditate || !b.grounded || this.energy >= CFG.energy) this.set('idle'); else this.energy = Math.min(CFG.energy, this.energy + ABIL.meditateRate * (this.form ? ABIL.form.regen : 1) * dt);
     }
     else if (this.state === 'hurt') { if (this.t >= .26) this.set('idle'); }                                     // reação ao golpe (só quem tem os quadros)
     else if (this.state === 'hurtH') { if (this.t >= .44) this.set('idle'); }
@@ -275,17 +275,17 @@ class Fighter {
       }
     }
     else if (this.state === 'burst') {                                                                          // botão sem símbolo: onda de impacto nos dois lados
-      if (!this.fired && this.t >= .25) { this.fired = true; const c = this.chest(); (world.effects ||= []).push(new Ring(this.def, b.x, c.y, 10, 72, .3, '#9fd8ff'));
+      if (!this.fired) { this.fired = true; const c = this.chest(); (world.effects ||= []).push(new Ring(this.def, b.x, c.y, 10, 72, .3, '#9fd8ff'));
         for (const f of world.fighters) if (f !== this && !f.dead && Math.abs(f.body.x - b.x) <= 72 && Math.abs(f.body.y - b.y) <= 50) f.hurt(18 * this.dmgMul, f.body.x >= b.x ? 1 : -1, 320); }
-      if (this.t >= .5) { this.acd.burst = ABIL.burst.cd; this.set('idle'); }
+      if (this.t >= .3) { this.acd.burst = ABIL.burst.cd; this.set('idle'); }
     }
     else if (this.state === 'barrage') {                                                                        // energia rosa: 3 esferas rápidas
-      if (this.shots < 3 && this.t >= .1 + this.shots * .15) { this.shots++; const c = this.muzzle(); this.launch(world, new KiBall(this, c.x, c.y, this.face, { r: 4, speed: 520, range: 420, dmg: 8, kb: 90, pal: PAL.pink }), { t: 'ball', x: c.x, y: c.y, o: { r: 4, speed: 520, range: 420, dmg: 8, kb: 90, pal: 'pink' } }); }
-      if (this.t >= .6) { this.acd.barrage = ABIL.barrage.cd; this.set('idle'); }
+      if (this.shots < 3 && this.t >= this.shots * .1) { this.shots++; const c = this.muzzle(); this.launch(world, new KiBall(this, c.x, c.y, this.face, { r: 4, speed: 520, range: 420, dmg: 8, kb: 90, pal: PAL.pink }), { t: 'ball', x: c.x, y: c.y, o: { r: 4, speed: 520, range: 420, dmg: 8, kb: 90, pal: 'pink' } }); }
+      if (this.t >= .35) { this.acd.barrage = ABIL.barrage.cd; this.set('idle'); }
     }
     else if (this.state === 'sun') {                                                                            // energia amarela: carrega na mão e lança uma esfera grande
-      if (!this.fired && this.t >= .6) { this.fired = true; const c = this.muzzle(); this.launch(world, new KiBall(this, c.x, c.y, this.face, { r: 10, speed: 340, range: 520, dmg: 38, kb: 300, pal: PAL.yellow }), { t: 'ball', x: c.x, y: c.y, o: { r: 10, speed: 340, range: 520, dmg: 38, kb: 300, pal: 'yellow' } }); }
-      if (this.t >= .85) { this.acd.sun = ABIL.sun.cd; this.set('idle'); }
+      if (!this.fired) { this.fired = true; const c = this.muzzle(); this.launch(world, new KiBall(this, c.x, c.y, this.face, { r: 10, speed: 340, range: 520, dmg: 38, kb: 300, pal: PAL.yellow }), { t: 'ball', x: c.x, y: c.y, o: { r: 10, speed: 340, range: 520, dmg: 38, kb: 300, pal: 'yellow' } }); }
+      if (this.t >= .3) { this.acd.sun = ABIL.sun.cd; this.set('idle'); }
     }
     else if (this.state === 'energy') {
       if (!this.fired && this.t >= CFG.power.fireAt) { this.fired = true; const h = this.hand(frameAt(this.def, 'energy', this.t)); this.launch(world, new Beam(this, h.x, h.y, this.face), { t: 'beam', x: h.x, y: h.y }); } // solta da mão estendida // 4) projétil
