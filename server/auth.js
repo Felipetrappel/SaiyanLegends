@@ -47,7 +47,7 @@ setInterval(() => { const now = Date.now(); for (const [k, a] of hits) if (!a.so
 function create(log = console.log) {
   const store = makeStore();
   if (REQUIRED) log('contas: login obrigatório · armazenamento=' + store.name + (store.name === 'file' ? ' (ATENÇÃO: no Render grátis o arquivo some ao reiniciar; use STORE=supabase)' : ''));
-  const validPw = p => typeof p === 'string' && p.length >= 8 && p.length <= 64;
+  const validPw = p => typeof p === 'string' && p.length >= 5 && p.length <= 64;
   async function newSession(u) {
     const secret = crypto.randomBytes(24).toString('hex'); u.sessions = (u.sessions || []).filter(s => s.exp > Date.now()).slice(-(MAX_SESSIONS - 1)); u.sessions.push({ h: sha(secret), exp: Date.now() + SESSION_TTL });
     await store.put(u.id, u); return u.id + '.' + secret;
@@ -62,7 +62,7 @@ function create(log = console.log) {
   const routes = {
     async register(b, ip) {
       const name = validName(b.name); if (!name) throw E('Nome: 3 a 16 letras, números, _ . ou - (sem espaços).');
-      if (!validPw(b.password)) throw E('A senha precisa ter de 8 a 64 caracteres.');
+      if (!validPw(b.password)) throw E('A senha precisa ter pelo menos 5 caracteres.');
       if (!limit('reg:' + ip, 10, 36e5)) throw E('Muitos cadastros deste aparelho. Tente mais tarde.', 429);
       const id = userId(name); if (await store.get(id)) throw E('Esse nome já está em uso. Escolha outro.');
       const u = { id, name, pw: await hashPw(b.password), created: Date.now(), sessions: [] };

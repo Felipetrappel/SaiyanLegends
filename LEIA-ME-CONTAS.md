@@ -1,6 +1,6 @@
 # Contas (nome + senha)
 
-Como funciona: a pessoa escolhe **nome de usuário** (3 a 16: letras, números, `_` `.` `-`) e **senha** (mín. 8) → conta criada. Depois entra com nome + senha, em qualquer aparelho. O nome da conta é o nome que aparece nas salas. Não usa e-mail, então **não existe "esqueci a senha"** (quem perder a senha precisa criar outra conta).
+Como funciona: a pessoa escolhe **nome de usuário** (3 a 16: letras, números, `_` `.` `-`) e **senha** (mín. 5) → conta criada. Depois entra com nome + senha, em qualquer aparelho. O nome da conta é o nome que aparece nas salas. Não usa e-mail, então **não existe "esqueci a senha"** (quem perder a senha precisa criar outra conta).
 
 > Enquanto você **não** colocar `REQUIRE_LOGIN=1` no Render, o jogo continua aberto como antes (sem login). A tela de conta fica em **Opções → Conta**.
 
