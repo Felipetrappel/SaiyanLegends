@@ -58,7 +58,7 @@ class CollisionMask {
 /* Corpo com collider retangular (x = centro, y = pés). Colisão por eixo, pixel a pixel (sem túnel). */
 class Body {
   constructor(mask, x, y, o = {}) {
-    Object.assign(this, { mask, x, y, w: 20, h: 38, vx: 0, vy: 0, speed: 240, jumpV: 700, g: 2000, maxFall: 1200, stepUp: 6, flying: false, flySpeed: 170, grounded: false, hit: null, pushed: null }, o);
+    Object.assign(this, { mask, x, y, w: 20, h: 38, vx: 0, vy: 0, speed: 240, jumpV: 700, g: 2000, maxFall: 1200, stepUp: 6, flying: false, flySpeed: 230, grounded: false, hit: null, pushed: null }, o);
   }
   /* true se o retângulo inteiro do corpo (não só um ponto) cabe em (x, y). */
   free(x = this.x, y = this.y) {
@@ -111,10 +111,14 @@ class Body {
   step(dt, inp = {}) {
     if (this.hit) this.hit.age++;
     this.depenetrate();
-    this.vx = ((inp.right ? 1 : 0) - (inp.left ? 1 : 0)) * this.speed;
     this.grounded = !this.free(this.x, this.y + 1);
-    if (this.flying) this.vy = ((inp.down ? 1 : 0) - (inp.up ? 1 : 0)) * this.flySpeed;   // voo: sem gravidade, sobe/desce com input
-    else {
+    if (this.flying) {   // VOO LIVRE: sem gravidade, qualquer direção (analógico ax/ay, ou 8 direções digitais); diagonal não é mais rápida
+      let ax = (inp.right ? 1 : 0) - (inp.left ? 1 : 0), ay = (inp.down ? 1 : 0) - (inp.up ? 1 : 0);
+      if (inp.ax !== undefined) { ax = inp.ax; ay = inp.ay || 0; }
+      const len = Math.hypot(ax, ay); if (len > 1) { ax /= len; ay /= len; }
+      this.vx = ax * this.flySpeed; this.vy = ay * this.flySpeed;
+    } else {
+      this.vx = ((inp.right ? 1 : 0) - (inp.left ? 1 : 0)) * this.speed;
       if (inp.jump && this.grounded) { this.vy = -this.jumpV; this.grounded = false; }
       this.vy = Math.min(this.vy + this.g * dt, this.maxFall);
     }

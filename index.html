@@ -11,9 +11,24 @@
 <link rel="icon" href="icons/icon-192.png">
 <link rel="apple-touch-icon" href="icons/icon-192.png">
 <link rel="stylesheet" href="css/main-menu.css">
+<style>
+#loading{position:fixed;inset:0;z-index:99999;background:#07020f url(assets/ui/loading.jpg) center/cover no-repeat;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;padding:0 8vw calc(6vh + env(safe-area-inset-bottom,0px));transition:opacity .6s}
+#loading::before{content:"";position:absolute;inset:0;background:linear-gradient(transparent 55%,rgba(0,0,0,.78))}
+#loading.out{opacity:0;pointer-events:none}
+#loading b{position:relative;color:#fff;font:700 clamp(18px,4vmin,34px) system-ui,sans-serif;letter-spacing:.18em;text-shadow:0 0 12px #f80,0 2px 4px #000;margin-bottom:12px}
+#loading .bar{position:relative;width:min(560px,80vw);height:12px;border-radius:8px;background:rgba(0,0,0,.6);border:2px solid #ffd34d;overflow:hidden}
+#loading .bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,#ff7a00,#ffd34d);box-shadow:0 0 12px #ffb400;transition:width .25s}
+#loading small{position:relative;color:#fff9;margin-top:8px;font:12px system-ui,sans-serif}
+</style>
 </head>
 <body>
+<div id="loading"><b>SAIYAN LEGENDS ONLINE</b><div class="bar"><i></i></div><small>Carregando…</small></div>
 <div id="app"></div>
+<script>(function(){var el=document.getElementById('loading'),bar=el.querySelector('i'),t0=Date.now(),p=5,done=false;
+function set(v){p=Math.max(p,v);bar.style.width=p+'%'}
+var iv=setInterval(function(){if(!done)set(p+(90-p)*.06)},120);
+function finish(){if(done)return;done=true;clearInterval(iv);set(100);setTimeout(function(){el.classList.add('out');setTimeout(function(){el.remove()},700)},Math.max(300,1800-(Date.now()-t0)))}
+window.addEventListener('load',function(){setTimeout(finish,200)});setTimeout(finish,12000)})();</script>
 <script src="js/config.js"></script>
 <script src="js/room-system.js"></script>
 <script src="js/net.js"></script>

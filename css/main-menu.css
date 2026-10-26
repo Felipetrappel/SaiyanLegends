@@ -130,3 +130,8 @@ html,body{height:100%;margin:0;overflow:hidden;background:var(--ink);color:#f6e9
 .gplayers{font-size:12px;line-height:1.35;color:#e9ddff;text-align:left}
 .gvol{display:grid;grid-template-columns:60px 1fr 44px;gap:6px;align-items:center;font:600 12px system-ui,sans-serif;color:#fff}
 .gvol input{width:100%;margin:0;accent-color:var(--gold)}.gvol em{font-style:normal;text-align:right;color:var(--gold)}
+
+/* voo livre: analógico flutuante + bota acesa */
+.flystick{position:absolute;width:calc(var(--r,70px)*2);height:calc(var(--r,70px)*2);margin:calc(var(--r,70px)*-1) 0 0 calc(var(--r,70px)*-1);border-radius:50%;border:2px solid rgba(255,255,255,.45);background:rgba(120,200,255,.12);pointer-events:none;z-index:4}
+.flystick i{position:absolute;left:50%;top:50%;width:44%;height:44%;border-radius:50%;background:rgba(160,225,255,.65);box-shadow:0 0 14px #5cf;transform:translate(-50%,-50%)}
+.cbtn.on{filter:drop-shadow(0 0 8px #6cf) brightness(1.25)}
