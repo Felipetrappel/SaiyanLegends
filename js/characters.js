@@ -9,11 +9,22 @@ const DEFAULT = Object.keys(all)[0];   // personagem padrão = o primeiro dispon
 const KEY = 'sl.profile';
 const Profile = {
   selected: DEFAULT, unlocked: [DEFAULT],
+  xp: 0, gold: 0, silver: 0, gems: 0, _ls: [],            // nível e moedas: começam ZERADOS (ganhos reais: addXp / addCoins; gastos: spend)
+  /* nível = floor(√(xp/100)): Lv.1 com 100 XP, Lv.2 com 400, Lv.3 com 900… */
+  get level() { return Math.floor(Math.sqrt(this.xp / 100)); },
+  get levelProgress() { const L = this.level, a = 100 * L * L, b = 100 * (L + 1) * (L + 1); return Math.max(0, Math.min(1, (this.xp - a) / (b - a))); },
+  get power() { return Math.round(this.xp * 3 + this.level * 100); },
+  on(fn) { this._ls.push(fn); return () => { this._ls = this._ls.filter(f => f !== fn); }; },
+  _emit(why) { this._ls.slice().forEach(f => { try { f(why); } catch (e) {} }); },
+  addXp(n) { n = Math.max(0, Math.floor(+n || 0)); if (!n) return; const L = this.level; this.xp += n; this.save(); this._emit('xp'); if (this.level > L) this._emit('levelup'); },
+  addCoins(type, n) { n = Math.max(0, Math.floor(+n || 0)); if (!['gold', 'silver', 'gems'].includes(type) || !n) return; this[type] += n; this.save(); this._emit('coins'); },
+  spend(type, n) { n = Math.floor(+n || 0); if (!['gold', 'silver', 'gems'].includes(type) || n < 0 || this[type] < n) return false; this[type] -= n; this.save(); this._emit('coins'); return true; },
   isUnlocked(id) { return !!all[id] && (all[id].defaultUnlocked || this.unlocked.includes(id)); },
-  select(id) { if (!this.isUnlocked(id)) return false; this.selected = id; this.save(); return true; },
-  save() { try { localStorage.setItem(KEY, JSON.stringify({ selected: this.selected, unlocked: this.unlocked })); } catch (e) {} },
+  select(id) { if (!this.isUnlocked(id)) return false; this.selected = id; this.save(); this._emit('select'); return true; },
+  save() { try { localStorage.setItem(KEY, JSON.stringify({ selected: this.selected, unlocked: this.unlocked, xp: this.xp, gold: this.gold, silver: this.silver, gems: this.gems })); } catch (e) {} },
   load() { try { const d = JSON.parse(localStorage.getItem(KEY) || '{}'); if (Array.isArray(d.unlocked)) this.unlocked = d.unlocked.filter(id => all[id]);   // ignora ids de personagens que não existem mais
-    if (d.selected && this.isUnlocked(d.selected)) this.selected = d.selected; } catch (e) {} }
+    if (d.selected && this.isUnlocked(d.selected)) this.selected = d.selected;
+    for (const k of ['xp', 'gold', 'silver', 'gems']) if (Number.isFinite(d[k]) && d[k] > 0) this[k] = Math.floor(d[k]); } catch (e) {} }
 };
 Profile.load();
 const get = id => all[id] || pending[id] || all[DEFAULT];

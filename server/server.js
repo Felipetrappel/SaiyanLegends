@@ -119,7 +119,19 @@ const inState = (r, ...ok) => { if (!ok.includes(r.state)) throw E('Ação indis
 const newId = () => { let id; do id = String(100000 + crypto.randomInt(900000)); while (rooms.has(id)); return id; };
 const mkPlayer = (s, p) => ({ id: s.pid, name: (s.acct ? s.name : clean(p && p.name, 16)) || s.name || 'Player', bot: false, character: clean(p && p.character, 24) || 'street' });
 
+/* ── Chat global: um canal para todos os jogadores conectados (histórico curto só em memória; some quando o servidor reinicia) ── */
+const chatLog = []; let chatSeq = 0;
+function broadcast(o) { const out = JSON.stringify(o); for (const ws of clients) if (ws.open) { try { ws.send(out); } catch (_) {} } }
+function onlineCount() { let n = 0; for (const s of sessions.values()) if (s.ws && s.ws.open) n++; return n; }
+const pushOnline = () => broadcast({ push: 'online', n: onlineCount() });
+
 const OPS = {
+  chat(s, m) {
+    const text = clean(m.text, 120).replace(/\s+/g, ' ').trim(); if (!text) throw E('Escreva uma mensagem.');
+    const now = Date.now(); if (now - (s.lastChat || 0) < 700) throw E('Calma! Espere um instante para enviar de novo.'); s.lastChat = now;
+    const msg = { n: ++chatSeq, name: s.acct ? s.name : (clean(m.name, 16) || s.name), lv: Math.max(0, Math.min(999, m.lv | 0)), text, t: now };
+    chatLog.push(msg); if (chatLog.length > 30) chatLog.shift(); broadcast({ push: 'chat', msg }); return {};
+  },
   list: () => ({ rooms: listAll() }),
   create(s, m) {
     if (s.roomId && rooms.has(s.roomId)) throw E('Você já está em uma sala.');
@@ -188,7 +200,7 @@ function handle(ws, text, conn) {
     const r = s.roomId && rooms.get(s.roomId);
     if (s.roomId && !r) s.roomId = null;
     if (r) log(s.name, 'reconectou à sala', r.id);
-    return ws.send(JSON.stringify({ id: m.id, ok: true, pid, token: s.token, room: r ? snapshot(r) : null, rooms: listAll(), server: { maxPlayers: MAX_PLAYERS, maps: MAPS } }));
+    setImmediate(pushOnline); return ws.send(JSON.stringify({ id: m.id, ok: true, pid, token: s.token, room: r ? snapshot(r) : null, rooms: listAll(), online: onlineCount(), chat: chatLog, server: { maxPlayers: MAX_PLAYERS, maps: MAPS } }));
   }
   const s = conn.s; if (!s) return ws.send(JSON.stringify({ id: m.id, ok: false, error: 'Envie hello primeiro.' }));
   if (m.op === 'relay') return relay(s, m);
@@ -223,7 +235,7 @@ server.on('upgrade', (req, socket) => {
   clients.add(ws);
   const tick = setInterval(() => { conn.rate.n = 0; }, 1000);
   ws.onmessage = t => handle(ws, t, conn);
-  ws.onclose = () => { clearInterval(tick); clients.delete(ws); const s = conn.s; if (s && s.ws === ws) { s.ws = null; disconnected(s); } };
+  ws.onclose = () => { clearInterval(tick); clients.delete(ws); const s = conn.s; if (s && s.ws === ws) { s.ws = null; disconnected(s); } setImmediate(pushOnline); };
 });
 /* Heartbeat: quem não responde ao ping por 2 intervalos é considerado desconectado (entra no prazo de tolerância). */
 setInterval(() => { for (const ws of clients) { if (!ws.alive) { ws.socket.destroy(); ws._closed(); continue; } ws.alive = false; ws.ping(); } }, PING_MS).unref();

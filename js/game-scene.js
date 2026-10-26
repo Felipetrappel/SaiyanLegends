@@ -121,6 +121,11 @@ class GameScene {
     for (const f of this.fighters) { if (f.remote) f.replicate(dt, w); else f.update(dt, f.me ? inp : f.brain ? f.brain.think(dt, w) : {}, w); }
     if (this.netIO && (this.netT += dt) >= 1 / 15) { this.netT = 0; const mine = this.fighters.filter(f => !f.dummy && !f.remote); if (mine.length) this.netIO.send({ k: 's', f: mine.map(f => f.netState()) }); }   // ~15 envios/s
     w.projectiles.forEach(p => p.update(dt, w)); w.projectiles = w.projectiles.filter(p => !p.dead);
+    for (const f of this.fighters) {   // recompensa: derrotar um oponente (bot ou jogador) que você acertou por último rende XP e moedas de ouro
+      if (f === this.me || f.dummy) continue;
+      if (!f.dead) f._paid = false;
+      else if (!f._paid && f.lastBy === this.me && performance.now() - f.lastByT < 10000 && SL.Profile) { f._paid = true; SL.Profile.addXp(25); SL.Profile.addCoins('gold', 10); w.fx.push({ x: this.me.body.x, y: this.me.body.y - 70, txt: '+25 XP  +10 ouro', t: 0 }); }
+    }
     w.fx.forEach(x => { x.t += dt; }); w.fx = w.fx.filter(x => x.t < .8);
     w.effects.forEach(e => e.update(dt)); w.effects = w.effects.filter(e => !e.dead);
   }

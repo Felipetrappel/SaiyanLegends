@@ -60,7 +60,7 @@ class Beam { // feixe de energia: cauda + trecho repetido + cabeça (sprites do 
     const st = CFG.power.speed * dt; this.head += this.face * st; this.dist += st;
     if (world.mask.at(Math.floor(this.head + this.face * 3), Math.floor(this.yc)) || this.dist >= CFG.power.range) { this.ending = true; return; } // some no terreno ou no alcance máximo
     const r = this.dbg = this.rect();
-    for (const f of world.fighters) if (f !== this.owner && !f.dead && !this.hits.has(f) && overlap(r, f.rect())) { this.hits.add(f); if (!this.owner.remote) f.hurt(CFG.power.dmg * this.owner.dmgMul, this.face, CFG.power.kb); }
+    for (const f of world.fighters) if (f !== this.owner && !f.dead && !this.hits.has(f) && overlap(r, f.rect())) { this.hits.add(f); if (!this.owner.remote) f.hurt(CFG.power.dmg * this.owner.dmgMul, this.face, CFG.power.kb, this.owner); }
   }
   draw(ctx, img) {
     if (!img.complete) return;
@@ -88,7 +88,7 @@ class Shot {
     const st = c.speed * dt; this.head += this.face * st; this.dist += st; const r = this.dbg = this.rect();
     if (world.mask.at(Math.floor(this.head + this.face * 3), Math.floor(this.yc))) { this.end(world, true); return; }   // bateu no terreno
     if (this.dist >= c.range) { this.end(world, false); return; }                                                        // alcance máximo
-    for (const f of world.fighters) if (f !== this.owner && !f.dead && overlap(r, f.rect())) { if (!this.owner.remote) f.hurt(c.dmg * this.owner.dmgMul, this.face, c.kb); this.end(world, true); return; }
+    for (const f of world.fighters) if (f !== this.owner && !f.dead && overlap(r, f.rect())) { if (!this.owner.remote) f.hurt(c.dmg * this.owner.dmgMul, this.face, c.kb, this.owner); this.end(world, true); return; }
   }
   draw(ctx, img) {
     if (!img.complete) return; const f = this.frame();
@@ -115,7 +115,7 @@ class KiBall {
     this.life += dt; if (this.ending) { this.fade += dt; if (this.fade > .1) this.dead = true; return; }
     const st = this.o.speed * dt; this.x += this.face * st; this.dist += st; const r = this.dbg = this.rect();
     if (world.mask.at(Math.floor(this.x + this.face * this.o.r), Math.floor(this.y)) || this.dist >= this.o.range) { this.end(world, true); return; }
-    for (const f of world.fighters) if (f !== this.owner && !f.dead && overlap(r, f.rect())) { if (!this.owner.remote) f.hurt(this.o.dmg * this.owner.dmgMul, this.face, this.o.kb); this.end(world, true); return; }
+    for (const f of world.fighters) if (f !== this.owner && !f.dead && overlap(r, f.rect())) { if (!this.owner.remote) f.hurt(this.o.dmg * this.owner.dmgMul, this.face, this.o.kb, this.owner); this.end(world, true); return; }
   }
   end(world, boom) { this.ending = true; if (boom) (world.effects ||= []).push(new Ring(this.owner.def, this.x, this.y, this.o.r * 1.2, this.o.r * 3.2, .25, this.o.pal === PAL.yellow ? '#ffd96a' : '#ff9bd8')); }
   draw(ctx) { ctx.save(); ctx.globalAlpha = this.ending ? Math.max(0, 1 - this.fade / .1) : 1; drawOrb(ctx, this.x, this.y, this.o.r, this.life, this.o.pal); ctx.restore(); }
@@ -185,8 +185,9 @@ class Fighter {
     }
     return null;
   }
-  hurt(dmg, dir, kb) {
+  hurt(dmg, dir, kb, by) {
     if (this.dead) return;
+    if (by) { this.lastBy = by; this.lastByT = performance.now(); }                                   // quem causou o dano (recompensa de abate)
     if (this.state === 'intro') return;                                                              // durante a introdução ninguém consegue acertar
     if (this.remote) { this.flash = .25; if (this.world) { this.world.fx.push({ x: this.body.x, y: this.body.y - 52, txt: String(Math.round(dmg)), t: 0 }); if (this.world.net) this.world.net.hit(this, dmg, dir, kb); } return; }   // réplica de outro jogador: o dono aplica o dano
     if (this.state === 'meditate') this.set('idle');                                                 // levar dano interrompe a meditação
@@ -248,7 +249,7 @@ class Fighter {
       if (this.t >= a.dur) { this.cd = a.cd; this.set('idle'); }
       else if (this.t >= a.from && this.t <= a.to) {
         const x0 = b.x + this.face * (b.w / 2 - 2), l = this.face > 0 ? x0 : x0 - a.reach, box = { l, r: l + a.reach, t: b.y - (a.vt || 36), b: b.y - (a.vb === undefined ? 6 : a.vb) }; this.dbg = box;
-        for (const f of world.fighters) if (f !== this && !f.dead && !this.hits.has(f) && overlap(box, f.rect())) { this.hits.add(f); f.hurt(a.dmg * this.dmgMul, this.face, a.kb); }
+        for (const f of world.fighters) if (f !== this && !f.dead && !this.hits.has(f) && overlap(box, f.rect())) { this.hits.add(f); f.hurt(a.dmg * this.dmgMul, this.face, a.kb, this); }
       }
     } else if (this.state === 'charge') { if (this.t >= CFG.charge.dur) this.set('energy'); }                 // 2) segura/carrega na mão → 3) ENERGY ATTACK (varre o braço e solta)
     else if (this.state === 'cast') {                                                                            // STREET: o projétil só nasce na etapa 'fire'
@@ -271,12 +272,12 @@ class Fighter {
       if (!cs) { this.acd.burst = ABIL.burst.cd; this.set('idle'); }
       else if (cs.seg.move) {
         b.vy = 0; b.moveX(this.face * D.speed * dt); const r = this.rect();
-        for (const f of world.fighters) if (f !== this && !f.dead && !this.dashHit.has(f) && overlap(r, f.rect())) { this.dashHit.add(f); f.hurt(D.dmg * this.dmgMul, this.face, D.kb); }
+        for (const f of world.fighters) if (f !== this && !f.dead && !this.dashHit.has(f) && overlap(r, f.rect())) { this.dashHit.add(f); f.hurt(D.dmg * this.dmgMul, this.face, D.kb, this); }
       }
     }
     else if (this.state === 'burst') {                                                                          // botão sem símbolo: onda de impacto nos dois lados
       if (!this.fired) { this.fired = true; const c = this.chest(); (world.effects ||= []).push(new Ring(this.def, b.x, c.y, 10, 72, .3, '#9fd8ff'));
-        for (const f of world.fighters) if (f !== this && !f.dead && Math.abs(f.body.x - b.x) <= 72 && Math.abs(f.body.y - b.y) <= 50) f.hurt(18 * this.dmgMul, f.body.x >= b.x ? 1 : -1, 320); }
+        for (const f of world.fighters) if (f !== this && !f.dead && Math.abs(f.body.x - b.x) <= 72 && Math.abs(f.body.y - b.y) <= 50) f.hurt(18 * this.dmgMul, f.body.x >= b.x ? 1 : -1, 320, this); }
       if (this.t >= .3) { this.acd.burst = ABIL.burst.cd; this.set('idle'); }
     }
     else if (this.state === 'barrage') {                                                                        // energia rosa: 3 esferas rápidas

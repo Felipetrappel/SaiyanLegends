@@ -91,6 +91,8 @@ const HOTSPOTS = [
   { id: 'missions',  label: 'Missões',        screen: 'missions', pts: [[38,180],[140,180],[140,278],[38,278]] },
   { id: 'ranking',   label: 'Ranking',        screen: 'rankings', pts: [[38,312],[140,312],[140,402],[38,402]] },
   { id: 'events',    label: 'Eventos',        screen: 'events',   pts: [[38,432],[140,432],[140,528],[38,528]] },
+  { id: 'add',       label: 'Mais moedas',    screen: 'shop',     pts: [[1586,40],[1636,40],[1636,82],[1586,82]] },
+  { id: 'chatsend',  label: 'Enviar mensagem', screen: null,      pts: [[492,844],[535,844],[535,882],[492,882]] },
   { id: 'pass',      label: 'Passe',          screen: 'pass',     pts: [[38,558],[140,558],[140,652],[38,652]] }
 ];
 const SVGNS = 'http://www.w3.org/2000/svg';
@@ -108,7 +110,7 @@ class MenuButton {
     g.addEventListener('click', () => setTimeout(() => this.activate(), 110));      // deixa o brilho de clique aparecer
   }
   activate() { this.menu.emit(this.id, this); this.onActivate(); }                   // evento próprio + ação própria
-  onActivate() { this.menu.screens.open(this.screen, this.el); }
+  onActivate() { if (this.screen) this.menu.screens.open(this.screen, this.el); }
 }
 class MenuButtons {
   constructor(menu) {
@@ -150,7 +152,7 @@ class ScreenManager {
     }
     this.el.replaceChildren(p);
     this.el.classList.add('is-open');
-    this.menu.buttons.el.inert = true;
+    this.menu.buttons.el.inert = true; this.menu.hud.inert = true;
     if (!d.noFocus) (p.querySelector('input') || p.querySelector('button'))?.focus({ preventScroll: true });
     this.menu.emit('screen:open', id);
   }
@@ -158,7 +160,7 @@ class ScreenManager {
     if (!this.isOpen) return;
     this.stop?.(); this.stop = null;
     this.el.classList.remove('is-open');
-    this.menu.buttons.el.inert = false;
+    this.menu.buttons.el.inert = false; this.menu.hud.inert = false;
     if (this.from) this.from.focus({ preventScroll: true });
     this.menu.emit('screen:close', this.id);
   }
@@ -173,7 +175,8 @@ class MainMenu extends Emitter {
     this.buttons = new MenuButtons(this);
     this.screens = new ScreenManager(this);
     Object.entries(SCREENS).forEach(([id, d]) => this.screens.register(id, d));
-    this.root.append(this.background.el, this.buttons.el, this.screens.el);
+    this.hud = el('div', 'hudart');   // camada em coordenadas da arte (1672×941): perfil, moedas e chat (js/menu-hud.js)
+    this.root.append(this.background.el, this.buttons.el, this.hud, this.screens.el);
     app.append(this.root);
     new ResizeObserver(() => this.layout()).observe(app);
     this.layout();
@@ -184,6 +187,7 @@ class MainMenu extends Emitter {
     const app = this.root.parentElement, r = this.background.fit(app.clientWidth, app.clientHeight);
     const s = this.background.art.style; s.left = r.x + 'px'; s.top = r.y + 'px'; s.width = r.w + 'px'; s.height = r.h + 'px';
     this.buttons.place(r);
+    const hs = this.hud.style, k = r.w / ART.w; hs.left = r.x + 'px'; hs.top = r.y + 'px'; hs.transform = `scale(${k})`;
   }
 }
 

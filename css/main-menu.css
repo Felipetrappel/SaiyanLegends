@@ -151,3 +151,22 @@ html,body{height:100%;margin:0;overflow:hidden;background:var(--ink);color:#f6e9
 .mlist b{display:block;color:var(--gold);margin-bottom:4px}
 .mlist .mbar{height:8px;border-radius:5px;background:#10042a;overflow:hidden;margin-top:6px}.mlist .mbar i{display:block;height:100%;background:linear-gradient(90deg,#8a3dff,#ffd34d)}
 .mlist .soon{float:right;font-size:.8em;color:#cdb8f5}
+
+/* HUD do menu (coordenadas da arte 1672×941; a camada inteira é escalada) */
+.hudart{position:absolute;z-index:3;left:0;top:0;width:1672px;height:941px;transform-origin:0 0;pointer-events:none}
+.hudart>*{position:absolute}
+.hp-portrait{overflow:hidden;display:grid;place-items:center;background:radial-gradient(circle at 50% 40%,#3a1670,#12042e);clip-path:polygon(10% 0,90% 0,100% 12%,100% 88%,90% 100%,10% 100%,0 88%,0 12%)}
+.hp-portrait .portrait{border:0;background-color:transparent}
+.hp-name{font:italic 800 34px/38px system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:#e9d6ff;text-shadow:0 0 10px rgba(190,120,255,.7),0 2px 2px #000;white-space:nowrap;overflow:hidden}
+.hp-lv{font:600 24px/26px system-ui,sans-serif;color:#efe6ff;text-shadow:0 2px 2px #000}
+.hp-xp{height:12px;width:0;background:linear-gradient(90deg,#4b2bff,#8a7dff);box-shadow:0 0 8px #6a5cff;clip-path:polygon(0 0,100% 0,calc(100% - 6px) 100%,0 100%);transition:width .4s}
+.hp-powl{font:600 20px/22px system-ui,sans-serif;color:#c3a9f4}
+.hp-powv{font:700 30px/34px system-ui,sans-serif;color:#fff;text-shadow:0 2px 2px #000}
+.hp-coin{font:700 26px/30px system-ui,sans-serif;color:#fff;text-shadow:0 2px 2px #000;white-space:nowrap;overflow:hidden;text-align:left;letter-spacing:.01em}
+.hc-online{font:600 19px/24px system-ui,sans-serif;color:#fff;white-space:nowrap}
+.hc-msgs{height:94px;overflow-y:auto;pointer-events:auto;-webkit-user-select:text;user-select:text;scrollbar-width:thin;scrollbar-color:#6a3fd0 transparent}
+.hc-row{display:flex;align-items:baseline;gap:8px;min-height:30px;font:500 19px/28px system-ui,sans-serif;color:#fff;overflow-wrap:anywhere}
+.hc-lv{flex:none;min-width:34px;padding:0 6px;text-align:center;font:800 17px/22px system-ui,sans-serif;color:#3a1a00;background:linear-gradient(#ffd25a,#e8890a);border-radius:6px;align-self:center}
+.hc-nm{flex:none;color:#4fe3ff;font-weight:700}
+.hc-input{pointer-events:auto;height:34px;margin:0;padding:0 6px;border:0;outline:0;background:transparent;color:#fff;font:500 19px system-ui,sans-serif;-webkit-user-select:text;user-select:text}
+.hc-input::placeholder{color:#7a62d8;opacity:1}

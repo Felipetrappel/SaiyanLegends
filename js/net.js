@@ -48,7 +48,7 @@ class RemoteRoomService extends Emitter {
       if (!this.online) return; if (Date.now() - this.lastMsg > 25000) { try { this.ws.close(); } catch (_) {} return; } this._raw({ op: 'ping' }); }, 8000);
     if (r.room) { this.current = r.room.id; this.resumed = this.resumed || r.room; this.emit('room:' + r.room.id, r.room); }
     else if (this.current) { const id = this.current; this.current = null; this.emit('room:' + id, null); }            // a vaga expirou enquanto estávamos fora
-    this.emit('rooms', r.rooms || []); this.emit('status', this); return r;
+    this.emit('rooms', r.rooms || []); this.emit('online', r.online); (r.chat || []).forEach(c => this.emit('chat', c)); this.emit('status', this); return r;
   }
   _raw(o) { if (this.ws && this.ws.readyState === 1) this.ws.send(JSON.stringify(o)); }
   _req(op, data = {}, force = false) {
@@ -65,6 +65,8 @@ class RemoteRoomService extends Emitter {
     if (m.push === 'room') this.emit('room:' + m.room.id, m.room);
     else if (m.push === 'rooms') this.emit('rooms', m.rooms);
     else if (m.push === 'relay') this.emit('relay', { from: m.from, data: m.data });
+    else if (m.push === 'chat') this.emit('chat', m.msg);
+    else if (m.push === 'online') this.emit('online', m.n);
     else if (m.push === 'replaced') { this.dead = true; this.online = false; this.emit('replaced'); this.emit('status', this); }
   }
   resume() { const r = this.resumed; this.resumed = null; return Promise.resolve(r); }
@@ -75,6 +77,7 @@ class RemoteRoomService extends Emitter {
   async joinRoom(id, player) { const r = (await this._req('join', { room: String(id).trim(), player: { name: player.name, character: player.character } })).room; this.current = r.id; return r; }
   async leaveRoom() { this.current = null; try { await this._req('leave'); } catch (_) {} }
   relay(data) { this._raw({ op: 'relay', data }); }
+  sendChat(text, lv, name) { return this._req('chat', { text, lv, name }); }
   _op(op, extra) { return this._req(op, extra).then(r => r.room); }
   beginMapSelection() { return this._op('beginMapSelection'); }
   cancelMapSelection() { return this._op('cancelMapSelection'); }
@@ -101,7 +104,7 @@ class AutoService extends Emitter {
     if (!this.url) { this.reason = 'Nenhum servidor configurado (SL_CONFIG.serverUrl).'; return this.emit('status'); }
     try {
       const r = new RemoteRoomService(this.url, this.ident); await r.connect();
-      r.on('rooms', l => this.emit('rooms', l)); r.on('relay', e => this.emit('relay', e)); r.on('status', () => this.emit('status')); r.on('replaced', () => this.emit('replaced'));
+      r.on('rooms', l => this.emit('rooms', l)); r.on('relay', e => this.emit('relay', e)); r.on('status', () => this.emit('status')); r.on('replaced', () => this.emit('replaced')); r.on('chat', c => this.emit('chat', c)); r.on('online', n => this.emit('online', n));
       this.impl = r; this.reason = '';
     } catch (e) { this.reason = e.message; }
     this.emit('status');
@@ -110,6 +113,8 @@ class AutoService extends Emitter {
   resume() { return this.ready.then(() => this.impl.resume ? this.impl.resume() : null); }
   subscribe(id, fn) { return this.impl.subscribe(id, fn); }
   relay(d) { this.impl.relay && this.impl.relay(d); }
+  /* chat global: online vai para todos; offline só aparece para você (eco local) */
+  async sendChat(text, lv, name) { await this.ready; if (this.mode === 'online' && this.impl.sendChat) return this.impl.sendChat(text, lv, name); this.emit('chat', { n: 'l' + Date.now(), name, lv, text, t: Date.now(), local: true }); }
   onRooms(fn) { this.on('rooms', fn); return () => this.off('rooms', fn); }
 }
 
