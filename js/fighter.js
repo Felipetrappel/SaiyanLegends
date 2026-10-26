@@ -231,10 +231,9 @@ class Fighter {
     if (this.form > 0 && (this.form -= dt) <= 0) this.endForm();                                        // a transformação acaba sozinha
     if (Math.abs(this.kb) > 5) { b.moveX(this.kb * dt); this.kb *= Math.pow(.001, dt); } else this.kb = 0;   // recuo (respeita a colisão)
     const dir = (inp.right ? 1 : 0) - (inp.left ? 1 : 0);
-    if (inp.flyHold !== undefined) b.flying = !!inp.flyHold;   // VOAR = segurar: enquanto segura, voa; soltou, a gravidade volta
     if (!this.busy) {
       if (dir) this.face = dir;
-      if (p.fly && inp.flyHold === undefined) b.flying = !b.flying;   // bots: ainda alternam; jogadores usam SEGURAR (flyHold)                                                                      // VOAR liga/desliga; ao desligar a gravidade volta
+      if (p.fly) b.flying = !b.flying;                                                                      // VOAR liga/desliga; ao desligar a gravidade volta
       if (p.power && this.powerReady) { this.energy -= this.powerCost; this.set(this.def.cast ? 'cast' : 'charge'); }   // 1) CHARGE
       else if (p.transform && this.form) { this.endForm(); this.acd.transform = ABIL.transform.cd; }      // Z de novo: volta ao normal
       else if (p.transform && this.can('transform')) { this.energy -= ABIL.transform.cost; this.set('transform'); }
@@ -293,7 +292,7 @@ class Fighter {
       if (this.t >= CFG.power.dur) { this.pcd = CFG.power.cd; this.set('idle'); }
     }
     const free = !this.busy, shield = free && (inp.down || inp.guard) && b.grounded && !b.flying, mv = free && !shield;
-    b.step(dt, { ax: mv && inp.ax !== undefined ? inp.ax : undefined, ay: mv && inp.ay !== undefined ? inp.ay : undefined, left: mv && inp.left, right: mv && inp.right, jump: mv && inp.up && !b.flying, up: mv && inp.up, down: mv && inp.down });
+    b.step(dt, { left: mv && inp.left, right: mv && inp.right, jump: mv && inp.up && !b.flying, up: mv && inp.up, down: mv && inp.down });
     if (!this.busy) {                                                                                       // animação conforme o estado atual
       const ns = shield ? 'shield' : b.flying ? 'fly' : !b.grounded ? (b.vy < 0 ? 'jump' : 'fall') : (mv && dir && b.vx ? 'run' : 'idle');
       if (ns !== this.state) this.set(ns);

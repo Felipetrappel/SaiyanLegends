@@ -8,8 +8,8 @@ const CNAME = ['sem colisão', 'vermelho (BLOCKED)', 'rosa (WALKABLE)', 'roxo (S
 const UI_ASSETS = { left: 'assets/ui/pad/btn-left.png', right: 'assets/ui/pad/btn-right.png',   // setas ← e →
   z: 'assets/ui/pad/btn-z.png', special: 'assets/ui/pad/btn-blank.png', shield: 'assets/ui/pad/btn-shield.png', pink: 'assets/ui/pad/btn-pink.png', blue: 'assets/ui/pad/btn-blue.png', fist: 'assets/ui/pad/btn-fist.png',
   yellow: 'assets/ui/pad/btn-yellow.png', meditate: 'assets/ui/pad/btn-meditate.png', boot: 'assets/ui/pad/btn-boot.png' };   // 9 botões de combate + 2 setas, recortados das imagens enviadas
-const KEYS = { left: ['ArrowLeft', 'KeyA'], right: ['ArrowRight', 'KeyD'], up: ['ArrowUp', 'KeyW', 'Space'], down: ['ArrowDown', 'KeyS'], attack: ['KeyJ', 'KeyZ'], meditate: ['KeyM'], fly: ['KeyF'] };
-const TAP_KEYS = { KeyK: 'power', KeyX: 'power', KeyE: 'power', KeyT: 'transform', KeyR: 'special', KeyQ: 'barrage', KeyC: 'sun', KeyF: 'flyToggle' };   // teclado: um toque
+const KEYS = { left: ['ArrowLeft', 'KeyA'], right: ['ArrowRight', 'KeyD'], up: ['ArrowUp', 'KeyW', 'Space'], down: ['ArrowDown', 'KeyS'], attack: ['KeyJ', 'KeyZ'], meditate: ['KeyM'] };
+const TAP_KEYS = { KeyF: 'fly', KeyK: 'power', KeyX: 'power', KeyE: 'power', KeyT: 'transform', KeyR: 'special', KeyQ: 'barrage', KeyC: 'sun', };   // teclado: um toque
 
 class GameScene {
   constructor(canvas, loaded, players, meId, opts = {}) {
@@ -72,26 +72,12 @@ class GameScene {
   }
   held(k) { return KEYS[k].some(c => this.K.has(c)); }
   input() { // teclado + botões na tela; ações de um toque (voar/poder) chegam como "pressed"
-    const P = this.pad, N = this.pend, me = this.me, S = this.stick || (this.stick = { x: 0, y: 0 });
-    if (N.flyToggle) this.flyOn = !this.flyOn;
-    if (P.flyStart) { P.flyStart = false; this.flyOn = true; }
-    if (P.flyStop) { P.flyStop = false; this.flyOn = false; }
-    if (me && (me.dead || me.hp <= 0)) this.flyOn = false;
-    const L = this.held('left') || P.left, R = this.held('right') || P.right, U = this.held('up') || P.jump || N.jump, D = this.held('down');
-    const inp = { left: L, right: R, up: U, down: D, guard: !!P.guard, meditate: this.held('meditate') || !!P.meditate, flyHold: !!this.flyOn,
-      pressed: { attack: this.held('attack') || P.attack || N.attack, power: N.power, transform: N.transform, special: N.special, barrage: N.barrage, sun: N.sun } };
-    if (this.flyOn) {   // VOO LIVRE: analógico na tela (qualquer ângulo) + setas ←/→ + teclado (WASD/setas, 8 direções)
-      let ax = S.x + (R ? 1 : 0) - (L ? 1 : 0), ay = S.y + (D ? 1 : 0) - (this.held('up') ? 1 : 0);
-      const len = Math.hypot(ax, ay); if (len > 1) { ax /= len; ay /= len; }
-      inp.ax = ax; inp.ay = ay; inp.left = ax < -.25; inp.right = ax > .25; inp.up = ay < -.25; inp.down = ay > .25;
-      if (me && me.body.grounded && ay > .4) this.flyOn = false;   // empurrou para baixo no chão: pousa
-    }
-    if (this.ui && this.ui.bt) this.ui.bt.classList.toggle('on', !!this.flyOn);
-    if (this.fsEl) { this.fsEl.style.display = this.flyOn && this.stickDown ? 'block' : 'none'; }
+    const P = this.pad, N = this.pend, inp = { left: this.held('left') || P.left, right: this.held('right') || P.right, up: this.held('up') || P.jump || N.jump, down: this.held('down'), guard: !!P.guard, meditate: this.held('meditate') || !!P.meditate,
+      pressed: { attack: this.held('attack') || P.attack || N.attack, fly: N.fly, power: N.power, transform: N.transform, special: N.special, barrage: N.barrage, sun: N.sun } };
     /* buffer de entrada: um toque de poder/ação dado enquanto o personagem ainda está ocupado (ex.: no fim de um soco) não se perde: vale por ~0,4 s */
-    const B = this.buf || (this.buf = {});
+    const me = this.me, B = this.buf || (this.buf = {});
     for (const k in inp.pressed) { if (inp.pressed[k]) B[k] = me && me.busy ? 24 : 0; else if (B[k] > 0) { if (me && !me.busy) { inp.pressed[k] = true; B[k] = 0; } else B[k]--; } }
-    this.pend = {}; if (this.editing) { inp.left = inp.right = inp.up = inp.guard = inp.meditate = inp.flyHold = false; inp.ax = inp.ay = undefined; for (const k in inp.pressed) inp.pressed[k] = false; } return inp;
+    this.pend = {}; if (this.editing) { inp.left = inp.right = inp.up = inp.guard = inp.meditate = false; for (const k in inp.pressed) inp.pressed[k] = false; } return inp;
   }
   /* Controles na tela com os PNGs recortados das imagens enviadas (assets/ui/pad): só as setas ← e → à esquerda; à direita a grade 3×3:
      Z · especial · escudo / rosa · azul(poder) · punho / amarelo · meditar · BOTA. A BOTA é o PULAR (segure = sobe) e o toque duplo liga/desliga o VOO. */
@@ -112,40 +98,13 @@ class GameScene {
     move.append(mk('l', 'left', 'hold', U.left, 'Esquerda'), mk('r', 'right', 'hold', U.right, 'Direita'));        // só ← e → (o direcional de 4 setas foi removido)
     const power = mk('power', 'power', 'tap', U.blue, 'Poder de Ki (azul)', { fill: true });
     const z = mk('z', 'transform', 'tap', U.z, 'Z – Transformação'), sp = mk('sp', 'special', 'tap', U.special, 'Habilidade especial: onda de impacto'), pk = mk('pk', 'barrage', 'tap', U.pink, 'Rajada de energia rosa'),
-      yl = mk('yl', 'sun', 'tap', U.yellow, 'Esfera de energia amarela'), md = mk('md', 'meditate', 'hold', U.meditate, 'Carregar Ki (segure)'), bt = mk('bt', 'jump', 'hold', U.boot, 'Bota: toque = pular · segure = voar livre (arraste na tela para mover)');   // a bota é o PULAR/VOAR
-    acts.append(z, sp, mk('guard', 'guard', 'hold', U.shield, 'Defesa'), pk, power, mk('atk', 'attack', 'hold', U.fist, 'Soco'), yl, md, bt); root.append(move, acts);
-    this._wireFly(bt, host);   // ordem da imagem: 3×3
+      yl = mk('yl', 'sun', 'tap', U.yellow, 'Esfera de energia amarela'), md = mk('md', 'meditate', 'hold', U.meditate, 'Carregar Ki (segure)'), bt = mk('bt', 'jump', 'hold', U.boot, 'Bota: pular (segure) · toque duplo: voar', { dbl: 'fly' });   // a bota é o PULAR/VOAR
+    acts.append(z, sp, mk('guard', 'guard', 'hold', U.shield, 'Defesa'), pk, power, mk('atk', 'attack', 'hold', U.fist, 'Soco'), yl, md, bt); root.append(move, acts);   // ordem da imagem: 3×3
     const bars = document.createElement('div'); bars.className = 'bars';
     bars.innerHTML = '<div class="meters"><div class="bar hp"><i></i><b>HP</b></div><div class="bar en"><i></i><b>EN</b></div></div>';
     bars.prepend(SL.Characters.portrait(this.me.player.character, 1)); host.append(bars, root);
     if (this.initCustomize) this.initCustomize(root, host);   // controles personalizáveis (js/controls-editor.js)
     this.ui = { hp: bars.querySelector('.hp i'), en: bars.querySelector('.en i'), power, z, sp, pk, yl, md, bt };
-  }
-  /* BOTA: no chão, toque = pular; SEGURAR 0,25 s = decolar e VOAR LIVRE (fica voando sem segurar). No ar, um toque na bota liga o voo;
-     voando, um toque na bota desliga (cai/pousa). Voando: arraste o dedo em qualquer ponto da metade esquerda da tela para
-     mover em QUALQUER direção (analógico flutuante); ←/→ também funcionam. Teclado: F liga/desliga; WASD/setas movem em 8 direções. */
-  _wireFly(b, host) {
-    const P = this.pad; let id = null, timer = null;
-    const clear = () => { clearTimeout(timer); timer = null; id = null; };
-    b.addEventListener('pointerdown', e => { if (this.editing) return; id = e.pointerId; clearTimeout(timer);
-      if (this.flyOn) { P.flyStop = true; P.jump = false; return; }
-      if (this.me && !this.me.body.grounded) { P.flyStart = true; P.jump = false; return; }
-      timer = setTimeout(() => { if (id !== null) { P.jump = false; P.flyStart = true; this.stick.y = -.6; setTimeout(() => { if (!this.stickDown) this.stick.y = 0; }, 350); } }, 250); });
-    ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(n => b.addEventListener(n, clear));
-    /* analógico flutuante */
-    const S = this.stick || (this.stick = { x: 0, y: 0 }), fs = document.createElement('div'); fs.className = 'flystick'; fs.innerHTML = '<i></i>'; fs.style.display = 'none'; host.append(fs); this.fsEl = fs;
-    let sid = null, ox = 0, oy = 0; const R = () => Math.max(40, Math.min(70, host.getBoundingClientRect().height * .14));
-    host.addEventListener('pointerdown', e => {
-      if (this.editing || !this.flyOn || sid !== null || e.target.closest('.cbtn,.gear,.gmenu,.cedit,button,input,select')) return;
-      const r = host.getBoundingClientRect(); if (e.clientX > r.left + r.width * .55) return;
-      sid = e.pointerId; ox = e.clientX; oy = e.clientY; this.stickDown = true; S.x = S.y = 0;
-      fs.style.setProperty('--r', R() + 'px'); fs.style.left = (ox - r.left) + 'px'; fs.style.top = (oy - r.top) + 'px'; fs.firstChild.style.transform = 'translate(-50%,-50%)'; try { host.setPointerCapture(sid); } catch (_) { }
-    });
-    host.addEventListener('pointermove', e => { if (e.pointerId !== sid) return; const k = R(); let dx = (e.clientX - ox) / k, dy = (e.clientY - oy) / k; const l = Math.hypot(dx, dy);
-      if (l > 1) { dx /= l; dy /= l; } const dz = .18; S.x = Math.abs(dx) < dz && Math.abs(dy) < dz ? 0 : dx; S.y = Math.abs(dx) < dz && Math.abs(dy) < dz ? 0 : dy;
-      fs.firstChild.style.transform = `translate(calc(-50% + ${dx * k}px),calc(-50% + ${dy * k}px))`; });
-    const end = e => { if (e.pointerId !== sid) return; sid = null; this.stickDown = false; S.x = S.y = 0; fs.style.display = 'none'; };
-    ['pointerup', 'pointercancel'].forEach(n => host.addEventListener(n, end));
   }
   resize() {
     this.dpr = Math.min(window.devicePixelRatio || 1, 2); const r = this.cv.getBoundingClientRect();
