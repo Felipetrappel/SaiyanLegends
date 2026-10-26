@@ -184,6 +184,7 @@ class MainMenu extends Emitter {
   exit() { Platform.exit(() => this.screens.open('exit')); }   // sair do jogo (usado em Configurações)
   /* A arte e as áreas clicáveis ocupam sempre o mesmo retângulo, então ficam alinhadas em qualquer resolução. */
   layout() {
+    if (document.body.classList.contains('kb')) return;   // teclado aberto: não encolhe o menu junto com a janela
     const app = this.root.parentElement, r = this.background.fit(app.clientWidth, app.clientHeight);
     const s = this.background.art.style; s.left = r.x + 'px'; s.top = r.y + 'px'; s.width = r.w + 'px'; s.height = r.h + 'px';
     this.buttons.place(r);

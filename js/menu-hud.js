@@ -27,8 +27,8 @@ P.on(paint); M.on('screen:close', paint); setInterval(paint, 1000); paint();
 
 /* ── chat global ── */
 const online = at(el('div', 'hc-online'), 459, 699, 80), list = at(el('div', 'hc-msgs'), 42, 738, 504);
-const input = at(el('input', 'hc-input', { type: 'text', maxLength: 120, placeholder: 'Digite sua mensagem...', autocomplete: 'off', enterKeyHint: 'send' }), 50, 845, 428);
-input.setAttribute('aria-label', 'Mensagem do chat global');
+const input = at(el('div', 'hc-input', { textContent: 'Digite sua mensagem...', role: 'button', tabIndex: 0 }), 50, 845, 428);   // toque abre o campo de digitação (abaixo)
+input.setAttribute('aria-label', 'Escrever no chat global');
 const seen = new Set(); let status = null;
 function setOnline(n) { online.textContent = (n == null ? 0 : n) + ' online'; }
 setOnline(svc.mode === 'online' ? 1 : 0); svc.on('status', () => { if (svc.mode !== 'online') setOnline(0); });
@@ -41,13 +41,33 @@ function add(m) {
   if (near || m.local || m.name === myName()) list.scrollTop = list.scrollHeight;
 }
 svc.on('chat', add);
-function flash(txt) { clearTimeout(status); input.placeholder = txt; status = setTimeout(() => { input.placeholder = 'Digite sua mensagem...'; }, 2500); }
-async function send() {
-  const t = input.value.replace(/\s+/g, ' ').trim(); if (!t) return;
-  input.value = '';
-  try { await svc.sendChat(t, P.level, myName()); } catch (e) { input.value = t; flash(e.message); }
+/* Digitação: no celular o teclado ocupa metade da tela (e encolhe a janela), então a mensagem é escrita num campo no TOPO da tela,
+   acima do teclado. Enquanto ele está aberto o layout do menu fica congelado (não encolhe junto com a janela). */
+const recent = []; let cmp = null;
+const rowOf = m => { const r = el('div', 'hc-row'); r.append(el('span', 'hc-lv', { textContent: Math.max(0, m.lv | 0) }), el('b', 'hc-nm', { textContent: String(m.name || 'Jogador').slice(0, 16) }), el('span', 'hc-tx', { textContent: String(m.text || '').slice(0, 120) })); return r; };
+svc.on('chat', m => { recent.push(m); if (recent.length > 4) recent.shift(); if (cmp) cmp.paintList(); });
+function closeComposer() { if (!cmp) return; cmp.root.remove(); cmp = null; document.body.classList.remove('kb'); M.layout(); }
+function openComposer() {
+  if (cmp) return; document.body.classList.add('kb');
+  const root = el('div', 'composer'), ls = el('div', 'cmp-list'), row = el('div', 'cmp-row');
+  const inp = el('input', 'cmp-input', { type: 'text', maxLength: 120, placeholder: 'Digite sua mensagem...', autocomplete: 'off', enterKeyHint: 'send' });
+  inp.setAttribute('aria-label', 'Mensagem do chat global');
+  const err = el('div', 'cmp-err');
+  const go = async () => {
+    const t = inp.value.replace(/\s+/g, ' ').trim(); if (!t) return closeComposer();
+    try { await svc.sendChat(t, P.level, myName()); inp.value = ''; closeComposer(); } catch (e) { err.textContent = e.message; }
+  };
+  row.append(inp, el('button', 'cmp-btn', { type: 'button', textContent: 'Enviar', onclick: go }), el('button', 'cmp-btn ghost', { type: 'button', textContent: '✕', onclick: closeComposer, ariaLabel: 'Fechar' }));
+  root.append(ls, err, row); document.body.append(root);
+  root.paintList = () => { ls.replaceChildren(...recent.map(rowOf)); };
+  cmp = { root, paintList: root.paintList }; root.paintList();
+  inp.addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') { e.preventDefault(); go(); } else if (e.key === 'Escape') closeComposer(); });
+  inp.addEventListener('keyup', e => e.stopPropagation());
+  root.addEventListener('pointerdown', e => { if (e.target === root) closeComposer(); });
+  root.addEventListener('focusout', () => setTimeout(() => { if (cmp && !root.contains(document.activeElement)) closeComposer(); }, 250));
+  inp.focus();
 }
-input.addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') { e.preventDefault(); send(); } });   // não deixa as teclas do jogo (WASD…) dispararem
-input.addEventListener('keyup', e => e.stopPropagation());
-M.on('chatsend', send);
+input.addEventListener('click', openComposer); input.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openComposer(); } });
+M.on('chatsend', openComposer);
+M.on('screen:open', closeComposer);
 })();
