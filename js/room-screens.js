@@ -63,7 +63,7 @@ function roomTable(p, box) {
 const listScreen = (title, text, withCreate) => ({ build(p) {
   p.classList.add('wide'); head(p, title, text); nameField(p);
   const box = el('div', 'msg'), t = roomTable(p, box); p.append(box);
-  const b = [S.btn('JOIN ROOM', t.join)]; if (withCreate) b.push(S.btn('CREATE ROOM', () => S.open('createRoom')));
+  const b = [S.btn('JOIN ROOM', t.join)]; if (withCreate) b.push(S.btn('CREATE ROOM', () => S.open('createRoom')), S.btn('ENTRAR COM CÓDIGO', () => S.open('code'), true));
   p.append(bar(...b, S.btn('REFRESH', t.load, true), back())); return t.dispose;
 } });
 S.register('connect', listScreen('Rooms', 'Create a room or join an existing one.', true));

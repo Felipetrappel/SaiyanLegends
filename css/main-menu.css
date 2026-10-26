@@ -135,3 +135,19 @@ html,body{height:100%;margin:0;overflow:hidden;background:var(--ink);color:#f6e9
 .flystick{position:absolute;width:calc(var(--r,70px)*2);height:calc(var(--r,70px)*2);margin:calc(var(--r,70px)*-1) 0 0 calc(var(--r,70px)*-1);border-radius:50%;border:2px solid rgba(255,255,255,.45);background:rgba(120,200,255,.12);pointer-events:none;z-index:4}
 .flystick i{position:absolute;left:50%;top:50%;width:44%;height:44%;border-radius:50%;background:rgba(160,225,255,.65);box-shadow:0 0 14px #5cf;transform:translate(-50%,-50%)}
 .cbtn.on{filter:drop-shadow(0 0 8px #6cf) brightness(1.25)}
+
+/* Menu principal novo: arte inteira + áreas clicáveis em polígono */
+.bgwrap{position:absolute;inset:0;overflow:hidden;background:#0b0220}
+.bgwrap .bg{position:absolute;pointer-events:none}
+.bgwrap .bgfill{inset:0;width:100%;height:100%;object-fit:cover;filter:blur(18px) brightness(.55);transform:scale(1.1)}
+.buttons{position:absolute;z-index:2;transform:none;display:block}
+.hsvg{position:absolute;inset:0;width:100%;height:100%;overflow:visible;touch-action:manipulation}
+.hs{fill:rgba(255,255,255,0);stroke:transparent;stroke-width:5;stroke-linejoin:round;cursor:pointer;outline:none;pointer-events:all;transition:fill .12s,stroke .12s,filter .12s;-webkit-tap-highlight-color:transparent}
+@media (hover:hover){.hs:hover{fill:rgba(190,120,255,.16);stroke:rgba(255,222,120,.95);filter:drop-shadow(0 0 9px rgba(190,120,255,.95))}}
+.hs:focus-visible{fill:rgba(190,120,255,.16);stroke:#ffd34d;filter:drop-shadow(0 0 9px rgba(255,211,77,.9))}
+.hs.is-pressed,.hs:active{fill:rgba(255,235,160,.30);stroke:#fff3b0;filter:drop-shadow(0 0 14px rgba(255,220,120,1))}
+.mlist{list-style:none;margin:0 0 16px;padding:0;text-align:left;max-height:48vh;overflow:auto}
+.mlist li{margin:0 0 10px;padding:10px 12px;border:1px solid #5b34a8;border-radius:8px;background:#1d0a42;color:#e4d3fb}
+.mlist b{display:block;color:var(--gold);margin-bottom:4px}
+.mlist .mbar{height:8px;border-radius:5px;background:#10042a;overflow:hidden;margin-top:6px}.mlist .mbar i{display:block;height:100%;background:linear-gradient(90deg,#8a3dff,#ffd34d)}
+.mlist .soon{float:right;font-size:.8em;color:#cdb8f5}

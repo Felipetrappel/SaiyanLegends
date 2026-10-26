@@ -2,13 +2,10 @@
  *
  * MainMenu
  *  ├── Background      arte de fundo (cover, sem deformar, atrás de tudo)
- *  ├── Logo            o logo já está na arte; a classe só mede/reserva a área dele
- *  └── MenuButtons     grade 2×4 com os PNGs originais
- *       ├── ConnectButton   ├── CreateRoomButton  ├── StoreButton    ├── RoomListButton
- *       └── CodeButton      └── OptionsButton     └── RankingsButton └── ExitButton
+ *  └── MenuButtons     8 áreas clicáveis (polígonos SVG) sobre a arte: JOGAR, PERSONAGEM, LOJA, CONFIGURAÇÕES, MISSÕES, RANKING, EVENTOS, PASSE
  *
- * Eventos (um por botão): SaiyanMenu.on('connect' | 'createRoom' | 'store' | 'roomList' |
- *   'code' | 'options' | 'rankings' | 'exit', fn) + 'screen:open' | 'screen:close' | 'screen:submit'.
+ * Eventos (um por botão): SaiyanMenu.on('play' | 'character' | 'shop' | 'settings' |
+ *   'missions' | 'ranking' | 'events' | 'pass', fn) + 'screen:open' | 'screen:close' | 'screen:submit'.
  * Nova tela:  SaiyanMenu.screens.register('minhaTela', { title, text, input?, action? })
  *             e depois SaiyanMenu.screens.open('minhaTela').
  * Novo botão: crie uma subclasse de MenuButton, adicione o PNG em ASSETS e a classe em MenuButtons.
@@ -69,70 +66,57 @@ const Platform = {
   }
 };
 
-/* ───────── Background ───────── */
+/* ───────── Background: arte inteira visível (sem cortar), com borda desfocada preenchendo o resto da tela ───────── */
+const ART = { w: 1672, h: 941, src: 'assets/ui/menu-bg.jpg' };
 class Background {
-  constructor() { this.el = el('img', 'bg', { src: ASSETS.background, alt: '', draggable: false }); }
-  /* "cover" sem deformar; escolhe o recorte vertical que mantém o logo em foco. */
-  fit(W, H) {
-    const { art, logo } = CONFIG, scale = Math.max(W / art.w, H / art.h), visH = H / scale, maxTop = art.h - visH;
-    const top = maxTop > .5 ? Math.min(Math.max(logo.focusY - logo.focusAt * visH, 0), maxTop) : 0;
-    this.el.style.objectPosition = `50% ${maxTop > .5 ? top / maxTop * 100 : 50}%`;
-    return { scale, top };
-  }
-}
-
-/* ───────── Logo (já faz parte da arte do fundo) ───────── */
-class Logo {
   constructor() {
-    this.el = el('div', 'logo');
-    this.el.setAttribute('role', 'img');
-    this.el.setAttribute('aria-label', 'Saiyan Legends Online');
+    this.el = el('div', 'bgwrap');
+    this.fill = el('img', 'bg bgfill', { src: ART.src, alt: '', draggable: false });
+    this.art = el('img', 'bg bgart', { src: ART.src, alt: '', draggable: false });
+    this.el.append(this.fill, this.art);
   }
-  bottom(fit) { return (CONFIG.logo.bottom - fit.top) * fit.scale; } // px na tela onde o logo termina
-  place(fit) { this.el.style.height = this.bottom(fit) + 'px'; }
+  /* retângulo (px) que a arte ocupa dentro de W×H, centralizado */
+  fit(W, H) { const k = Math.min(W / ART.w, H / ART.h), w = ART.w * k, h = ART.h * k; return { x: (W - w) / 2, y: (H - h) / 2, w, h }; }
 }
 
-/* ───────── Botões ───────── */
+/* ───────── Botões (áreas clicáveis sobre a arte do menu) ─────────
+ * A arte (assets/ui/menu-bg.jpg, 1672×941) já traz os botões desenhados. Cada botão abaixo é um polígono SVG independente,
+ * em coordenadas da arte, que cobre exatamente a forma angular do botão desenhado: tem área de toque própria, brilho ao passar
+ * o mouse / focar e efeito de clique, e não desenha nenhum retângulo ou fundo sobre a arte. Ajuste `pts` para mover/redimensionar. */
+const HOTSPOTS = [
+  { id: 'play',      label: 'Jogar',          screen: 'connect',  pts: [[1176,432],[1245,300],[1560,244],[1648,222],[1622,402]] },
+  { id: 'character', label: 'Personagem',     screen: 'store',    pts: [[1215,452],[1625,415],[1612,535],[1190,556]] },
+  { id: 'shop',      label: 'Loja',           screen: 'shop',     pts: [[1212,575],[1612,558],[1603,660],[1190,672]] },
+  { id: 'settings',  label: 'Configurações',  screen: 'options',  pts: [[1215,705],[1610,688],[1600,782],[1190,792]] },
+  { id: 'missions',  label: 'Missões',        screen: 'missions', pts: [[38,180],[140,180],[140,278],[38,278]] },
+  { id: 'ranking',   label: 'Ranking',        screen: 'rankings', pts: [[38,312],[140,312],[140,402],[38,402]] },
+  { id: 'events',    label: 'Eventos',        screen: 'events',   pts: [[38,432],[140,432],[140,528],[38,528]] },
+  { id: 'pass',      label: 'Passe',          screen: 'pass',     pts: [[38,558],[140,558],[140,652],[38,652]] }
+];
+const SVGNS = 'http://www.w3.org/2000/svg';
 class MenuButton {
-  constructor(menu, id, label) {
-    this.menu = menu; this.id = id;
-    const b = this.el = el('button', 'menu-btn', { type: 'button' });
-    b.dataset.id = id; b.setAttribute('aria-label', label);
-    b.append(el('img', '', { src: ASSETS.buttons[id], alt: '', draggable: false }));
-    const press = on => () => b.classList.toggle('is-pressed', on);
-    b.addEventListener('pointerdown', press(true));
-    ['pointerup', 'pointerleave', 'pointercancel', 'blur'].forEach(t => b.addEventListener(t, press(false)));
-    b.addEventListener('keydown', e => { if (e.key === ' ' || e.key === 'Enter') press(true)(); });
-    b.addEventListener('keyup', press(false));
-    b.addEventListener('click', () => setTimeout(() => this.activate(), 110)); // deixa a animação de clique aparecer
+  constructor(menu, h) {
+    this.menu = menu; this.id = h.id; this.screen = h.screen;
+    const g = this.el = document.createElementNS(SVGNS, 'polygon');
+    g.setAttribute('points', h.pts.map(q => q.join(',')).join(' '));
+    g.setAttribute('class', 'hs'); g.setAttribute('role', 'button'); g.setAttribute('tabindex', '0'); g.setAttribute('aria-label', h.label); g.dataset.id = h.id;
+    const press = on => () => g.classList.toggle('is-pressed', on);
+    g.addEventListener('pointerdown', press(true));
+    ['pointerup', 'pointerleave', 'pointercancel', 'blur'].forEach(t => g.addEventListener(t, press(false)));
+    g.addEventListener('keydown', e => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); press(true)(); } });
+    g.addEventListener('keyup', e => { press(false)(); if (e.key === ' ' || e.key === 'Enter') this.activate(); });
+    g.addEventListener('click', () => setTimeout(() => this.activate(), 110));      // deixa o brilho de clique aparecer
   }
-  activate() { this.menu.emit(this.id, this); this.onActivate(); }  // evento próprio + ação própria
-  onActivate() { this.menu.screens.open(this.id, this.el); }        // padrão: abre a tela de mesmo id
+  activate() { this.menu.emit(this.id, this); this.onActivate(); }                   // evento próprio + ação própria
+  onActivate() { this.menu.screens.open(this.screen, this.el); }
 }
-class ConnectButton    extends MenuButton { constructor(m) { super(m, 'connect', 'Connect'); } }
-class CreateRoomButton extends MenuButton { constructor(m) { super(m, 'createRoom', 'Create room'); } }
-class StoreButton      extends MenuButton { constructor(m) { super(m, 'store', 'Store'); } }
-class RoomListButton   extends MenuButton { constructor(m) { super(m, 'roomList', 'Room list'); } }
-class CodeButton       extends MenuButton { constructor(m) { super(m, 'code', 'Code'); } }
-class OptionsButton    extends MenuButton { constructor(m) { super(m, 'options', 'Options'); } }
-class RankingsButton   extends MenuButton { constructor(m) { super(m, 'rankings', 'Rankings'); } }
-class ExitButton       extends MenuButton {
-  constructor(m) { super(m, 'exit', 'Exit'); }
-  onActivate() { Platform.exit(() => this.menu.screens.open('exit', this.el)); }
-}
-
 class MenuButtons {
   constructor(menu) {
-    this.el = el('nav', 'buttons');
-    this.el.setAttribute('aria-label', 'Menu principal');
-    // ordem = leitura da grade 2 colunas: CONNECT|CREATE ROOM, STORE|ROOM LIST, CODE|OPTIONS, RANKINGS|EXIT
-    this.list = [ConnectButton, CreateRoomButton, StoreButton, RoomListButton, CodeButton, OptionsButton, RankingsButton, ExitButton].map(C => new C(menu));
-    this.list.forEach(b => this.el.append(b.el));
+    this.el = el('nav', 'buttons'); this.el.setAttribute('aria-label', 'Menu principal');
+    const svg = document.createElementNS(SVGNS, 'svg'); svg.setAttribute('viewBox', `0 0 ${ART.w} ${ART.h}`); svg.setAttribute('class', 'hsvg');
+    this.list = HOTSPOTS.map(h => new MenuButton(menu, h)); this.list.forEach(b => svg.append(b.el)); this.el.append(svg);
   }
-  place(top, w, gap) {
-    const s = this.el.style;
-    s.setProperty('--menu-top', top + 'px'); s.setProperty('--btn-w', w + 'px'); s.setProperty('--gap', gap + 'px');
-  }
+  place(r) { const s = this.el.style; s.left = r.x + 'px'; s.top = r.y + 'px'; s.width = r.w + 'px'; s.height = r.h + 'px'; }
 }
 
 /* ───────── Telas secundárias ───────── */
@@ -186,28 +170,20 @@ class MainMenu extends Emitter {
     super();
     this.root = el('main', 'mm');
     this.background = new Background();
-    this.logo = new Logo();
     this.buttons = new MenuButtons(this);
     this.screens = new ScreenManager(this);
     Object.entries(SCREENS).forEach(([id, d]) => this.screens.register(id, d));
-    this.root.append(this.background.el, this.logo.el, this.buttons.el, this.screens.el);
+    this.root.append(this.background.el, this.buttons.el, this.screens.el);
     app.append(this.root);
     new ResizeObserver(() => this.layout()).observe(app);
     this.layout();
   }
-  /* Posiciona a grade na área livre entre o logo e a borda inferior, sempre inteira na tela. */
+  exit() { Platform.exit(() => this.screens.open('exit')); }   // sair do jogo (usado em Configurações)
+  /* A arte e as áreas clicáveis ocupam sempre o mesmo retângulo, então ficam alinhadas em qualquer resolução. */
   layout() {
-    const app = this.root.parentElement, cs = getComputedStyle(app), pad = s => parseFloat(cs['padding' + s]) || 0;
-    const W = app.clientWidth, H = app.clientHeight;
-    const fit = this.background.fit(W, H);
-    this.logo.place(fit);
-    const { aspect, gap, maxW } = CONFIG.btn;
-    const y0 = Math.max(this.logo.bottom(fit), pad('Top')) + H * .02;
-    const y1 = H - Math.max(pad('Bottom'), H * .03);
-    const aw = W - pad('Left') - pad('Right') - 2 * Math.max(W * .03, 8);
-    const w = Math.max(48, Math.min(aw / (2 + gap), (y1 - y0) / (4 * aspect + 3 * gap), maxW));
-    const gridH = w * (4 * aspect + 3 * gap);
-    this.buttons.place(y0 + Math.max(0, (y1 - y0 - gridH) / 2), w, w * gap);
+    const app = this.root.parentElement, r = this.background.fit(app.clientWidth, app.clientHeight);
+    const s = this.background.art.style; s.left = r.x + 'px'; s.top = r.y + 'px'; s.width = r.w + 'px'; s.height = r.h + 'px';
+    this.buttons.place(r);
   }
 }
 
