@@ -143,6 +143,10 @@ class Fighter {
   constructor(body, player, me, spawn) {
     Object.assign(this, { body, player, me, spawn, def: SL.Characters.get(player.character), face: 1, state: 'idle', t: 0, hp: CFG.hp, energy: CFG.energy, cd: 0, pcd: 0,
       flash: 0, kb: 0, dead: false, rt: 0, fired: false, hits: new Set(), dbg: null, world: null, dummy: false, av: null, combo: 0, comboT: 0, dmgMul: 1, kiRate: 1, bot: false, brain: null, acd: {}, form: 0, sunFired: false, shots: 0, baseSpeed: body.speed });
+    /* ATRIBUTOS do personagem (def.stats, 100 = base): poder → dano causado, defesa → dano recebido, energia → Ki máximo, velocidade → andar/voar, K → recuo causado */
+    const st = this.def.stats || {}, r = k => Math.max(.25, (st[k] || 100) / 100);
+    Object.assign(this, { maxEn: CFG.energy * r('energy'), defMul: r('defense'), kbMul: r('k') }); this.energy = this.maxEn; this.dmgMul = r('power');
+    body.speed *= r('speed'); body.flySpeed *= r('speed'); this.baseSpeed = body.speed;
   }
   get busy() { return this.state === 'attack' || this.state === 'charge' || this.state === 'energy' || this.state === 'cast' || this.state in STATE_ANIM; }
   atkList() { const d = this.def; return (d.attacks || []).concat(d.attackUp || [], d.attackDown || []); }   // todas as variações de golpe (índice usado na rede)
@@ -187,11 +191,12 @@ class Fighter {
   }
   hurt(dmg, dir, kb, by) {
     if (this.dead) return;
+    if (by && by.kbMul) kb *= by.kbMul;
     if (by) { this.lastBy = by; this.lastByT = performance.now(); }                                   // quem causou o dano (recompensa de abate)
     if (this.state === 'intro') return;                                                              // durante a introdução ninguém consegue acertar
     if (this.remote) { this.flash = .25; if (this.world) { this.world.fx.push({ x: this.body.x, y: this.body.y - 52, txt: String(Math.round(dmg)), t: 0 }); if (this.world.net) this.world.net.hit(this, dmg, dir, kb); } return; }   // réplica de outro jogador: o dono aplica o dano
     if (this.state === 'meditate') this.set('idle');                                                 // levar dano interrompe a meditação
-    const guarded = this.state === 'shield' && dir === -this.face; if (guarded) dmg *= 1 - CFG.shieldReduce;
+    dmg /= this.defMul || 1; const guarded = this.state === 'shield' && dir === -this.face; if (guarded) dmg *= 1 - CFG.shieldReduce;
     this.hp = Math.max(0, this.hp - dmg); this.flash = .25; this.kb = dir * kb * (guarded ? .3 : 1);
     if (this.world) this.world.fx.push({ x: this.body.x, y: this.body.y - 52, txt: String(Math.round(dmg)), t: 0 });
     if (this.hp <= 0) { this.dead = true; this.rt = CFG.respawn; this.endForm(); this.set('idle'); return; }
@@ -221,13 +226,13 @@ class Fighter {
     this.fired = this.state === 'sun' ? this.t >= .6 : this.fired;
     if (this.state === 'burst' && !this.fired && this.t >= .25) { this.fired = true; (world.effects ||= []).push(new Ring(this.def, b.x, this.chest().y, 10, 72, .3, '#9fd8ff')); }
   }
-  respawn() { const b = this.body; Object.assign(b, { x: this.spawn.x, y: this.spawn.y, vx: 0, vy: 0, flying: false }); this.hp = CFG.hp; this.energy = CFG.energy; this.dead = false; this.endForm(); this.set('idle'); }
+  respawn() { const b = this.body; Object.assign(b, { x: this.spawn.x, y: this.spawn.y, vx: 0, vy: 0, flying: false }); this.hp = CFG.hp; this.energy = this.maxEn; this.dead = false; this.endForm(); this.set('idle'); }
   update(dt, inp, world) {
     const b = this.body, p = inp.pressed || {}; this.t += dt; this.dbg = null;
     if (this.kiRate !== 1 && (this.state === 'charge' || this.state === 'cast')) this.t += dt * (this.kiRate - 1);   // bots: escala o tempo de carregar Ki
     this.comboT = Math.max(0, this.comboT - dt); this.cd = Math.max(0, this.cd - dt); this.pcd = Math.max(0, this.pcd - dt); this.flash = Math.max(0, this.flash - dt);
     if (this.dead) { this.rt -= dt; if (this.rt <= 0) this.respawn(); return; }
-    if (this.bot || this.dummy) this.energy = Math.min(CFG.energy, this.energy + CFG.regen * (this.form ? ABIL.form.regen : 1) * dt);   // Ki NÃO recarrega sozinho: o jogador carrega na mão (botão MEDITAR / tecla M). Só bots e o boneco de treino recarregam sozinhos.
+    if (this.bot || this.dummy) this.energy = Math.min(this.maxEn, this.energy + CFG.regen * (this.form ? ABIL.form.regen : 1) * dt);   // Ki NÃO recarrega sozinho: o jogador carrega na mão (botão MEDITAR / tecla M). Só bots e o boneco de treino recarregam sozinhos.
     for (const k in this.acd) if (this.acd[k] > 0) this.acd[k] -= dt;
     if (this.form > 0 && (this.form -= dt) <= 0) this.endForm();                                        // a transformação acaba sozinha
     if (Math.abs(this.kb) > 5) { b.moveX(this.kb * dt); this.kb *= Math.pow(.001, dt); } else this.kb = 0;   // recuo (respeita a colisão)
@@ -241,7 +246,7 @@ class Fighter {
       else if (p.special && this.can('burst')) { this.energy -= ABIL.burst.cost; this.set(this.def.dash ? 'dash' : 'burst'); this.dashHit = new Set(); }   // personagens com def.dash usam o movimento especial no lugar da onda de impacto
       else if (p.barrage && this.can('barrage')) { this.energy -= ABIL.barrage.cost; this.set('barrage'); this.shots = 0; }
       else if (p.sun && this.can('sun')) { this.energy -= ABIL.sun.cost; this.set('sun'); }
-      else if (inp.meditate && b.grounded && !b.flying && this.energy < CFG.energy) this.set('meditate');
+      else if (inp.meditate && b.grounded && !b.flying && this.energy < this.maxEn) this.set('meditate');
       else if (p.attack && this.cd <= 0) { this.set('attack'); this.hits = new Set(); this.av = this.def.attacks ? this.pickAttack(inp) : null; }
     }
     const a = this.av ? { ...CFG.attack, dur: this.av.dur, from: this.av.from_, to: this.av.to, reach: this.av.reach, dmg: this.av.dmg, kb: this.av.kb, vt: this.av.vt, vb: this.av.vb } : CFG.attack;
@@ -261,7 +266,7 @@ class Fighter {
       if (this.t >= .05) { this.form = ABIL.form.dur; this.dmgMul *= ABIL.form.dmg; b.speed = this.baseSpeed * ABIL.form.speed; this.acd.transform = ABIL.transform.cd; (world.effects ||= []).push(new Ring(this.def, b.x, b.y - 20, 8, 70, .4, '#ffd34d')); this.set('idle'); }
     }
     else if (this.state === 'meditate') {                                                                       // meditar: segura para recarregar Ki
-      if (!inp.meditate || !b.grounded || this.energy >= CFG.energy) this.set('idle'); else this.energy = Math.min(CFG.energy, this.energy + ABIL.meditateRate * (this.form ? ABIL.form.regen : 1) * dt);
+      if (!inp.meditate || !b.grounded || this.energy >= this.maxEn) this.set('idle'); else this.energy = Math.min(this.maxEn, this.energy + ABIL.meditateRate * (this.form ? ABIL.form.regen : 1) * dt);
     }
     else if (this.state === 'hurt') { if (this.t >= .26) this.set('idle'); }                                     // reação ao golpe (só quem tem os quadros)
     else if (this.state === 'hurtH') { if (this.t >= .44) this.set('idle'); }

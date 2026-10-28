@@ -8,7 +8,7 @@ const M = SaiyanMenu, P = SL.Profile, G = SaiyanGame, svc = G.service, S = M.scr
 const el = (t, c = '', p = {}) => Object.assign(document.createElement(t), { className: c, ...p });
 const fmt = n => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
 const myName = () => (SL.Auth && SL.Auth.user && SL.Auth.user.name) || G.rooms.me.name || 'Jogador';
-const summary = () => `Nível ${P.level} · XP ${fmt(P.xp)} · Poder ${fmt(P.power)} · Ouro ${fmt(P.gold)} · Prata ${fmt(P.silver)} · Diamantes ${fmt(P.gems)}`;
+const summary = () => `Nível ${P.level} · XP ${fmt(P.xp)} · Poder ${fmt(P.power)} · Ouro ${fmt(P.gold)} · Rubis ${fmt(P.silver)} · Diamantes ${fmt(P.gems)}`;
 
 /* ── chat (dados) ── */
 const log = [], seen = new Set(), ls = new Set(); let online = svc.mode === 'online' ? 1 : 0;
@@ -42,7 +42,7 @@ S.register('chat', { title: 'Chat global', build(p) {
 S.register('rewards', { title: 'Presentes', build(p) {
   p.classList.add('wide'); p.append(el('h2', '', { textContent: 'Presentes e recompensas' }), el('p', 'sumline', { textContent: summary() }),
     el('p', '', { textContent: 'Presentes diários e baús ainda não existem no jogo. Por enquanto, a recompensa é: derrotar um oponente que você acertou rende +25 XP e +10 de ouro.' }));
-  const r = el('div', 'row'); r.append(S.btn('Missões', () => S.open('missions')), S.btn('Eventos', () => S.open('events')), S.btn('Passe', () => S.open('pass')), S.btn('Loja', () => S.open('shop')), S.btn('Voltar', () => S.close(), true)); p.append(r);
+  const r = el('div', 'row'); r.append(S.btn('Missões', () => S.open('missions')), S.btn('Eventos', () => S.open('events')), S.btn('Passe', () => S.open('pass')), S.btn('Loja', () => S.open('store')), S.btn('Voltar', () => S.close(), true)); p.append(r);
 } });
 
 /* ── ajuda ── */
@@ -61,6 +61,4 @@ S.register('social', { title: 'Redes', build(p) {
   p.lastChild.append(S.btn('Voltar', () => S.close(), true));
 } });
 
-/* ── loja: mostra nível e moedas no topo ── */
-const st = S.defs.store; if (st && st.build) { const orig = st.build; st.build = function (p, m) { const stop = orig.call(this, p, m); const h = p.querySelector('h2'); const l = el('p', 'sumline', { textContent: summary() }); h ? h.after(l) : p.prepend(l); const off = P.on(() => { l.textContent = summary(); }); return () => { off(); stop && stop(); }; }; }
 })();

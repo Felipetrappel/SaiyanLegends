@@ -131,11 +131,11 @@ class GameScene {
   }
   updateUI() {
     if (!this.ui) return; const m = this.me, C = SL.CombatCFG;
-    this.ui.hp.style.width = (m.hp / C.hp * 100) + '%'; this.ui.en.style.width = (m.energy / C.energy * 100) + '%';
+    this.ui.hp.style.width = (m.hp / C.hp * 100) + '%'; this.ui.en.style.width = (m.energy / (m.maxEn || C.energy) * 100) + '%';
     this.ui.power.classList.toggle('nope', !m.powerReady); this.ui.power.style.setProperty('--fill', Math.min(100, m.energy / m.powerCost * 100) + '%');
     const U = this.ui; U.z.classList.toggle('active', m.form > 0); U.z.classList.toggle('nope', !m.form && !m.ready('transform')); U.sp.classList.toggle('nope', !m.ready('burst'));
     U.pk.classList.toggle('nope', !m.ready('barrage')); U.yl.classList.toggle('nope', !m.ready('sun')); U.bt.classList.toggle('active', !!m.body.flying);
-    U.md.classList.toggle('active', m.state === 'meditate'); U.md.classList.toggle('nope', m.energy >= C.energy && m.state !== 'meditate');
+    U.md.classList.toggle('active', m.state === 'meditate'); U.md.classList.toggle('nope', m.energy >= (m.maxEn || C.energy) && m.state !== 'meditate');
   }
   layer(c) {
     if (this.dbg[c]) return this.dbg[c];

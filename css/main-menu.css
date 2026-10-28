@@ -197,3 +197,34 @@ html,body{height:100%;margin:0;overflow:hidden;background:var(--ink);color:#f6e9
 .panel.chat .empty{margin:0;color:#9d86d6}
 .sumline{margin:0 0 12px;color:#cdb8f5;font-size:.95em}
 .keys{width:100%;border-collapse:collapse;text-align:left;margin:0 0 14px}.keys td{padding:5px 8px;border-top:1px solid #3c1c80}.keys td:first-child{color:var(--gold);font-weight:700;white-space:nowrap}
+
+/* LOJA (js/store-screen.js) */
+.screen:has(.shopwrap){padding:0;background:#0b0220}
+.panel.shopwrap{position:relative;width:100%;height:100%;max-height:none;padding:0;overflow:hidden;border:0;border-radius:0;background:#0b0220;box-shadow:none;text-align:left}
+.shop-fill{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;filter:blur(18px) brightness(.5);transform:scale(1.1);pointer-events:none}
+.shopart{position:absolute;left:0;top:0;width:1672px;height:941px;transform-origin:0 0}
+.shopart>*{position:absolute}
+.shop-bg{left:0;top:0;width:1672px;height:941px;pointer-events:none;-webkit-user-drag:none}
+.shop-svg{inset:0;width:1672px!important;height:941px!important}
+.shop-char{image-rendering:pixelated;pointer-events:none}
+.shop-name{width:400px;text-align:center;font:800 34px/40px "Oswald","Roboto Condensed","sans-serif-condensed","Arial Narrow",Impact,sans-serif;letter-spacing:.06em;color:#fff;text-shadow:0 0 12px #b56cff,0 3px 3px #000;pointer-events:none}
+.shop-num{text-align:center;font:700 30px/40px system-ui,sans-serif;color:#fff;text-shadow:0 2px 2px #000;pointer-events:none;white-space:nowrap;overflow:hidden}
+.shop-num.big{font-size:32px;top:384px}
+.shop-val{left:1168px;width:110px;text-align:right;font:700 28px/40px system-ui,sans-serif;color:#fff;text-shadow:0 2px 2px #000;pointer-events:none}
+.shop-act{width:220px;height:46px;border:3px solid #7a4a00;border-radius:10px;font:800 21px/1 system-ui,sans-serif;letter-spacing:.03em;color:#2b0a00;background:linear-gradient(#ffd45c,#d9961a);cursor:pointer;box-shadow:0 4px 0 #6a3d00,0 0 14px rgba(255,200,80,.5)}
+.shop-act:active{transform:translateY(2px)}
+.shop-act.sel{color:#bfffd0;background:linear-gradient(#2e7a4d,#16472b);border-color:#0d2a18;box-shadow:none;cursor:default}
+.shop-act.own{color:#fff;background:linear-gradient(#7a3df0,#4a1aa8);border-color:#2a0a66}
+.shop-toast{left:336px;top:118px;width:1000px;text-align:center;padding:10px 16px;font:600 24px/1.3 system-ui,sans-serif;color:#fff;background:rgba(20,5,50,.92);border:2px solid #ffc933;border-radius:10px;opacity:0;transform:translateY(-6px);transition:opacity .2s,transform .2s;pointer-events:none;z-index:5}
+.shop-toast.on{opacity:1;transform:none}
+.shop-panel{display:none;left:340px;top:150px;width:995px;height:560px;padding:26px 40px;text-align:center;background:linear-gradient(#2c1066,#150433);border:6px solid #d99a12;border-radius:14px;box-shadow:0 0 0 3px #190733,0 0 40px rgba(150,80,255,.55);color:#e4d3fb;z-index:3}
+.shopart.cat .shop-panel{display:block}.shopart.cat .shop-char,.shopart.cat .shop-name,.shopart.cat .shop-act{display:none}
+.shop-panel h3{margin:0 0 30px;font:800 54px/1 "Oswald","Roboto Condensed","sans-serif-condensed",Impact,sans-serif;color:#ffc933;letter-spacing:.06em}
+.shop-panel p{margin:0 0 20px;font:500 28px/1.4 system-ui,sans-serif}.shop-panel p.big{font-size:38px;font-weight:700;color:#fff;margin-top:70px}.shop-panel .hint2{color:#cdb8f5;font-size:24px}
+.hs.off{pointer-events:none;opacity:0}
+.tab{cursor:pointer;outline:none;-webkit-tap-highlight-color:transparent;pointer-events:all}
+.tab .mbi{transform-box:fill-box;transform-origin:center;transition:transform .08s,filter .12s}
+.tab .tb-fill{fill:url(#tbOff)}.tab.on .tb-fill{fill:url(#tbOn)}.tab.on .mbi{filter:drop-shadow(0 0 10px rgba(190,120,255,.95))}
+.tab .tab-t{font-size:46px;fill:#d9c6ff}.tab.on .tab-t{fill:#fff}
+@media (hover:hover){.tab:hover .mbi{filter:brightness(1.15) drop-shadow(0 0 8px rgba(190,120,255,.9))}}
+.tab.is-pressed .mbi{transform:scale(.95);filter:brightness(.85)}
