@@ -307,7 +307,17 @@ class Fighter {
     ctx.save(); ctx.translate(Math.round(b.x), Math.round(b.y - 20 + bob)); ctx.rotate(lean); drawFrame(ctx, img, this.def, fi, 0, 20, this.face); ctx.restore();
   }
   draw(ctx, img) {
-    if (this.dead) { const A = this.def.anims.ko; if (!A) return; const b = this.body; ctx.save(); drawFrame(ctx, img, this.def, frameAt(this.def, 'ko', this.t), b.x, b.y, this.face); ctx.restore(); return; }   // K.O.: toca e fica caído até renascer
+    if (this.dead) {                                                                                   // K.O.: quadro 'ko' se o personagem tiver; senão cai para trás e some aos poucos até renascer
+      const b = this.body, A = this.def.anims.ko; ctx.save();
+      if (A) drawFrame(ctx, img, this.def, frameAt(this.def, 'ko', this.t), b.x, b.y, this.face);
+      else {
+        const now = performance.now(); if (!this._dAt) this._dAt = now; const e = (now - this._dAt) / 1000, k = Math.min(1, e / .32), ease = 1 - (1 - k) * (1 - k);
+        ctx.globalAlpha = Math.max(0, Math.min(1, 1.6 - e)); ctx.translate(Math.round(b.x - this.face * 6 * ease), Math.round(b.y - 10 * ease)); ctx.rotate(-this.face * ease * Math.PI / 2);
+        drawFrame(ctx, img, this.def, frameAt(this.def, 'hurt' in this.def.anims ? 'hurt' : 'fall', 0), 0, 0, this.face);
+      }
+      ctx.restore(); return;
+    }
+    this._dAt = 0;
     const b = this.body; let fi, cs = null;
     if (this.state === 'cast') { const q = this.def.cast.seq; cs = this.castSeg() || { seg: q[q.length - 1], ts: q[q.length - 1].dur - 1e-6, i: q.length - 1 }; fi = this.castFrame(cs); }
     else if (this.state === 'attack' && this.av) { const v = this.av; fi = v.f[Math.min(Math.floor(this.t * v.fps), v.f.length - 1)]; }
