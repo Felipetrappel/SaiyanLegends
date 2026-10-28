@@ -67,7 +67,7 @@ const Platform = {
 };
 
 /* ───────── Background: arte inteira visível (sem cortar), com borda desfocada preenchendo o resto da tela ───────── */
-const ART = { w: 1672, h: 941, src: 'assets/ui/menu-bg.jpg' };
+const ART = { w: 1672, h: 940, src: 'assets/ui/menu-bg.jpg' };
 class Background {
   constructor() {
     this.el = el('div', 'bgwrap');
@@ -79,44 +79,89 @@ class Background {
   fit(W, H) { const k = Math.min(W / ART.w, H / ART.h), w = ART.w * k, h = ART.h * k; return { x: (W - w) / 2, y: (H - h) / 2, w, h }; }
 }
 
-/* ───────── Botões (áreas clicáveis sobre a arte do menu) ─────────
- * A arte (assets/ui/menu-bg.jpg, 1672×941) já traz os botões desenhados. Cada botão abaixo é um polígono SVG independente,
- * em coordenadas da arte, que cobre exatamente a forma angular do botão desenhado: tem área de toque própria, brilho ao passar
- * o mouse / focar e efeito de clique, e não desenha nenhum retângulo ou fundo sobre a arte. Ajuste `pts` para mover/redimensionar. */
-const HOTSPOTS = [
-  { id: 'play',      label: 'Jogar',          screen: 'connect',  pts: [[1176,432],[1245,300],[1560,244],[1648,222],[1622,402]] },
-  { id: 'character', label: 'Personagem',     screen: 'store',    pts: [[1215,452],[1625,415],[1612,535],[1190,556]] },
-  { id: 'shop',      label: 'Loja',           screen: 'shop',     pts: [[1212,575],[1612,558],[1603,660],[1190,672]] },
-  { id: 'settings',  label: 'Configurações',  screen: 'options',  pts: [[1215,705],[1610,688],[1600,782],[1190,792]] },
-  { id: 'missions',  label: 'Missões',        screen: 'missions', pts: [[38,180],[140,180],[140,278],[38,278]] },
-  { id: 'ranking',   label: 'Ranking',        screen: 'rankings', pts: [[38,312],[140,312],[140,402],[38,402]] },
-  { id: 'events',    label: 'Eventos',        screen: 'events',   pts: [[38,432],[140,432],[140,528],[38,528]] },
-  { id: 'add',       label: 'Mais moedas',    screen: 'shop',     pts: [[1586,40],[1636,40],[1636,82],[1586,82]] },
-  { id: 'chatsend',  label: 'Enviar mensagem', screen: null,      pts: [[492,844],[535,844],[535,882],[492,882]] },
-  { id: 'pass',      label: 'Passe',          screen: 'pass',     pts: [[38,558],[140,558],[140,652],[38,652]] }
+/* ───────── Botões desenhados em SVG por cima do fundo ─────────
+ * O fundo (assets/ui/menu-bg.jpg, 1672×940) NÃO tem botões: eles são criados aqui, um a um, em coordenadas da arte.
+ * Para mover/redimensionar um botão, mude x/y/w (largura; a altura segue a proporção) ou cx/cy (círculos); para trocar a função, mude `screen`
+ * (id de uma tela registrada em SaiyanMenu.screens) ou `url`. Nada disso exige editar a imagem. */
+const SOCIAL = { youtube: '', facebook: '' };    // cole aqui os links do seu canal / página: com link, o botão abre o site; sem link, mostra um aviso
+const MAIN_BUTTONS = [
+  { id: 'connect',    label: 'CONNECT',     screen: 'connect',    x: 340,  y: 397, w: 375 },
+  { id: 'createRoom', label: 'CREATE ROOM', screen: 'createRoom', x: 960,  y: 397, w: 375 },
+  { id: 'store',      label: 'STORE',       screen: 'store',      x: 335,  y: 526, w: 340 },
+  { id: 'roomList',   label: 'ROOM LIST',   screen: 'roomList',   x: 1002, y: 526, w: 338 },
+  { id: 'code',       label: 'CODE',        screen: 'code',       x: 334,  y: 654, w: 376 },
+  { id: 'options',    label: 'OPTIONS',     screen: 'options',    x: 965,  y: 654, w: 375 }
 ];
-const SVGNS = 'http://www.w3.org/2000/svg';
+const ROUND_BUTTONS = [
+  { id: 'gift',     label: 'Presentes e recompensas', icon: 'gift',     screen: 'rewards',  cx: 75,   cy: 72 },
+  { id: 'trophy',   label: 'Ranking',                 icon: 'trophy',   screen: 'rankings', cx: 75,   cy: 193 },
+  { id: 'chat',     label: 'Chat global',             icon: 'chat',     screen: 'chat',     cx: 75,   cy: 313 },
+  { id: 'youtube',  label: 'YouTube',                 icon: 'youtube',  screen: 'social',   cx: 1243, cy: 70 },
+  { id: 'facebook', label: 'Facebook',                icon: 'facebook', screen: 'social',   cx: 1365, cy: 70 },
+  { id: 'help',     label: 'Ajuda',                   icon: 'help',     screen: 'help',     cx: 1486, cy: 70 },
+  { id: 'settings', label: 'Configurações',           icon: 'gear',     screen: 'options',  cx: 1607, cy: 70 }
+];
+const SVGNS = 'http://www.w3.org/2000/svg', BW = 380, BH = 112, R = 50;   // caixa de desenho do botão retangular e raio dos círculos
+const ICONS = {   // desenhados em um quadrado de -26..26
+  gift:     '<path d="M-20 -6h40v10h-40z M-16 4h32v18h-32z" fill="#e9dcff"/><path d="M0 -6v28" stroke="#6a2bd0" stroke-width="5"/><path d="M0 -8c-12-14-22-2-10 2zM0 -8c12-14 22-2 10 2z" fill="none" stroke="#e9dcff" stroke-width="4.5"/>',
+  trophy:   '<path d="M-14 -22h28v14c0 10-6 17-14 17s-14-7-14-17z" fill="#ffc933"/><path d="M-14 -17h-9c0 9 4 13 11 13M14 -17h9c0 9-4 13-11 13" fill="none" stroke="#ffc933" stroke-width="4"/><path d="M-4 8h8v8h-8zM-12 16h24v7h-24z" fill="#ffc933"/>',
+  chat:     '<path d="M-22 -18h34a6 6 0 0 1 6 6v14a6 6 0 0 1-6 6h-18l-12 10v-10h-4a6 6 0 0 1-6-6v-14a6 6 0 0 1 6-6z" fill="#f2e9ff"/><circle cx="-10" cy="-5" r="3" fill="#7a2bd8"/><circle cx="0" cy="-5" r="3" fill="#7a2bd8"/><circle cx="10" cy="-5" r="3" fill="#7a2bd8"/>',
+  youtube:  '<text x="0" y="17" text-anchor="middle" font-size="50" font-weight="900" fill="#e9dcff" font-family="Arial Black,Impact,sans-serif">Y</text>',
+  facebook: '<text x="2" y="21" text-anchor="middle" font-size="58" font-weight="900" fill="#e9dcff" font-family="Arial Black,Impact,sans-serif">f</text>',
+  help:     '<text x="0" y="19" text-anchor="middle" font-size="56" font-weight="900" fill="#ffc933" font-family="Arial Black,Impact,sans-serif">?</text>',
+  gear:     '<g fill="#e9dcff"><circle r="15"/>' + [0, 45, 90, 135, 180, 225, 270, 315].map(a => `<rect x="-5" y="-25" width="10" height="11" rx="2" transform="rotate(${a})"/>`).join('') + '</g><circle r="7" fill="#4a1a98"/>'
+};
+const DEFS = `<defs>
+  <linearGradient id="mbGold" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff0a0"/><stop offset=".35" stop-color="#ffc933"/><stop offset=".7" stop-color="#d98a0b"/><stop offset="1" stop-color="#ffd24f"/></linearGradient>
+  <linearGradient id="mbPlate" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5a1db0"/><stop offset=".5" stop-color="#3c1086"/><stop offset="1" stop-color="#26065e"/></linearGradient>
+  <linearGradient id="mbDia" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff3b0"/><stop offset=".5" stop-color="#ffbf1f"/><stop offset="1" stop-color="#c77a05"/></linearGradient>
+  <radialGradient id="mbRound" cx=".5" cy=".35" r=".8"><stop offset="0" stop-color="#6a2bd0"/><stop offset="1" stop-color="#2b0a66"/></radialGradient>
+</defs>`;
+function mainSvg(b) {
+  const k = b.w / BW, H = BH * k;
+  const hex = (i) => `M${i},56 L${i + 30},${i} L${BW - i - 30},${i} L${BW - i},56 L${BW - i - 30},${BH - i} L${i + 30},${BH - i} Z`;
+  const dia = x => `<polygon points="${x},34 ${x + 14},56 ${x},78 ${x - 14},56" fill="url(#mbDia)" stroke="#7a4300" stroke-width="2"/><path d="M${x - 14},56H${x + 14}M${x},34V78" stroke="#fff4b8" stroke-width="1.2" opacity=".55"/>`;
+  return `<g class="mb" data-id="${b.id}" role="button" tabindex="0" aria-label="${b.label}" transform="translate(${b.x},${b.y}) scale(${k})">
+    <path class="mb-hit" d="${hex(0)}" fill="#000" fill-opacity="0"/><g class="mbi">
+    <path d="${hex(1)}" fill="#190733" stroke="#190733" stroke-width="8" stroke-linejoin="round"/>
+    <path d="${hex(5)}" fill="none" stroke="url(#mbGold)" stroke-width="7" stroke-linejoin="round"/>
+    <path d="${hex(14)}" fill="url(#mbPlate)" stroke="#9a5cf0" stroke-width="2.5" stroke-linejoin="round"/>
+    <path d="M44,22H336" stroke="#c9a2ff" stroke-width="2" opacity=".45"/>
+    ${dia(34)}${dia(BW - 34)}
+    <text x="${BW / 2}" y="${BH / 2 + 16}" text-anchor="middle" class="mb-t" textLength="${Math.max(110, Math.min(250, b.label.length * 24))}" lengthAdjust="spacingAndGlyphs">${b.label}</text></g></g>`;
+}
+function roundSvg(b) {
+  return `<g class="mb mb-round" data-id="${b.id}" role="button" tabindex="0" aria-label="${b.label}" transform="translate(${b.cx},${b.cy})">
+    <circle class="mb-hit" r="${R}" fill="#000" fill-opacity="0"/><g class="mbi">
+    <circle r="${R - 1}" fill="#190733"/><circle r="${R - 4}" fill="none" stroke="url(#mbGold)" stroke-width="6"/>
+    <circle r="${R - 10}" fill="url(#mbRound)" stroke="#9a5cf0" stroke-width="2"/>
+    <ellipse cy="-20" rx="26" ry="11" fill="#fff" opacity=".10"/><g>${ICONS[b.icon]}</g></g></g>`;
+}
 class MenuButton {
-  constructor(menu, h) {
-    this.menu = menu; this.id = h.id; this.screen = h.screen;
-    const g = this.el = document.createElementNS(SVGNS, 'polygon');
-    g.setAttribute('points', h.pts.map(q => q.join(',')).join(' '));
-    g.setAttribute('class', 'hs'); g.setAttribute('role', 'button'); g.setAttribute('tabindex', '0'); g.setAttribute('aria-label', h.label); g.dataset.id = h.id;
-    const press = on => () => g.classList.toggle('is-pressed', on);
-    g.addEventListener('pointerdown', press(true));
-    ['pointerup', 'pointerleave', 'pointercancel', 'blur'].forEach(t => g.addEventListener(t, press(false)));
-    g.addEventListener('keydown', e => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); press(true)(); } });
-    g.addEventListener('keyup', e => { press(false)(); if (e.key === ' ' || e.key === 'Enter') this.activate(); });
-    g.addEventListener('click', () => setTimeout(() => this.activate(), 110));      // deixa o brilho de clique aparecer
+  constructor(menu, h, el) {
+    this.menu = menu; this.id = h.id; this.h = h; this.el = el;
+    const press = on => () => el.classList.toggle('is-pressed', on);
+    el.addEventListener('pointerdown', press(true));
+    ['pointerup', 'pointerleave', 'pointercancel', 'blur'].forEach(t => el.addEventListener(t, press(false)));
+    el.addEventListener('keydown', e => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); press(true)(); } });
+    el.addEventListener('keyup', e => { press(false)(); if (e.key === ' ' || e.key === 'Enter') this.activate(); });
+    el.addEventListener('click', () => setTimeout(() => this.activate(), 110));      // deixa o efeito de clique aparecer
   }
   activate() { this.menu.emit(this.id, this); this.onActivate(); }                   // evento próprio + ação própria
-  onActivate() { if (this.screen) this.menu.screens.open(this.screen, this.el); }
+  onActivate() {
+    const h = this.h;
+    if (h.id === 'youtube' || h.id === 'facebook') { this.menu.social = h.id; if (SOCIAL[h.id]) { window.open(SOCIAL[h.id], '_blank', 'noopener'); return; } }
+    if (h.screen) this.menu.screens.open(h.screen, this.el);
+    else if (h.id === 'chat') this.menu.screens.open('chat', this.el);
+  }
 }
 class MenuButtons {
   constructor(menu) {
     this.el = el('nav', 'buttons'); this.el.setAttribute('aria-label', 'Menu principal');
     const svg = document.createElementNS(SVGNS, 'svg'); svg.setAttribute('viewBox', `0 0 ${ART.w} ${ART.h}`); svg.setAttribute('class', 'hsvg');
-    this.list = HOTSPOTS.map(h => new MenuButton(menu, h)); this.list.forEach(b => svg.append(b.el)); this.el.append(svg);
+    svg.innerHTML = DEFS + MAIN_BUTTONS.map(mainSvg).join('') + ROUND_BUTTONS.map(roundSvg).join('');
+    this.list = [...MAIN_BUTTONS, ...ROUND_BUTTONS].map(h => new MenuButton(menu, h, svg.querySelector(`[data-id="${h.id}"]`)));
+    this.el.append(svg);
   }
   place(r) { const s = this.el.style; s.left = r.x + 'px'; s.top = r.y + 'px'; s.width = r.w + 'px'; s.height = r.h + 'px'; }
 }

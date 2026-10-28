@@ -1,73 +1,66 @@
-/* HUD do menu principal (camada em coordenadas da arte 1672×941): PERFIL (retrato do personagem selecionado, nome, nível, XP, poder),
- * MOEDAS (ouro, prata, diamantes) e CHAT GLOBAL. Tudo começa ZERADO / VAZIO.
- *  - Perfil e moedas: SL.Profile (js/characters.js). Ganhos: SL.Profile.addXp(n) / addCoins('gold'|'silver'|'gems', n); gastos: spend().
- *    Hoje se ganha XP e ouro derrotando oponentes; prata e diamantes já funcionam, mas nada os concede ainda.
- *  - Chat global: servidor (op "chat") para todos os jogadores online; sem servidor, a mensagem só aparece para você. */
+/* Dados sociais do menu: PERFIL (nível, XP, moedas — SL.Profile) e CHAT GLOBAL (servidor, op "chat"). Registra as telas
+ * CHAT (botão de balão), PRESENTES (botão de presente), AJUDA (?) e REDES (YouTube/Facebook) e acrescenta o resumo de nível/moedas à loja.
+ *  - Moedas/XP: SL.Profile.addXp(n) / addCoins('gold'|'silver'|'gems', n) / spend(). Hoje se ganha XP e ouro derrotando oponentes.
+ *  - Chat: todos os jogadores conectados ao servidor veem as mesmas mensagens; sem servidor, só você vê as suas. */
 (() => {
 'use strict';
-const M = SaiyanMenu, P = SL.Profile, G = SaiyanGame, svc = G.service, H = M.hud;
+const M = SaiyanMenu, P = SL.Profile, G = SaiyanGame, svc = G.service, S = M.screens;
 const el = (t, c = '', p = {}) => Object.assign(document.createElement(t), { className: c, ...p });
-const at = (node, x, y, w) => { Object.assign(node.style, { left: x + 'px', top: y + 'px' }); if (w) node.style.width = w + 'px'; H.append(node); return node; };
 const fmt = n => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
-
-/* ── perfil ── */
-const portrait = at(el('div', 'hp-portrait'), 44, 34); portrait.style.width = '104px'; portrait.style.height = '98px';
-const nameEl = at(el('div', 'hp-name'), 192, 36, 230), lvEl = at(el('div', 'hp-lv'), 190, 82), xpFill = at(el('i', 'hp-xp'), 278, 90);
-const powL = at(el('div', 'hp-powl', { textContent: 'Poder' }), 532, 60), powV = at(el('div', 'hp-powv'), 532, 80, 100);
-const coins = { gold: at(el('div', 'hp-coin'), 1180, 44, 88), silver: at(el('div', 'hp-coin'), 1342, 44, 88), gems: at(el('div', 'hp-coin'), 1496, 44, 88) };
 const myName = () => (SL.Auth && SL.Auth.user && SL.Auth.user.name) || G.rooms.me.name || 'Jogador';
-let shown = '';
-function paint() {
-  const id = P.selected; if (shown !== id) { shown = id; const pt = SL.Characters.portrait(id, 2.3); portrait.replaceChildren(pt); }
-  const n = myName(); nameEl.textContent = n; nameEl.style.fontSize = (n.length > 11 ? 24 : n.length > 8 ? 29 : 34) + 'px';
-  lvEl.textContent = 'Lv. ' + P.level; xpFill.style.width = Math.round(P.levelProgress * 164) + 'px'; powV.textContent = fmt(P.power);
-  for (const k in coins) coins[k].textContent = fmt(P[k]);
-}
-P.on(paint); M.on('screen:close', paint); setInterval(paint, 1000); paint();
+const summary = () => `Nível ${P.level} · XP ${fmt(P.xp)} · Poder ${fmt(P.power)} · Ouro ${fmt(P.gold)} · Prata ${fmt(P.silver)} · Diamantes ${fmt(P.gems)}`;
 
-/* ── chat global ── */
-const online = at(el('div', 'hc-online'), 459, 699, 80), list = at(el('div', 'hc-msgs'), 42, 738, 504);
-const input = at(el('div', 'hc-input', { textContent: 'Digite sua mensagem...', role: 'button', tabIndex: 0 }), 50, 845, 428);   // toque abre o campo de digitação (abaixo)
-input.setAttribute('aria-label', 'Escrever no chat global');
-const seen = new Set(); let status = null;
-function setOnline(n) { online.textContent = (n == null ? 0 : n) + ' online'; }
-setOnline(svc.mode === 'online' ? 1 : 0); svc.on('status', () => { if (svc.mode !== 'online') setOnline(0); });
-svc.on('online', setOnline);
-function add(m) {
-  if (!m || seen.has(m.n)) return; seen.add(m.n);
-  const near = list.scrollHeight - list.scrollTop - list.clientHeight < 30, row = el('div', 'hc-row');
-  row.append(el('span', 'hc-lv', { textContent: Math.max(0, m.lv | 0) }), el('b', 'hc-nm', { textContent: String(m.name || 'Jogador').slice(0, 16) }), el('span', 'hc-tx', { textContent: String(m.text || '').slice(0, 120) }));
-  list.append(row); while (list.children.length > 60) list.firstChild.remove();
-  if (near || m.local || m.name === myName()) list.scrollTop = list.scrollHeight;
-}
-svc.on('chat', add);
-/* Digitação: no celular o teclado ocupa metade da tela (e encolhe a janela), então a mensagem é escrita num campo no TOPO da tela,
-   acima do teclado. Enquanto ele está aberto o layout do menu fica congelado (não encolhe junto com a janela). */
-const recent = []; let cmp = null;
+/* ── chat (dados) ── */
+const log = [], seen = new Set(), ls = new Set(); let online = svc.mode === 'online' ? 1 : 0;
+const note = () => ls.forEach(f => f());
+svc.on('chat', m => { if (!m || seen.has(m.n)) return; seen.add(m.n); log.push(m); if (log.length > 60) log.shift(); note(); });
+svc.on('online', n => { online = n == null ? 0 : n; note(); });
+svc.on('status', () => { if (svc.mode !== 'online') { online = 0; note(); } });
 const rowOf = m => { const r = el('div', 'hc-row'); r.append(el('span', 'hc-lv', { textContent: Math.max(0, m.lv | 0) }), el('b', 'hc-nm', { textContent: String(m.name || 'Jogador').slice(0, 16) }), el('span', 'hc-tx', { textContent: String(m.text || '').slice(0, 120) })); return r; };
-svc.on('chat', m => { recent.push(m); if (recent.length > 4) recent.shift(); if (cmp) cmp.paintList(); });
-function closeComposer() { if (!cmp) return; cmp.root.remove(); cmp = null; document.body.classList.remove('kb'); M.layout(); }
-function openComposer() {
-  if (cmp) return; document.body.classList.add('kb');
-  const root = el('div', 'composer'), ls = el('div', 'cmp-list'), row = el('div', 'cmp-row');
-  const inp = el('input', 'cmp-input', { type: 'text', maxLength: 120, placeholder: 'Digite sua mensagem...', autocomplete: 'off', enterKeyHint: 'send' });
+window.SL.Social = { log, send: t => svc.sendChat(t, P.level, myName()), get online() { return online; }, summary };
+
+S.register('chat', { title: 'Chat global', build(p) {
+  p.classList.add('chat');
+  const h = el('h2', '', { textContent: 'Chat global' }), st = el('p', 'hint'), list = el('div', 'clist'), err = el('div', 'msg'), row = el('div', 'crow');
+  const inp = el('input', '', { type: 'text', maxLength: 120, placeholder: 'Digite sua mensagem...', autocomplete: 'off', enterKeyHint: 'send' });
   inp.setAttribute('aria-label', 'Mensagem do chat global');
-  const err = el('div', 'cmp-err');
-  const go = async () => {
-    const t = inp.value.replace(/\s+/g, ' ').trim(); if (!t) return closeComposer();
-    try { await svc.sendChat(t, P.level, myName()); inp.value = ''; closeComposer(); } catch (e) { err.textContent = e.message; }
+  const paint = () => {
+    const near = list.scrollHeight - list.scrollTop - list.clientHeight < 40;
+    st.textContent = svc.mode === 'online' ? '● ' + online + ' online' : '○ Sem servidor: só você vê as mensagens'; st.style.color = svc.mode === 'online' ? '#7dffb0' : '#ffb36b';
+    list.replaceChildren(...(log.length ? log.map(rowOf) : [el('p', 'empty', { textContent: 'Nenhuma mensagem ainda. Escreva a primeira!' })]));
+    if (near) list.scrollTop = list.scrollHeight;
   };
-  row.append(inp, el('button', 'cmp-btn', { type: 'button', textContent: 'Enviar', onclick: go }), el('button', 'cmp-btn ghost', { type: 'button', textContent: '✕', onclick: closeComposer, ariaLabel: 'Fechar' }));
-  root.append(ls, err, row); document.body.append(root);
-  root.paintList = () => { ls.replaceChildren(...recent.map(rowOf)); };
-  cmp = { root, paintList: root.paintList }; root.paintList();
-  inp.addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') { e.preventDefault(); go(); } else if (e.key === 'Escape') closeComposer(); });
-  inp.addEventListener('keyup', e => e.stopPropagation());
-  root.addEventListener('pointerdown', e => { if (e.target === root) closeComposer(); });
-  root.addEventListener('focusout', () => setTimeout(() => { if (cmp && !root.contains(document.activeElement)) closeComposer(); }, 250));
-  inp.focus();
-}
-input.addEventListener('click', openComposer); input.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openComposer(); } });
-M.on('chatsend', openComposer);
-M.on('screen:open', closeComposer);
+  const go = async () => { const t = inp.value.replace(/\s+/g, ' ').trim(); if (!t) return; err.textContent = ''; try { await window.SL.Social.send(t); inp.value = ''; list.scrollTop = list.scrollHeight; } catch (e) { err.textContent = e.message; } };
+  inp.addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') { e.preventDefault(); go(); } }); inp.addEventListener('keyup', e => e.stopPropagation());
+  row.append(inp, S.btn('Enviar', go)); p.append(h, st, list, err, row, el('div', 'row', {}));
+  p.lastChild.append(S.btn('Voltar', () => S.close(), true));
+  ls.add(paint); paint(); list.scrollTop = list.scrollHeight; setTimeout(() => inp.focus({ preventScroll: true }), 50);
+  return () => ls.delete(paint);
+} });
+
+/* ── presentes e recompensas ── */
+S.register('rewards', { title: 'Presentes', build(p) {
+  p.classList.add('wide'); p.append(el('h2', '', { textContent: 'Presentes e recompensas' }), el('p', 'sumline', { textContent: summary() }),
+    el('p', '', { textContent: 'Presentes diários e baús ainda não existem no jogo. Por enquanto, a recompensa é: derrotar um oponente que você acertou rende +25 XP e +10 de ouro.' }));
+  const r = el('div', 'row'); r.append(S.btn('Missões', () => S.open('missions')), S.btn('Eventos', () => S.open('events')), S.btn('Passe', () => S.open('pass')), S.btn('Loja', () => S.open('shop')), S.btn('Voltar', () => S.close(), true)); p.append(r);
+} });
+
+/* ── ajuda ── */
+S.register('help', { title: 'Ajuda', build(p) {
+  p.classList.add('wide'); p.append(el('h2', '', { textContent: 'Como jogar' }));
+  const t = el('table', 'keys'); [['Mover', '← → ou A D  ·  botões ◀ ▶ na tela'], ['Pular', 'W, ↑ ou Espaço  ·  botão da bota'], ['Voar', 'F liga/desliga  ·  toque duplo na bota; sobe W/↑, desce S/↓'], ['Soco', 'J ou Z  ·  botão do punho'],
+    ['Poder de Ki', 'K, X ou E'], ['Transformar', 'T'], ['Especial', 'R'], ['Rajada', 'Q'], ['Esfera', 'C'], ['Defender', 'S, ↓ ou botão do escudo'], ['Carregar Ki', 'M (segure) — o Ki só recarrega assim'],
+    ['Som', 'M liga/desliga fora da partida']].forEach(([a, b]) => { const tr = el('tr'); tr.append(el('td', '', { textContent: a }), el('td', '', { textContent: b })); t.append(tr); });
+  p.append(t, el('div', 'row')); p.lastChild.append(S.btn('Voltar', () => S.close(), true));
+} });
+
+/* ── YouTube / Facebook ── */
+S.register('social', { title: 'Redes', build(p) {
+  const n = M.social === 'facebook' ? 'Facebook' : 'YouTube';
+  p.append(el('h2', '', { textContent: n }), el('p', '', { textContent: `O link do ${n} ainda não foi configurado. Cole o endereço em SOCIAL, no começo de js/main-menu.js, e o botão passa a abrir o site.` }), el('div', 'row'));
+  p.lastChild.append(S.btn('Voltar', () => S.close(), true));
+} });
+
+/* ── loja: mostra nível e moedas no topo ── */
+const st = S.defs.store; if (st && st.build) { const orig = st.build; st.build = function (p, m) { const stop = orig.call(this, p, m); const h = p.querySelector('h2'); const l = el('p', 'sumline', { textContent: summary() }); h ? h.after(l) : p.prepend(l); const off = P.on(() => { l.textContent = summary(); }); return () => { off(); stop && stop(); }; }; }
 })();
