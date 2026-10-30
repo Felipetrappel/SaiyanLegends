@@ -11,14 +11,14 @@ const G = SL.GameScene.prototype;
 G.initCustomize = function (root, host) {
   this.ctlRoot = root; this.ctlHost = host; this.btns = [...root.querySelectorAll('.cbtn')]; this.editing = false; this.selId = null;
   this.btns.forEach(b => { b.dataset.id = [...b.classList].find(c => c !== 'cbtn' && c !== 'on'); this._wireEdit(b); });
-  try { const d = JSON.parse(localStorage.getItem(KEY) || 'null'); if (d && d.v === 1 && d.b) this.layout = d; } catch (e) { /* sem storage */ }
+  try { const d = JSON.parse(localStorage.getItem(KEY) || 'null'); if (d && d.v === 2 && d.b) this.layout = d; } catch (e) { /* sem storage */ }
   this.applyLayout();
 };
 G.saveLayout = function () { try { if (this.layout) localStorage.setItem(KEY, JSON.stringify(this.layout)); else localStorage.removeItem(KEY); } catch (e) {} };
 G.snapshotLayout = function () {
   const R = this.ctlHost.getBoundingClientRect(), b = {};   // medido na área inteira do jogo (a mesma que o modo personalizado ocupa)
   this.btns.forEach(x => { const r = x.getBoundingClientRect(); b[x.dataset.id] = { x: (r.left + r.width / 2 - R.left) / R.width, y: (r.top + r.height / 2 - R.top) / R.height, k: 1 }; });
-  return { v: 1, scale: 1, op: .9, b };
+  return { v: 2, scale: 1, op: .9, b };
 };
 G.applyLayout = function () {
   const L = this.layout; this.ctlRoot.classList.toggle('custom', !!L);

@@ -322,3 +322,24 @@ button.rm-card{cursor:pointer;padding:0;text-align:center}
 .rm-wbtns{position:relative;display:flex;justify-content:center;align-items:center;gap:40px;flex-wrap:wrap;margin-top:6px}
 .rm-wbtns .rm-btn{position:relative}
 .rm-wbtns .rm-msg{position:absolute;left:0;right:0;top:-40px;min-height:0}
+
+/* ───── Botões de combate (js/game-scene.js): roxo/preto/dourado, ícones SVG, anel de recarga ───── */
+.ctl .acts{--s:clamp(54px,15vmin,86px);--g:calc(var(--s)*.09);--cols:3;grid-template-areas:"md sp power" "bt pk atk"}
+.ctl .acts .md{grid-area:md}.ctl .acts .sp{grid-area:sp}.ctl .acts .power{grid-area:power}.ctl .acts .bt{grid-area:bt}.ctl .acts .pk{grid-area:pk}.ctl .acts .atk{grid-area:atk}
+.ctl .move{--s:clamp(54px,14vmin,92px);--cols:2;grid-template-areas:". g" "l r"}
+.ctl .move .guard{grid-area:g}
+.ctl .cbtn{border-radius:50%;opacity:.95;background:radial-gradient(circle at 50% 28%,#7b34e0 0%,#4a1aa8 45%,#1c0648 100%);
+  box-shadow:inset 0 0 0 calc(var(--s)*.055) #e8a413,inset 0 0 0 calc(var(--s)*.085) #190733,inset 0 calc(var(--s)*.1) calc(var(--s)*.12) rgba(255,255,255,.18),0 3px 0 #0b0230,0 0 14px rgba(150,70,255,.55);overflow:visible}
+.ctl .cbtn .ic{position:absolute;left:19%;top:11%;width:62%;height:62%;pointer-events:none;filter:drop-shadow(0 2px 2px rgba(0,0,0,.6))}
+.ctl .cbtn.l .ic,.ctl .cbtn.r .ic{left:17%;top:17%;width:66%;height:66%}
+.ctl .cbtn .lbl{position:absolute;inset:auto 0 calc(var(--s)*.1) 0;display:block;text-align:center;font:800 calc(var(--s)*.108)/1 system-ui,sans-serif;letter-spacing:.03em;color:#fff3c4;text-shadow:0 1px 2px #0b0230,0 0 4px #0b0230;white-space:nowrap;pointer-events:none}
+.ctl .cbtn .cd{position:absolute;inset:calc(var(--s)*.085);border-radius:50%;pointer-events:none;background:conic-gradient(rgba(6,0,24,.78) calc(var(--cd,0)*360deg),transparent 0)}
+.ctl .cbtn .fx{position:absolute;inset:0;border-radius:50%;pointer-events:none;opacity:0}
+.ctl .cbtn.rdy .fx{opacity:1;box-shadow:0 0 calc(var(--s)*.16) calc(var(--s)*.03) rgba(255,214,90,.55);animation:cbPulse 1.6s ease-in-out infinite}
+@keyframes cbPulse{0%,100%{opacity:.35}50%{opacity:1}}
+.ctl .cbtn.active{box-shadow:inset 0 0 0 calc(var(--s)*.055) #fff1a0,inset 0 0 0 calc(var(--s)*.085) #190733,0 3px 0 #0b0230,0 0 calc(var(--s)*.3) rgba(255,214,90,.95)}
+.ctl .cbtn.on{transform:scale(.9);filter:brightness(1.25) saturate(1.15)}
+.ctl .cbtn.on .fx{opacity:1;box-shadow:0 0 calc(var(--s)*.35) calc(var(--s)*.08) rgba(190,120,255,.95),inset 0 0 calc(var(--s)*.25) rgba(255,255,255,.55);animation:none}
+.ctl .cbtn.nope{filter:grayscale(.55) brightness(.62)}.ctl .cbtn.nope.on{filter:grayscale(.55) brightness(.8)}
+.ctl .cbtn.off{filter:grayscale(.9) brightness(.5)}
+.ctl.custom .cbtn{margin:calc(var(--s)/-2) 0 0 calc(var(--s)/-2)}

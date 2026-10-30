@@ -4,7 +4,8 @@
 'use strict';
 const S = SL.STREET, pending = {};
 const all = {};
-if (S) all.street = { ...S, price: 0, defaultUnlocked: true, stats: { power: 100, defense: 100, energy: 100, speed: 100, k: 100 }, img: Object.assign(new Image(), { src: S.sheet }) };   // pré-carrega o sheet (para trocar o preço/bloqueio, edite price e defaultUnlocked)
+if (S) all.street = { ...S, price: 0, defaultUnlocked: true, stats: { power: 100, defense: 100, energy: 100, speed: 100, k: 100 }, unique: { name: 'ONDA DE IMPACTO', icon: 'shock' },   // HABILIDADE ÚNICA do personagem (botão da tela): nome e ícone; a ação é def.dash (se houver) ou a onda de impacto
+   img: Object.assign(new Image(), { src: S.sheet }) };   // pré-carrega o sheet (para trocar o preço/bloqueio, edite price e defaultUnlocked)
 const DEFAULT = Object.keys(all)[0];   // personagem padrão = o primeiro disponível
 const KEY = 'sl.profile';
 const WELCOME_GOLD = 1500;   // moedas amarelas de um perfil NOVO (dadas uma única vez: o perfil guarda 'welcomed')

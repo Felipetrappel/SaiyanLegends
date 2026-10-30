@@ -5,11 +5,22 @@
 const { Body } = SL.Collision, { Fighter } = SL;
 const DBG = [null, [235, 24, 24, 125], [255, 40, 170, 105], [185, 70, 255, 185]]; // bloqueado, caminhável, subcolisão
 const CNAME = ['sem colisão', 'vermelho (BLOCKED)', 'rosa (WALKABLE)', 'roxo (SUB)', 'borda do mapa'];
-const UI_ASSETS = { left: 'assets/ui/pad/btn-left.png', right: 'assets/ui/pad/btn-right.png',   // setas ← e →
-  z: 'assets/ui/pad/btn-z.png', special: 'assets/ui/pad/btn-blank.png', shield: 'assets/ui/pad/btn-shield.png', pink: 'assets/ui/pad/btn-pink.png', blue: 'assets/ui/pad/btn-blue.png', fist: 'assets/ui/pad/btn-fist.png',
-  yellow: 'assets/ui/pad/btn-yellow.png', meditate: 'assets/ui/pad/btn-meditate.png', boot: 'assets/ui/pad/btn-boot.png' };   // 9 botões de combate + 2 setas, recortados das imagens enviadas
+/* Ícones dos botões (SVG 100×100, desenhados aqui: nada de imagem externa). */
+const ICONS = {
+  fist: '<g fill="#fff3c4" stroke="#3a1a00" stroke-width="3" stroke-linejoin="round"><rect x="24" y="30" width="14" height="22" rx="6"/><rect x="38" y="26" width="14" height="26" rx="6"/><rect x="52" y="26" width="14" height="26" rx="6"/><rect x="66" y="30" width="14" height="22" rx="6"/><path d="M24 46h56v18c0 14-10 22-26 22s-30-8-30-22z"/><path d="M26 54c-10 0-14 8-8 16" fill="none" stroke-width="7" stroke-linecap="round"/></g>',
+  charge: '<g><circle cx="50" cy="56" r="26" fill="none" stroke="#7fdcff" stroke-width="5" opacity=".7"/><path d="M56 14L30 56h18l-6 30 28-44H52z" fill="#fff3c4" stroke="#3a1a00" stroke-width="3" stroke-linejoin="round"/><path d="M14 72l8-10 8 10M70 72l8-10 8 10" fill="none" stroke="#7fdcff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/></g>',
+  wing: '<g stroke="#3a1a00" stroke-width="3" stroke-linejoin="round"><path d="M50 84V30" fill="none" stroke="#fff3c4" stroke-width="9" stroke-linecap="round"/><path d="M50 12L28 38h14v14h16V38h14z" fill="#fff3c4"/><path d="M20 62c-8-2-12-10-12-18 10 0 20 4 24 14-3 4-8 5-12 4zM80 62c8-2 12-10 12-18-10 0-20 4-24 14 3 4 8 5 12 4z" fill="#9ae6ff"/></g>',
+  small: '<g><path d="M8 50h30M14 40h22M14 60h22" stroke="#d9b6ff" stroke-width="5" stroke-linecap="round" opacity=".85"/><circle cx="62" cy="50" r="19" fill="#ff7fcb" stroke="#fff3c4" stroke-width="4"/><circle cx="62" cy="50" r="9" fill="#fff"/></g>',
+  big: '<g><path d="M4 50h26M10 36h22M10 64h22" stroke="#d9b6ff" stroke-width="5" stroke-linecap="round" opacity=".85"/><g stroke="#ffe27a" stroke-width="4" stroke-linecap="round"><path d="M64 10v10M64 80v10M30 50h10M88 50h6M40 24l7 7M88 24l-7 7M40 76l7-7M88 76l-7-7"/></g><circle cx="64" cy="50" r="27" fill="#ff5fb8" stroke="#fff3c4" stroke-width="5"/><circle cx="64" cy="50" r="15" fill="#ffd0ee"/><circle cx="64" cy="50" r="7" fill="#fff"/></g>',
+  shock: '<g fill="none" stroke-linecap="round"><circle cx="50" cy="52" r="12" fill="#fff3c4" stroke="#3a1a00" stroke-width="3"/><circle cx="50" cy="52" r="26" stroke="#9fd8ff" stroke-width="6"/><circle cx="50" cy="52" r="40" stroke="#c9a2ff" stroke-width="5" opacity=".8"/><path d="M6 52h8M86 52h8M50 8v8" stroke="#ffe27a" stroke-width="5"/></g>',
+  star: '<path d="M50 10l12 26 28 3-21 19 6 28-25-14-25 14 6-28L10 39l28-3z" fill="#fff3c4" stroke="#3a1a00" stroke-width="3" stroke-linejoin="round"/>',
+  lock: '<g stroke="#3a1a00" stroke-width="3"><rect x="26" y="44" width="48" height="38" rx="7" fill="#b9a6d8"/><path d="M36 44V34a14 14 0 0 1 28 0v10" fill="none" stroke="#b9a6d8" stroke-width="8"/></g>',
+  shield: '<path d="M50 10l34 12v26c0 20-14 34-34 42C30 82 16 68 16 48V22z" fill="#9ae6ff" stroke="#3a1a00" stroke-width="3" stroke-linejoin="round"/><path d="M50 22l22 8v18c0 13-9 23-22 29z" fill="#fff" opacity=".55"/>',
+  left: '<path d="M62 18L28 50l34 32" fill="none" stroke="#fff3c4" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"/>',
+  right: '<path d="M38 18l34 32-34 32" fill="none" stroke="#fff3c4" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"/>'
+};
 const KEYS = { left: ['ArrowLeft', 'KeyA'], right: ['ArrowRight', 'KeyD'], up: ['ArrowUp', 'KeyW', 'Space'], down: ['ArrowDown', 'KeyS'], attack: ['KeyJ', 'KeyZ'], meditate: ['KeyM'] };
-const TAP_KEYS = { KeyF: 'fly', KeyK: 'power', KeyX: 'power', KeyE: 'power', KeyT: 'transform', KeyR: 'special', KeyQ: 'barrage', KeyC: 'sun', };   // teclado: um toque
+const TAP_KEYS = { KeyF: 'fly', KeyK: 'power', KeyX: 'power', KeyE: 'power', KeyB: 'big', KeyR: 'special', KeyQ: 'barrage', KeyC: 'sun', };   // (a transformação não tem tecla nem botão: o sistema ainda não existe)   // teclado: um toque
 
 class GameScene {
   constructor(canvas, loaded, players, meId, opts = {}) {
@@ -51,7 +62,7 @@ class GameScene {
     else if (d.k === 'hit') { const f = byId(d.to); if (f && !f.remote && +d.dmg > 0 && +d.dmg <= 200) f.hurt(+d.dmg, d.dir < 0 ? -1 : 1, Math.min(600, Math.abs(+d.kb) || 0)); }
     else if (d.k === 'proj') {
       const f = byId(d.by), q = d.d; if (!f || !f.remote || !q) return; const w = this.world, F = SL;
-      if (q.t === 'shot' && f.def.cast) w.projectiles.push(new F.Shot(f, f.def.cast, q.x, q.y, q.face));
+      if (q.t === 'shot' && f.def.cast) w.projectiles.push(new F.Shot(f, q.big && f.hasBig ? F.bigCfg(f.def) : f.def.cast, q.x, q.y, q.face));
       else if (q.t === 'ball' && q.o) w.projectiles.push(new F.KiBall(f, q.x, q.y, q.face, { ...q.o, pal: F.PAL[q.o.pal] || F.PAL.pink }));
       else if (q.t === 'beam' && f.def.beam) w.projectiles.push(new F.Beam(f, q.x, q.y, q.face));
     }
@@ -62,7 +73,7 @@ class GameScene {
   toggleDebug() { this.debug = !this.debug; }
   key(e, down) {
     if (/INPUT|SELECT|TEXTAREA/.test(e.target.tagName)) return;
-    if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Space', 'KeyA', 'KeyD', 'KeyW', 'KeyS', 'KeyJ', 'KeyZ', 'KeyK', 'KeyX', 'KeyE', 'KeyF', 'KeyT', 'KeyR', 'KeyQ', 'KeyC', 'KeyL', 'KeyM', 'F3', 'Backquote', 'KeyG'].includes(e.code)) e.preventDefault();
+    if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Space', 'KeyA', 'KeyD', 'KeyW', 'KeyS', 'KeyJ', 'KeyZ', 'KeyK', 'KeyX', 'KeyE', 'KeyF', 'KeyB', 'KeyR', 'KeyQ', 'KeyC', 'KeyL', 'KeyM', 'F3', 'Backquote', 'KeyG'].includes(e.code)) e.preventDefault();
     if (down && !e.repeat) {
       if (['F3', 'Backquote', 'KeyG'].includes(e.code)) this.toggleDebug();
       if (this.debug && /^Digit[123]$/.test(e.code)) this.layers[+e.code.slice(5)] ^= 1;
@@ -73,38 +84,37 @@ class GameScene {
   held(k) { return KEYS[k].some(c => this.K.has(c)); }
   input() { // teclado + botões na tela; ações de um toque (voar/poder) chegam como "pressed"
     const P = this.pad, N = this.pend, inp = { left: this.held('left') || P.left, right: this.held('right') || P.right, up: this.held('up') || P.jump || N.jump, down: this.held('down'), guard: !!P.guard, meditate: this.held('meditate') || !!P.meditate,
-      pressed: { attack: this.held('attack') || P.attack || N.attack, fly: N.fly, power: N.power, transform: N.transform, special: N.special, barrage: N.barrage, sun: N.sun } };
+      pressed: { attack: this.held('attack') || P.attack || N.attack, fly: N.fly, power: N.power, big: N.big, special: N.special, barrage: N.barrage, sun: N.sun } };
     /* buffer de entrada: um toque de poder/ação dado enquanto o personagem ainda está ocupado (ex.: no fim de um soco) não se perde: vale por ~0,4 s */
     const me = this.me, B = this.buf || (this.buf = {});
     for (const k in inp.pressed) { if (inp.pressed[k]) B[k] = me && me.busy ? 24 : 0; else if (B[k] > 0) { if (me && !me.busy) { inp.pressed[k] = true; B[k] = 0; } else B[k]--; } }
     this.pend = {}; if (this.editing) { inp.left = inp.right = inp.up = inp.guard = inp.meditate = false; for (const k in inp.pressed) inp.pressed[k] = false; } return inp;
   }
-  /* Controles na tela com os PNGs recortados das imagens enviadas (assets/ui/pad): só as setas ← e → à esquerda; à direita a grade 3×3:
-     Z · especial · escudo / rosa · azul(poder) · punho / amarelo · meditar · BOTA. A BOTA é o PULAR (segure = sobe) e o toque duplo liga/desliga o VOO. */
+  /* Controles na tela (botões desenhados em SVG, roxo/dourado). Direita: HABILIDADE ÚNICA · PODER GRANDE · CARREGAR KI / PULAR-VOAR · PODER PEQUENO · SOCO.
+     Esquerda: ← → e DEFESA. Não há botão de transformação (o sistema ainda não existe). Cada botão tem recarga (anel escuro) e fica apagado sem Ki. */
   attachControls(host) {
-    const mk = (cls, key, mode, src, label, o = {}) => {
+    const mk = (cls, key, mode, icon, label, text, o = {}) => {
       const b = Object.assign(document.createElement('button'), { type: 'button', className: 'cbtn ' + cls }); b.tabIndex = -1; b.setAttribute('aria-label', label); b.title = label;
-      const img = Object.assign(document.createElement('img'), { src, alt: '', draggable: false }); if (o.rot) img.style.transform = `rotate(${o.rot}deg)`; b.append(img);
-      if (o.text) b.append(Object.assign(document.createElement('span'), { className: 'lbl', textContent: o.text }));
-      if (o.fill) b.append(Object.assign(document.createElement('i'), { className: 'fill' }));
+      b.innerHTML = `<svg class="ic" viewBox="0 0 100 100" aria-hidden="true">${ICONS[icon] || ICONS.star}</svg>` + (text ? `<span class="lbl">${text}</span>` : '') + '<i class="cd"></i><i class="fx"></i>';
       b.addEventListener('pointerdown', e => { if (this.editing) return; e.preventDefault(); try { b.setPointerCapture(e.pointerId); } catch (_) {} b.classList.add('on'); this.pend[key] = true;
         if (o.dbl) { const t = performance.now(); if (t - (b._tap || -1e9) < 320) { this.pend[o.dbl] = true; b._tap = -1e9; } else b._tap = t; }   // toque duplo: liga/desliga o voo
         if (mode === 'hold') this.pad[key] = true; });   // o toque rápido também conta (dura menos que 1 quadro)
       ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(n => b.addEventListener(n, () => { b.classList.remove('on'); if (mode === 'hold') this.pad[key] = false; }));
       b.addEventListener('contextmenu', e => e.preventDefault()); return b;
     };
-    const U = UI_ASSETS, root = document.createElement('div'), move = document.createElement('div'), acts = document.createElement('div');
+    const root = document.createElement('div'), move = document.createElement('div'), acts = document.createElement('div'), un = this.me.unique;
     root.className = 'ctl'; move.className = 'move'; acts.className = 'acts';
-    move.append(mk('l', 'left', 'hold', U.left, 'Esquerda'), mk('r', 'right', 'hold', U.right, 'Direita'));        // só ← e → (o direcional de 4 setas foi removido)
-    const power = mk('power', 'power', 'tap', U.blue, 'Poder de Ki (azul)', { fill: true });
-    const z = mk('z', 'transform', 'tap', U.z, 'Z – Transformação'), sp = mk('sp', 'special', 'tap', U.special, 'Habilidade especial: onda de impacto'), pk = mk('pk', 'barrage', 'tap', U.pink, 'Rajada de energia rosa'),
-      yl = mk('yl', 'sun', 'tap', U.yellow, 'Esfera de energia amarela'), md = mk('md', 'meditate', 'hold', U.meditate, 'Carregar Ki (segure)'), bt = mk('bt', 'jump', 'hold', U.boot, 'Bota: pular (segure) · toque duplo: voar', { dbl: 'fly' });   // a bota é o PULAR/VOAR
-    acts.append(z, sp, mk('guard', 'guard', 'hold', U.shield, 'Defesa'), pk, power, mk('atk', 'attack', 'hold', U.fist, 'Soco'), yl, md, bt); root.append(move, acts);   // ordem da imagem: 3×3
+    move.append(mk('l', 'left', 'hold', 'left', 'Esquerda', ''), mk('r', 'right', 'hold', 'right', 'Direita', ''), mk('guard', 'guard', 'hold', 'shield', 'Defesa (segure)', 'DEFESA'));
+    const sp = mk('sp', 'special', 'tap', un ? un.icon : 'lock', un ? 'Habilidade única: ' + un.name.toLowerCase() : 'Habilidade única (este personagem ainda não tem)', un ? 'ÚNICA' : 'ÚNICA');
+    const power = mk('power', 'big', 'tap', 'big', 'Poder grande: carrega e dispara (recarga longa)', 'GRANDE'), pk = mk('pk', 'power', 'tap', 'small', 'Poder pequeno: projétil rápido', 'PEQUENO'),
+      md = mk('md', 'meditate', 'hold', 'charge', 'Carregar Ki (segure)', 'CARREGAR'), bt = mk('bt', 'jump', 'hold', 'wing', 'Pular (toque) · voar (toque duplo)', 'PULAR/VOAR', { dbl: 'fly' }), atk = mk('atk', 'attack', 'hold', 'fist', 'Soco (toque várias vezes)', 'SOCO');
+    if (!un) sp.classList.add('off');
+    acts.append(md, sp, power, bt, pk, atk); root.append(move, acts);   // 2 linhas × 3 colunas
     const bars = document.createElement('div'); bars.className = 'bars';
     bars.innerHTML = '<div class="meters"><div class="bar hp"><i></i><b>HP</b></div><div class="bar en"><i></i><b>EN</b></div></div>';
     bars.prepend(SL.Characters.portrait(this.me.player.character, 1)); host.append(bars, root);
     if (this.initCustomize) this.initCustomize(root, host);   // controles personalizáveis (js/controls-editor.js)
-    this.ui = { hp: bars.querySelector('.hp i'), en: bars.querySelector('.en i'), power, z, sp, pk, yl, md, bt };
+    this.ui = { hp: bars.querySelector('.hp i'), en: bars.querySelector('.en i'), power, pk, sp, md, bt, atk, guard: root.querySelector('.guard') };
   }
   resize() {
     this.dpr = Math.min(window.devicePixelRatio || 1, 2); const r = this.cv.getBoundingClientRect();
@@ -130,12 +140,15 @@ class GameScene {
     w.effects.forEach(e => e.update(dt)); w.effects = w.effects.filter(e => !e.dead);
   }
   updateUI() {
-    if (!this.ui) return; const m = this.me, C = SL.CombatCFG;
-    this.ui.hp.style.width = (m.hp / C.hp * 100) + '%'; this.ui.en.style.width = (m.energy / (m.maxEn || C.energy) * 100) + '%';
-    this.ui.power.classList.toggle('nope', !m.powerReady); this.ui.power.style.setProperty('--fill', Math.min(100, m.energy / m.powerCost * 100) + '%');
-    const U = this.ui; U.z.classList.toggle('active', m.form > 0); U.z.classList.toggle('nope', !m.form && !m.ready('transform')); U.sp.classList.toggle('nope', !m.ready('burst'));
-    U.pk.classList.toggle('nope', !m.ready('barrage')); U.yl.classList.toggle('nope', !m.ready('sun')); U.bt.classList.toggle('active', !!m.body.flying);
-    U.md.classList.toggle('active', m.state === 'meditate'); U.md.classList.toggle('nope', m.energy >= (m.maxEn || C.energy) && m.state !== 'meditate');
+    if (!this.ui) return; const m = this.me, C = SL.CombatCFG, U = this.ui, A = SL.ABILITIES;
+    U.hp.style.width = (m.hp / C.hp * 100) + '%'; U.en.style.width = (m.energy / (m.maxEn || C.energy) * 100) + '%';
+    const set = (b, ready, cd, active) => { b.classList.toggle('nope', !ready); b.classList.toggle('rdy', ready && !active); b.classList.toggle('active', !!active); const v = cd.toFixed(2); if (b._cd !== v) { b._cd = v; b.style.setProperty('--cd', v); } };
+    set(U.pk, m.powerReady, m.cdFrac('small'), m.state === 'cast');                                          // PODER PEQUENO
+    const bigKey = m.hasBig ? 'big' : 'sun'; set(U.power, m.ready(bigKey), m.cdFrac('big'), m.state === 'big' || m.state === 'sun');   // PODER GRANDE
+    set(U.sp, !!m.unique && m.ready('burst'), m.unique ? m.cdFrac('unique') : 0, m.state === 'burst' || m.state === 'dash');          // HABILIDADE ÚNICA
+    set(U.md, m.energy < (m.maxEn || C.energy) || m.state === 'meditate', 0, m.state === 'meditate');         // CARREGAR KI
+    set(U.bt, true, 0, !!m.body.flying);                                                                      // PULAR / VOAR
+    set(U.atk, true, 0, m.state === 'attack'); set(U.guard, true, 0, m.state === 'shield');
   }
   layer(c) {
     if (this.dbg[c]) return this.dbg[c];
