@@ -4,6 +4,8 @@ on:
   push:
     branches: [main]
     paths: ['.github/workflows/android.yml']
+permissions:
+  contents: write
 jobs:
   apk:
     runs-on: ubuntu-latest
@@ -46,3 +48,9 @@ jobs:
         with:
           name: SaiyanLegends-APK
           path: android/app/build/outputs/apk/debug/app-debug.apk
+      - name: Publicar na Release (download direto, sem login)
+        env: { GH_TOKEN: '${{ github.token }}' }
+        run: |
+          cp android/app/build/outputs/apk/debug/app-debug.apk SaiyanLegends.apk
+          gh release delete android-latest --yes --cleanup-tag 2>/dev/null || true
+          gh release create android-latest SaiyanLegends.apk --title "Saiyan Legends Online — Android (APK)" --notes "Baixe o SaiyanLegends.apk e instale. Se já tiver o app antigo, desinstale antes. O Android pode pedir para permitir instalar de fontes desconhecidas."
