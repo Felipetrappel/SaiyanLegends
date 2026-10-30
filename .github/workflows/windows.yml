@@ -1,0 +1,32 @@
+name: Gerar jogo para PC (Windows)
+on:
+  workflow_dispatch:
+jobs:
+  win:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - name: Montar app Electron
+        shell: bash
+        run: |
+          mkdir -p build/game
+          cp -r index.html css js assets icons manifest.webmanifest build/game/
+          cp desktop/main.js desktop/preload.js build/
+          cp icons/icon-512.png build/icon.png
+          cat > build/package.json <<'JSON'
+          { "name": "saiyan-legends-online", "productName": "Saiyan Legends Online", "version": "1.0.0", "description": "Saiyan Legends Online", "author": "Felipe", "main": "main.js",
+            "build": { "appId": "com.felipe.saiyanlegends", "productName": "Saiyan Legends Online", "icon": "icon.png", "files": ["main.js", "preload.js", "icon.png", "game/**/*", "package.json"],
+              "win": { "target": [ { "target": "portable", "arch": ["x64"] } ], "artifactName": "SaiyanLegends-PC.exe" }, "directories": { "output": "dist" } } }
+          JSON
+      - name: Compilar
+        working-directory: build
+        shell: bash
+        run: |
+          npm i --save-dev electron@31 electron-builder@24
+          npx electron-builder --win portable --x64 --publish never
+      - uses: actions/upload-artifact@v4
+        with:
+          name: SaiyanLegends-PC
+          path: build/dist/SaiyanLegends-PC.exe
