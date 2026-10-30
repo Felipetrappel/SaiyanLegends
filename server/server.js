@@ -19,6 +19,10 @@ const PORT = +process.env.PORT || 8080, GRACE_MS = +process.env.GRACE_MS || 2000
 const ORIGINS = (process.env.ORIGINS || '').split(',').map(s => s.trim()).filter(Boolean);
 const SERVE_STATIC = process.env.STATIC !== '0', ROOT = path.resolve(__dirname, '..');
 const MAPS = ['forest'], MAX_PLAYERS = 8, MIN_TO_START = 1, MAX_PAYLOAD = 16 * 1024;
+/* Modos de sala (mantenha igual a SL.MODES em js/room-system.js): limite de jogadores, mínimo para iniciar e se há bots automáticos. */
+const MODES = { pvp: { min: 2, max: 8, start: 2 }, bots: { min: 2, max: 8, start: 2, bots: true }, '2v2': { min: 4, max: 4, start: 4, teams: true }, custom: { min: 2, max: 8, start: 1 } };
+const pwHash = (pw, salt) => crypto.scryptSync(String(pw), salt, 32).toString('hex');
+const pwOk = (r, pw) => { if (!r.pw) return true; try { return crypto.timingSafeEqual(Buffer.from(pwHash(pw || '', r.pw.salt), 'hex'), Buffer.from(r.pw.hash, 'hex')); } catch (_) { return false; } };
 const log = (...a) => console.log(new Date().toISOString().slice(11, 19), ...a);
 const AUTH = require('./auth').create(log);   // contas (cadastro por e-mail do Gmail); só obrigatório com REQUIRE_LOGIN=1
 
@@ -81,9 +85,9 @@ const clients = new Set();    // conexões abertas (para empurrar a lista de sal
 
 const clean = (s, n) => String(s == null ? '' : s).replace(/[\u0000-\u001f\u007f<>]/g, '').trim().slice(0, n);
 const humans = r => r.players.filter(p => !p.bot);
-const snapshot = r => ({ id: r.id, name: r.name, hostId: r.hostId, maxPlayers: r.maxPlayers, map: r.map, state: r.state, loaded: r.loaded.slice(),
+const snapshot = r => ({ id: r.id, name: r.name, hostId: r.hostId, maxPlayers: r.maxPlayers, map: r.map, state: r.state, loaded: r.loaded.slice(), mode: r.mode || null, locked: !!r.pw, minPlayers: r.minPlayers || MIN_TO_START,
   players: r.players.map(p => ({ id: p.id, name: p.name, bot: p.bot, character: p.character })) });
-const summary = r => ({ id: r.id, name: r.name, host: (r.players.find(p => p.id === r.hostId) || {}).name || '?', players: r.players.length, max: r.maxPlayers, map: r.map, state: r.state, full: r.players.length >= r.maxPlayers });
+const summary = r => ({ id: r.id, name: r.name, host: (r.players.find(p => p.id === r.hostId) || {}).name || '?', players: r.players.length, max: r.maxPlayers, map: r.map, state: r.state, mode: r.mode || null, locked: !!r.pw, full: r.players.length >= r.maxPlayers && !(r.mode && MODES[r.mode].bots && r.players.some(p => p.bot)) });
 const listAll = () => [...rooms.values()].filter(r => humans(r).length).map(summary).sort((a, b) => a.id.localeCompare(b.id));
 
 function sendTo(pid, msg) { const s = sessions.get(pid); if (s && s.ws && s.ws.open) s.ws.send(JSON.stringify(msg)); }
@@ -135,15 +139,24 @@ const OPS = {
   list: () => ({ rooms: listAll() }),
   create(s, m) {
     if (s.roomId && rooms.has(s.roomId)) throw E('Você já está em uma sala.');
-    const id = newId(), max = Math.min(Math.max(+m.maxPlayers || MAX_PLAYERS, 2), MAX_PLAYERS), p = mkPlayer(s, m.player);
+    const mode = m.mode == null ? null : String(m.mode), md = mode && MODES[mode]; if (mode && !md) throw E('Modo inválido.');
+    const lo = md ? md.min : 2, hi = md ? md.max : MAX_PLAYERS, want = +m.maxPlayers || (md ? lo : MAX_PLAYERS);
+    if (md && (want < lo || want > hi)) throw E('Este modo aceita de ' + lo + ' a ' + hi + ' jogadores.');
+    const pw = m.password == null ? '' : String(m.password); if (pw && (pw.length < 3 || pw.length > 16)) throw E('A senha deve ter de 3 a 16 caracteres.');
+    const map = m.map == null ? null : String(m.map); if (map && !MAPS.includes(map)) throw E('Mapa inválido.');
+    const id = newId(), max = Math.min(Math.max(want, 2), MAX_PLAYERS), p = mkPlayer(s, m.player);
     s.name = p.name;
-    const r = { id, name: clean(m.name, 24) || ('Sala de ' + p.name), hostId: s.pid, maxPlayers: max, players: [p], map: null, state: 'WAITING', loaded: [], created: Date.now() };
-    rooms.set(id, r); s.roomId = id; log('sala', id, '"' + r.name + '" criada por', p.name); pushRoom(r); return { room: snapshot(r) };
+    const r = { id, name: clean(m.name, 24) || ('Sala de ' + p.name), hostId: s.pid, maxPlayers: max, players: [p], map, state: map ? 'READY' : 'WAITING', loaded: [], created: Date.now(), mode, minPlayers: md ? md.start : MIN_TO_START };
+    if (pw) { const salt = crypto.randomBytes(8).toString('hex'); r.pw = { salt, hash: pwHash(pw, salt) }; }
+    if (md && md.bots) while (r.players.length < max) r.players.push({ id: 'bot' + crypto.randomBytes(4).toString('hex'), name: 'Bot' + r.players.length, bot: true, character: 'street' });
+    rooms.set(id, r); s.roomId = id; log('sala', id, '"' + r.name + '" criada por', p.name, mode ? '[' + mode + ']' : '', r.pw ? '(com senha)' : ''); pushRoom(r); return { room: snapshot(r) };
   },
   join(s, m) {
     const r = rooms.get(clean(m.room, 12)); if (!r || !humans(r).length) throw E('Sala não encontrada.');
     if (s.roomId === r.id && r.players.some(p => p.id === s.pid)) return { room: snapshot(r) };      // já está dentro (sem duplicar)
     if (s.roomId && rooms.has(s.roomId)) throw E('Você já está em uma sala.');
+    if (!pwOk(r, m.password)) throw E(m.password ? 'Senha incorreta.' : 'Esta sala tem senha. Digite a senha para entrar.');
+    if (r.players.length >= r.maxPlayers && r.mode && MODES[r.mode].bots) { const i = r.players.map(q => q.bot).lastIndexOf(true); if (i >= 0) r.players.splice(i, 1); }   // sala de bots: o humano ocupa o lugar de um bot
     if (r.players.length >= r.maxPlayers) throw E('Sala cheia.');
     const p = mkPlayer(s, m.player); s.name = p.name; r.players.push(p); s.roomId = r.id;
     log(p.name, 'entrou na sala', r.id, r.players.length + '/' + r.maxPlayers); pushRoom(r); return { room: snapshot(r) };
@@ -153,7 +166,7 @@ const OPS = {
   cancelMapSelection(s) { const r = need(s, true); inState(r, 'MAP_SELECTION'); r.state = r.map ? 'READY' : 'WAITING'; pushRoom(r); return { room: snapshot(r) }; },
   setMap(s, m) { const r = need(s, true); inState(r, 'MAP_SELECTION'); if (!MAPS.includes(m.map)) throw E('Mapa inválido.'); r.map = m.map; r.state = 'READY'; pushRoom(r); return { room: snapshot(r) }; },
   startGame(s) {
-    const r = need(s, true); inState(r, 'READY'); if (!r.map) throw E('Escolha um mapa antes de iniciar.'); if (r.players.length < MIN_TO_START) throw E('Jogadores insuficientes.');
+    const r = need(s, true); inState(r, 'READY'); if (!r.map) throw E('Escolha um mapa antes de iniciar.'); if (r.mode === '2v2') throw E('O modo 2v2 ainda não tem times na partida (em breve).'); if (r.players.length < (r.minPlayers || MIN_TO_START)) throw E('Jogadores insuficientes: mínimo ' + (r.minPlayers || MIN_TO_START) + '.');
     r.state = 'STARTING'; r.loaded = r.players.filter(p => p.bot).map(p => p.id); pushRoom(r); return { room: snapshot(r) };
   },
   markLoaded(s) { const r = need(s); inState(r, 'STARTING'); if (!r.loaded.includes(s.pid)) r.loaded.push(s.pid); checkLoaded(r); pushRoom(r); return { room: snapshot(r) }; },

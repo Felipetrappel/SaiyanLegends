@@ -10,6 +10,13 @@
 const RoomState = Object.freeze({ WAITING: 'WAITING', MAP_SELECTION: 'MAP_SELECTION', READY: 'READY', STARTING: 'STARTING', IN_GAME: 'IN_GAME', FINISHED: 'FINISHED' });
 const MAPS = Object.freeze([{ id: 'forest', name: 'FOREST' }]);
 const LIMITS = Object.freeze({ maxPlayers: 8, minToStart: 1 });
+/* Modos de sala (mantenha igual a MODES em server/server.js). min/max = jogadores permitidos na sala; start = mínimo para o host iniciar. */
+const MODES = Object.freeze({
+  pvp:    { id: 'pvp',    name: 'PVP',    desc: 'JOGADORES CONTRA JOGADORES', min: 2, max: 8, start: 2 },
+  bots:   { id: 'bots',   name: 'BOTS',   desc: 'JOGUE COM BOTS', min: 2, max: 8, start: 2, bots: true },
+  '2v2':  { id: '2v2',    name: '2v2',    desc: 'JOGUE EM DUPLA CONTRA OUTRA DUPLA', min: 4, max: 4, start: 4, teams: true, blocked: 'O modo 2v2 ainda não tem times na partida (em breve).' },
+  custom: { id: 'custom', name: 'CUSTOM', desc: 'PERSONALIZE SUA PARTIDA', min: 2, max: 8, start: 1 }
+});
 
 class Emitter {
   #h = {};
@@ -39,22 +46,30 @@ class LocalRoomService extends Emitter {
   _get(id) { const r = this.rooms.get(String(id).trim()); if (!r) throw new Error('Sala não encontrada.'); return r; }
   _host(r, pid) { if (r.hostId !== pid) throw new Error('Somente o host pode fazer isso.'); }
   _state(r, ...ok) { if (!ok.includes(r.state)) throw new Error('Ação indisponível agora (estado ' + r.state + ').'); }
-  _push(r) { const s = JSON.parse(JSON.stringify(r)); this.emit('room:' + r.id, s); this.emit('rooms', null); return s; }
+  _push(r) { const s = JSON.parse(JSON.stringify({ ...r, pw: undefined, locked: !!r.pw })); this.emit('room:' + r.id, s); this.emit('rooms', null); return s; }
   onRooms(fn) { const h = () => this.listRooms().then(fn); this.on('rooms', h); return () => this.off('rooms', h); }
   _checkLoaded(r) { if (r.players.every(p => r.loaded.includes(p.id))) r.state = RoomState.IN_GAME; }
   subscribe(id, fn) { const e = 'room:' + id; this.on(e, fn); return () => this.off(e, fn); }
 
   async listRooms() {
-    return [...this.rooms.values()].map(r => ({ id: r.id, name: r.name, host: r.players.find(p => p.id === r.hostId).name, players: r.players.length, max: r.maxPlayers, map: r.map, state: r.state, full: r.players.length >= r.maxPlayers }));
+    return [...this.rooms.values()].map(r => ({ id: r.id, name: r.name, host: r.players.find(p => p.id === r.hostId).name, players: r.players.length, max: r.maxPlayers, map: r.map, state: r.state, mode: r.mode || null, locked: !!r.pw, full: r.players.length >= r.maxPlayers && !(r.mode && MODES[r.mode].bots && r.players.some(p => p.bot)) }));
   }
-  async createRoom(player, { maxPlayers = LIMITS.maxPlayers, name } = {}) {
+  async createRoom(player, { maxPlayers, name, mode = null, password = '', map = null } = {}) {
+    const md = mode ? MODES[mode] : null; if (mode && !md) throw new Error('Modo inválido.');
+    const want = +maxPlayers || (md ? md.min : LIMITS.maxPlayers); if (md && (want < md.min || want > md.max)) throw new Error('Este modo aceita de ' + md.min + ' a ' + md.max + ' jogadores.');
+    password = String(password || ''); if (password && (password.length < 3 || password.length > 16)) throw new Error('A senha deve ter de 3 a 16 caracteres.');
+    if (map && !MAPS.some(m => m.id === map)) throw new Error('Mapa inválido.');
     let id; do id = String(100000 + Math.floor(Math.random() * 900000)); while (this.rooms.has(id));
-    const r = { id, name: String(name || '').trim().slice(0, 24) || ('Sala de ' + player.name), hostId: player.id, maxPlayers: Math.min(Math.max(+maxPlayers || 8, 2), LIMITS.maxPlayers), players: [{ ...player }], map: null, state: RoomState.WAITING, loaded: [] };
+    const max = Math.min(Math.max(want, 2), LIMITS.maxPlayers);
+    const r = { id, name: String(name || '').trim().slice(0, 24) || ('Sala de ' + player.name), hostId: player.id, maxPlayers: max, players: [{ ...player }], map: map || null, state: map ? RoomState.READY : RoomState.WAITING, loaded: [], mode: mode || null, minPlayers: md ? md.start : LIMITS.minToStart, pw: password || null };
+    if (md && md.bots) while (r.players.length < max) r.players.push({ ...new Player('Bot' + r.players.length, true) });
     this.rooms.set(id, r); return this._push(r);
   }
-  async joinRoom(id, player) {
+  async joinRoom(id, player, password) {
     const r = this._get(id);
     if (r.players.some(p => p.id === player.id)) return this._push(r);
+    if (r.pw && r.pw !== String(password || '')) throw new Error(password ? 'Senha incorreta.' : 'Esta sala tem senha. Digite a senha para entrar.');
+    if (r.players.length >= r.maxPlayers && r.mode && MODES[r.mode].bots) { const i = r.players.map(q => q.bot).lastIndexOf(true); if (i >= 0) r.players.splice(i, 1); }
     if (r.players.length >= r.maxPlayers) throw new Error('Sala cheia.');
     r.players.push({ ...player });
     return this._push(r);
@@ -77,7 +92,7 @@ class LocalRoomService extends Emitter {
   async startGame(id, pid) {
     const r = this._get(id); this._host(r, pid); this._state(r, 'READY');
     if (!r.map) throw new Error('Escolha um mapa antes de iniciar.');
-    if (r.players.length < LIMITS.minToStart) throw new Error('Jogadores insuficientes.');
+    if (r.mode && MODES[r.mode].blocked) throw new Error(MODES[r.mode].blocked); if (r.players.length < (r.minPlayers || LIMITS.minToStart)) throw new Error('Jogadores insuficientes: mínimo ' + (r.minPlayers || LIMITS.minToStart) + '.');
     r.state = RoomState.STARTING; r.loaded = r.players.filter(p => p.bot).map(p => p.id); return this._push(r);
   }
   async markLoaded(id, pid) { const r = this._get(id); this._state(r, 'STARTING'); if (!r.loaded.includes(pid)) r.loaded.push(pid); this._checkLoaded(r); return this._push(r); }
@@ -111,7 +126,7 @@ class RoomSystem extends Emitter {
   /* Depois de recarregar a página: se o servidor ainda guarda o lugar deste jogador, volta para a mesma sala. */
   async resume() { const r = await (this.service.resume ? this.service.resume() : null); if (r && !this.room) await this._enter(r); return this.room; }
   async createRoom(opts) { this._busy(); return this._enter(await this.service.createRoom(this.me, opts)); }
-  async joinRoom(id) { this._busy(); return this._enter(await this.service.joinRoom(id, this.me)); }
+  async joinRoom(id, password) { this._busy(); return this._enter(await this.service.joinRoom(id, this.me, password)); }
   async leaveRoom() { const r = this.room; if (!r) return; this._stop?.(); this._stop = null; this.room = null; this._loading = false; await this.service.leaveRoom(r.id, this.me.id); this.emit('room:left', r); }
   openMapSelection() { return this._do('beginMapSelection'); }
   cancelMapSelection() { return this._do('cancelMapSelection'); }
@@ -131,5 +146,5 @@ class RoomSystem extends Emitter {
   }
 }
 
-window.SL = { RoomState, MAPS, LIMITS, Emitter, Player, LocalRoomService, RoomSystem, identity };
+window.SL = { RoomState, MAPS, LIMITS, MODES, Emitter, Player, LocalRoomService, RoomSystem, identity };
 })();

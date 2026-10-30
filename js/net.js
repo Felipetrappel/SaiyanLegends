@@ -73,8 +73,8 @@ class RemoteRoomService extends Emitter {
   subscribe(id, fn) { const e = 'room:' + id; this.on(e, fn); return () => this.off(e, fn); }
   onRooms(fn) { this.on('rooms', fn); return () => this.off('rooms', fn); }
   async listRooms() { return (await this._req('list')).rooms; }
-  async createRoom(player, o = {}) { const r = (await this._req('create', { player: { name: player.name, character: player.character }, maxPlayers: o.maxPlayers, name: o.name })).room; this.current = r.id; return r; }
-  async joinRoom(id, player) { const r = (await this._req('join', { room: String(id).trim(), player: { name: player.name, character: player.character } })).room; this.current = r.id; return r; }
+  async createRoom(player, o = {}) { const r = (await this._req('create', { player: { name: player.name, character: player.character }, maxPlayers: o.maxPlayers, name: o.name, mode: o.mode, password: o.password, map: o.map })).room; this.current = r.id; return r; }
+  async joinRoom(id, player, password) { const r = (await this._req('join', { room: String(id).trim(), password: password || '', player: { name: player.name, character: player.character } })).room; this.current = r.id; return r; }
   async leaveRoom() { this.current = null; try { await this._req('leave'); } catch (_) {} }
   relay(data) { this._raw({ op: 'relay', data }); }
   sendChat(text, lv, name) { return this._req('chat', { text, lv, name }); }

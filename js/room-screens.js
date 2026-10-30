@@ -39,14 +39,15 @@ function connLine(p) {
 
 function roomTable(p, box) {
   const stopConn = connLine(p), wrap = p.appendChild(el('div', 'tblwrap')); let sel = null, alive = true;
-  const join = () => sel ? toLobby(box)(rooms.joinRoom(sel)) : (box.textContent = 'Selecione uma sala primeiro.');
+  const pw = p.appendChild(el('input', '', { type: 'password', maxLength: 16, placeholder: 'Senha da sala (só se a sala tiver 🔒)', autocomplete: 'off' })); pw.setAttribute('aria-label', 'Senha da sala');
+  const join = () => sel ? toLobby(box)(rooms.joinRoom(sel, pw.value)) : (box.textContent = 'Selecione uma sala primeiro.');
   const render = list => {
     if (!alive) return; if (!list.some(r => r.id === sel)) sel = null;
     const t = el('table', 'tbl'), tb = el('tbody');
-    t.innerHTML = '<thead><tr><th>ROOM ID</th><th>ROOM NAME</th><th>HOST</th><th>PLAYERS</th><th>MAP</th><th>STATUS</th></tr></thead>';
+    t.innerHTML = '<thead><tr><th>ROOM ID</th><th>ROOM NAME</th><th>MODE</th><th>HOST</th><th>PLAYERS</th><th>MAP</th><th>STATUS</th></tr></thead>';
     list.forEach(r => {
       const tr = el('tr', r.id === sel ? 'sel' : '', { tabIndex: 0 });
-      [r.id, r.name, r.host, r.players + '/' + r.max, mapName(r.map), r.full ? 'FULL' : r.state === 'IN_GAME' ? 'IN GAME' : 'OPEN'].forEach(v => tr.append(el('td', '', { textContent: v })));
+      [r.id, (r.locked ? '🔒 ' : '') + r.name, r.mode ? (SL.MODES[r.mode] || {}).name || r.mode : '—', r.host, r.players + '/' + r.max, mapName(r.map), r.full ? 'FULL' : r.state === 'IN_GAME' ? 'IN GAME' : 'OPEN'].forEach(v => tr.append(el('td', '', { textContent: v })));
       const pick = () => { sel = r.id; [...tb.children].forEach(x => x.classList.toggle('sel', x === tr)); };
       tr.onclick = pick; tr.ondblclick = join; tr.onkeydown = e => { if (e.key === 'Enter') { pick(); join(); } };
       tb.append(tr);
@@ -80,11 +81,12 @@ S.register('createRoom', { build(p) {
 
 S.register('code', { build(p) {
   head(p, 'Enter room ID'); nameField(p);
-  const i = el('input', '', { placeholder: 'ROOM ID', maxLength: 6, inputMode: 'numeric', autocomplete: 'off' }), box = el('div', 'msg');
+  const i = el('input', '', { placeholder: 'ROOM ID', maxLength: 6, inputMode: 'numeric', autocomplete: 'off' }), box = el('div', 'msg'), pw = el('input', '', { type: 'password', maxLength: 16, placeholder: 'Senha (só se a sala tiver)', autocomplete: 'off' }); pw.setAttribute('aria-label', 'Senha da sala');
   i.setAttribute('aria-label', 'Room ID'); i.addEventListener('input', () => { i.value = i.value.replace(/\D/g, ''); });
-  const go = () => /^\d{6}$/.test(i.value) ? toLobby(box)(rooms.joinRoom(i.value)) : (box.textContent = 'O ROOM ID tem 6 dígitos.');
+  const go = () => /^\d{6}$/.test(i.value) ? toLobby(box)(rooms.joinRoom(i.value, pw.value)) : (box.textContent = 'O ROOM ID tem 6 dígitos.');
   i.addEventListener('keydown', e => { if (e.key === 'Enter') go(); });
-  p.append(i, box, bar(S.btn('JOIN', go), back())); i.focus();
+  pw.addEventListener('keydown', e => { if (e.key === 'Enter') go(); });
+  p.append(i, pw, box, bar(S.btn('JOIN', go), back())); i.focus();
 } });
 
 S.register('lobby', { sticky: true, build(p) {
