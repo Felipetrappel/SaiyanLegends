@@ -1,6 +1,8 @@
 name: Gerar jogo para PC (Windows)
 on:
   workflow_dispatch:
+permissions:
+  contents: write
 jobs:
   win:
     runs-on: windows-latest
@@ -30,3 +32,9 @@ jobs:
         with:
           name: SaiyanLegends-PC
           path: build/dist/SaiyanLegends-PC.exe
+      - name: Publicar na Release (download direto, sem login)
+        shell: bash
+        env: { GH_TOKEN: '${{ github.token }}' }
+        run: |
+          gh release delete pc-latest --yes --cleanup-tag 2>/dev/null || true
+          gh release create pc-latest build/dist/SaiyanLegends-PC.exe --title "Saiyan Legends Online — PC (Windows)" --notes "Baixe o SaiyanLegends-PC.exe e dê dois cliques. Sem instalação e sem emulador. Se o Windows avisar, clique em Mais informações > Executar assim mesmo."
