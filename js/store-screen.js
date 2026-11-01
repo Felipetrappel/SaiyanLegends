@@ -67,7 +67,7 @@ S.register('store', { title: 'Loja', sticky: true, noFocus: true, build(p) {
   function refresh() {
     const id = ids()[cur], d = def(), st = d.stats || {};
     vals.gold.textContent = fmt(P.gold); vals.silver.textContent = fmt(P.silver); vals.gems.textContent = fmt(P.gems); vals.gems2.textContent = fmt(P.gems);
-    ATTR.forEach(([k]) => { av[k].textContent = st[k] != null ? st[k] : '-'; }); av.k.textContent = st.k != null ? st.k : '-';
+    ATTR.forEach(([k]) => { av[k].textContent = st[k] != null ? Number(st[k]).toFixed(1) : '-'; }); av.k.textContent = st.k != null ? Number(st.k).toFixed(1) : '-';   // escala 0–10, sempre com uma casa decimal
     nameEl.textContent = (d.name || id).toUpperCase();
     const owned = P.isUnlocked(id), sel = P.selected === id;
     act.className = 'shop-act ' + (sel ? 'sel' : owned ? 'own' : 'buy'); act.disabled = sel;

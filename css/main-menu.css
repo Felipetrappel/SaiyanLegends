@@ -212,6 +212,7 @@ html,body{height:100%;margin:0;overflow:hidden;background:var(--ink);color:#f6e9
 .shop-num.big{font-size:32px;top:384px}
 .shop-val{left:1168px;width:110px;text-align:right;font:700 28px/40px system-ui,sans-serif;color:#fff;text-shadow:0 2px 2px #000;pointer-events:none}
 .shop-act{width:220px;height:46px;border:3px solid #7a4a00;border-radius:10px;font:800 21px/1 system-ui,sans-serif;letter-spacing:.03em;color:#2b0a00;background:linear-gradient(#ffd45c,#d9961a);cursor:pointer;box-shadow:0 4px 0 #6a3d00,0 0 14px rgba(255,200,80,.5)}
+.shop-act{z-index:3}   /* acima do SVG das áreas de toque (senão o SVG engolia o toque no SELECIONAR/COMPRAR) */
 .shop-act:active{transform:translateY(2px)}
 .shop-act.sel{color:#bfffd0;background:linear-gradient(#2e7a4d,#16472b);border-color:#0d2a18;box-shadow:none;cursor:default}
 .shop-act.own{color:#fff;background:linear-gradient(#7a3df0,#4a1aa8);border-color:#2a0a66}

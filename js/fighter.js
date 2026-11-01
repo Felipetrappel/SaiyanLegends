@@ -9,6 +9,7 @@ const CFG = {
   power: { dur: .3, fireAt: .1, release: 10, scale0: .3, cd: .5, dmg: 30, range: 520, speed: 620, kb: 260 },
   shieldReduce: .75, beamMid: 2
 };
+const STAT_BASE = 7;   // atributo 7.0 = multiplicador 1 (o STREET usa 7.0 em tudo)
 const overlap = (a, b) => a.l < b.r && a.r > b.l && a.t < b.b && a.b > b.t;
 
 function frameAt(def, name, t) { const a = def.anims[name], n = a.f.length, i = a.loop ? Math.floor(t * a.fps) % n : Math.min(Math.floor(t * a.fps), n - 1); return a.f[i]; }
@@ -24,6 +25,7 @@ function drawFrame(ctx, img, def, fi, x, feetY, face) {
 /* Esfera de energia (pixel art, mesmas cores do feixe do sheet) + faíscas. Centro (x,y), raio r em px do jogo. */
 const PAL = { purple: ['#9b3ff0', '#b46bff', '#a94cf5', '#d9a8ff', '#f6e8ff', '#ffffff', '#ffe14d', '#e08cff'],
   pink: ['#ff4fb0', '#ff7fcb', '#ff5fb8', '#ffb3e0', '#ffe3f3', '#ffffff', '#fff0a0', '#ff9bd8'],
+  ice: ['#2f8cff', '#58b8ff', '#7fdcff', '#b8f0ff', '#e6fbff', '#ffffff', '#e6fbff', '#7fdcff'],
   yellow: ['#ff9d00', '#ffc42e', '#ffa800', '#ffd96a', '#fff2b5', '#ffffff', '#fff7a8', '#ffd24d'] };
 function drawOrb(ctx, x, y, r, t, pal = PAL.purple) {
   x = Math.round(x); y = Math.round(y); const R = Math.max(1, Math.round(r)), fl = Math.floor(t * 18) % 3;
@@ -81,14 +83,15 @@ class Shot {
   frame() { const F = this.owner.def.frames, f = this.pj.frames, ii = this.pj.intro; if (ii) { const k = Math.floor(this.life * (this.pj.ifps || 24)); if (k < ii.length) return F[ii[k]]; }   // quadros de formação (nascimento do Ki)
     return F[f[Math.floor(this.life * this.pj.fps) % f.length]]; }
   rect() { const f = this.frame(), w = f.w * this.sc * .85, h = f.h * this.sc * .7; return this.face > 0 ? { l: this.head - w, r: this.head, t: this.yc - h / 2, b: this.yc + h / 2 } : { l: this.head, r: this.head + w, t: this.yc - h / 2, b: this.yc + h / 2 }; }
-  end(world, impact) { this.ending = true; const im = this.pj.impact; if (impact && im) (world.effects ||= []).push(new Effect(this.owner.def, im, this.head, this.yc)); if (impact && this.cfg.size) (world.effects ||= []).push(new Ring(this.owner.def, this.head, this.yc, 10, 64, .32, '#ff8a6a')); }
+  end(world, impact) { this.ending = true; const im = this.pj.impact; if (impact && im) (world.effects ||= []).push(new Effect(this.owner.def, im, this.head, this.yc)); if (impact && this.cfg.size) (world.effects ||= []).push(new Ring(this.owner.def, this.head, this.yc, 10, 64, .32, this.owner.def.ringColor || '#ff8a6a'));
+    else if (impact && !im && this.owner.def.ringColor) (world.effects ||= []).push(new Ring(this.owner.def, this.head, this.yc, 5, 26, .22, this.owner.def.ringColor)); }
   update(dt, world) {
     const c = this.cfg; this.life += dt; this.sc = Math.min(1, .6 + .4 * this.life / .15) * (c.size || 1);       // nasce menor na mão e cresce
     if (this.ending) { this.fade += dt; if (this.fade > .12) this.dead = true; return; }
     const st = c.speed * dt; this.head += this.face * st; this.dist += st; const r = this.dbg = this.rect();
     if (world.mask.at(Math.floor(this.head + this.face * 3), Math.floor(this.yc))) { this.end(world, true); return; }   // bateu no terreno
     if (this.dist >= c.range) { this.end(world, false); return; }                                                        // alcance máximo
-    for (const f of world.fighters) if (f !== this.owner && !f.dead && overlap(r, f.rect())) { if (!this.owner.remote) f.hurt(c.dmg * this.owner.dmgMul, this.face, c.kb, this.owner); this.end(world, true); return; }
+    for (const f of world.fighters) if (f !== this.owner && !f.dead && overlap(r, f.rect())) { if (!this.owner.remote) f.hurt(c.dmg * this.owner.dmgMul * this.owner.kiMul, this.face, c.kb * this.owner.kiMul, this.owner); this.end(world, true); return; }
   }
   draw(ctx, img) {
     if (!img.complete) return; const f = this.frame();
@@ -115,7 +118,7 @@ class KiBall {
     this.life += dt; if (this.ending) { this.fade += dt; if (this.fade > .1) this.dead = true; return; }
     const st = this.o.speed * dt; this.x += this.face * st; this.dist += st; const r = this.dbg = this.rect();
     if (world.mask.at(Math.floor(this.x + this.face * this.o.r), Math.floor(this.y)) || this.dist >= this.o.range) { this.end(world, true); return; }
-    for (const f of world.fighters) if (f !== this.owner && !f.dead && overlap(r, f.rect())) { if (!this.owner.remote) f.hurt(this.o.dmg * this.owner.dmgMul, this.face, this.o.kb, this.owner); this.end(world, true); return; }
+    for (const f of world.fighters) if (f !== this.owner && !f.dead && overlap(r, f.rect())) { if (!this.owner.remote) f.hurt(this.o.dmg * this.owner.dmgMul * this.owner.kiMul, this.face, this.o.kb * this.owner.kiMul, this.owner); this.end(world, true); return; }
   }
   end(world, boom) { this.ending = true; if (boom) (world.effects ||= []).push(new Ring(this.owner.def, this.x, this.y, this.o.r * 1.2, this.o.r * 3.2, .25, this.o.pal === PAL.yellow ? '#ffd96a' : '#ff9bd8')); }
   draw(ctx) { ctx.save(); ctx.globalAlpha = this.ending ? Math.max(0, 1 - this.fade / .1) : 1; drawOrb(ctx, this.x, this.y, this.o.r, this.life, this.o.pal); ctx.restore(); }
@@ -130,13 +133,30 @@ class Ring {
   }
 }
 
+/* CRISTAL DE GELO (habilidade única do JHONNY): um cristal nasce à frente dele, cresce pelos quadros do sheet e fere quem estiver no alcance. */
+class Crystal {
+  constructor(owner, x, y) { Object.assign(this, { owner, x, y, I: owner.def.ice, life: 0, dead: false, hits: new Set(), dbg: null }); }
+  fi() { let fi = this.I.grow[0][1]; for (const [t, f] of this.I.grow) if (this.life >= t) fi = f; return fi; }
+  rect() { const f = this.owner.def.frames[this.fi()], w = f.w * .8, h = f.h * .9; return { l: this.x - w / 2, r: this.x + w / 2, t: this.y - h, b: this.y }; }
+  update(dt, world) {
+    this.life += dt; if (this.life >= this.I.life) { this.dead = true; return; }
+    if (this.life < this.I.hitAt) return; const r = this.dbg = this.rect();
+    for (const f of world.fighters) if (f !== this.owner && !f.dead && !this.hits.has(f) && overlap(r, f.rect())) { this.hits.add(f); if (!this.owner.remote) f.hurt(this.I.dmg * this.owner.dmgMul * this.owner.kiMul, f.body.x >= this.x ? 1 : -1, this.I.kb * this.owner.kiMul, this.owner); }
+  }
+  draw(ctx, img) {
+    if (!img.complete) return; const f = this.owner.def.frames[this.fi()];
+    ctx.save(); ctx.imageSmoothingEnabled = false; ctx.globalAlpha = Math.max(0, Math.min(1, (this.I.life - this.life) / .25));
+    ctx.drawImage(img, f.x, f.y, f.w, f.h, Math.round(this.x - f.ax), Math.round(this.y - f.ay), f.w, f.h); ctx.restore();
+  }
+}
+
 /* Habilidades extras dos botões (valem para qualquer personagem: usam as animações padrão idle/run/charge/energy/attack). */
 const ABIL = {
   transform: { cost: 30, cd: 2 }, burst: { cost: 25, cd: 3 }, barrage: { cost: 20, cd: 1 }, sun: { cost: 45, cd: 2.5 },
   big: { cost: 60, cd: 6 },   // PODER GRANDE: carrega (animação real do sheet), lança um projétil maior; recarga bem maior que o poder pequeno
   form: { dur: 25, dmg: 1.4, speed: 1.15, regen: 2 }, meditateRate: 40
 };
-const STATE_ANIM = { big: 'charge', transform: 'charge', meditate: 'charge', burst: 'energy', barrage: 'energy', sun: 'charge', hurt: 'hurt', hurtH: 'hurtH', guardhit: 'guardhit', intro: 'intro', dash: 'dash' };   // estados 'hurt/hurtH/guardhit/intro/dash' só existem para personagens que têm esses quadros
+const STATE_ANIM = { big: 'charge', transform: 'charge', meditate: 'charge', ice: 'charge', burst: 'energy', barrage: 'energy', sun: 'charge', hurt: 'hurt', hurtH: 'hurtH', guardhit: 'guardhit', intro: 'intro', dash: 'dash' };   // estados 'hurt/hurtH/guardhit/intro/dash' só existem para personagens que têm esses quadros
 const animOf = (f, s) => (f.def.stateAnim && f.def.stateAnim[s]) || STATE_ANIM[s] || s;
 const segAt = (seq, t) => { let i = 0; for (const s of seq) { if (t < s.dur) return { seg: s, ts: t, i }; t -= s.dur; i++; } return null; };   // etapa de uma sequência pelo tempo
 
@@ -158,15 +178,19 @@ class Fighter {
   constructor(body, player, me, spawn) {
     Object.assign(this, { body, player, me, spawn, def: SL.Characters.get(player.character), face: 1, state: 'idle', t: 0, hp: CFG.hp, energy: CFG.energy, cd: 0, pcd: 0,
       flash: 0, kb: 0, dead: false, rt: 0, fired: false, hits: new Set(), dbg: null, world: null, dummy: false, av: null, combo: 0, comboT: 0, dmgMul: 1, kiRate: 1, bot: false, brain: null, acd: {}, form: 0, sunFired: false, shots: 0, baseSpeed: body.speed });
-    /* ATRIBUTOS do personagem (def.stats, 100 = base): poder → dano causado, defesa → dano recebido, energia → Ki máximo, velocidade → andar/voar, K → recuo causado */
-    const st = this.def.stats || {}, r = k => Math.max(.25, (st[k] || 100) / 100);
-    Object.assign(this, { maxEn: CFG.energy * r('energy'), defMul: r('defense'), kbMul: r('k') }); this.energy = this.maxEn; this.dmgMul = r('power');
+    /* ATRIBUTOS do personagem (def.stats, escala 0–10 com uma casa decimal; 7.0 = valor-base, multiplicador 1):
+       poder → dano de todos os golpes e poderes; defesa → dano recebido; energia → Ki máximo (e velocidade de recarga ao CARREGAR KI);
+       velocidade → andar/voar; K (Ki) → força dos poderes de energia (dano e recuo dos projéteis / habilidade única). */
+    const st = this.def.stats || {}, r = k => Math.max(.1, (st[k] != null ? st[k] : STAT_BASE) / STAT_BASE);
+    Object.assign(this, { maxEn: CFG.energy * r('energy'), enMul: r('energy'), defMul: r('defense'), kbMul: 1, kiMul: r('k') }); this.energy = this.maxEn; this.dmgMul = r('power');
     body.speed *= r('speed'); body.flySpeed *= r('speed'); this.baseSpeed = body.speed;
   }
   get busy() { return this.state === 'attack' || this.state === 'charge' || this.state === 'energy' || this.state === 'cast' || this.state in STATE_ANIM; }
   atkList() { const d = this.def; return (d.attacks || []).concat(d.attackUp || [], d.attackDown || []); }   // todas as variações de golpe (índice usado na rede)
-  ready(a) { return !this.dead && this.energy >= ABIL[a].cost && !((this.acd[a] || 0) > 0); }   // pronto para o botão (só energia/recarga)
-  can(a) { const A = ABIL[a]; return !this.dead && !this.busy && this.energy >= A.cost && !((this.acd[a] || 0) > 0); }
+  cost(a) { return a === 'burst' && this.def.ice ? this.def.ice.cost : ABIL[a].cost; }      // HABILIDADE ÚNICA com custo/recarga próprios (def.ice)
+  cdOf(a) { return a === 'burst' && this.def.ice ? this.def.ice.cd : ABIL[a].cd; }
+  ready(a) { return !this.dead && this.energy >= this.cost(a) && !((this.acd[a] || 0) > 0); }   // pronto para o botão (só energia/recarga)
+  can(a) { return !this.dead && !this.busy && this.energy >= this.cost(a) && !((this.acd[a] || 0) > 0); }
   muzzle() { const d = this.def, h = d.muzzle !== undefined ? this.hand(d.muzzle) : null; return h || this.chest(); }   // ponto de onde saem as esferas (mão do quadro de disparo, se o personagem definir)
   chest() { const f = this.def.frames[frameAt(this.def, 'idle', 0)]; return { x: this.body.x + this.face * 12, y: this.body.y - f.ay * .5 }; }
   endForm() { if (!this.form) return; this.form = 0; this.dmgMul /= ABIL.form.dmg; this.body.speed = this.baseSpeed; }
@@ -177,7 +201,7 @@ class Fighter {
   /* Botões da tela: recarga (0..1, 1 = acabou de usar) de cada ação; HABILIDADE ÚNICA vem de def.unique (cada personagem define a sua) */
   get hasBig() { return !!(this.def.cast && this.def.cast.seqLento && this.def.proj); }
   get unique() { return this.def.unique || null; }
-  cdFrac(a) { const f = (v, m) => Math.max(0, Math.min(1, (v || 0) / m)); return a === 'small' ? f(this.pcd, this.def.cast ? this.def.cast.cd : CFG.power.cd) : a === 'big' ? f(this.acd[this.hasBig ? 'big' : 'sun'], ABIL[this.hasBig ? 'big' : 'sun'].cd) : a === 'unique' ? f(this.acd.burst, ABIL.burst.cd) : 0; }
+  cdFrac(a) { const f = (v, m) => Math.max(0, Math.min(1, (v || 0) / m)); return a === 'small' ? f(this.pcd, this.def.cast ? this.def.cast.cd : CFG.power.cd) : a === 'big' ? f(this.acd[this.hasBig ? 'big' : 'sun'], ABIL[this.hasBig ? 'big' : 'sun'].cd) : a === 'unique' ? f(this.acd.burst, this.cdOf('burst')) : 0; }
   castFrame(cs) { const s = cs.seg, n = s.f.length; return s.f[s.loop ? Math.floor(cs.ts * s.fps) % n : Math.min(Math.floor(cs.ts * s.fps), n - 1)]; }
   pickAttack(inp) { const A = this.def.attacks, d = this.def;
     if (inp && d.attackUp && inp.up && !inp.down) { this.comboT = .8; return d.attackUp; }       // ↑ + soco (golpe para cima)
@@ -246,6 +270,9 @@ class Fighter {
     this.fired = this.state === 'sun' ? this.t >= .6 : this.fired;
     if (this.state === 'burst' && !this.fired && this.t >= .25) { this.fired = true; (world.effects ||= []).push(new Ring(this.def, b.x, this.chest().y, 10, 72, .3, '#9fd8ff')); }
   }
+  /* onde o cristal nasce: à frente, no chão (encurta a distância se houver parede) */
+  crystalPos(world) { const b = this.body, I = this.def.ice; let d = I.dist; while (d > 22 && world.mask.at(Math.floor(b.x + this.face * d), Math.floor(b.y - 12))) d -= 6;
+    const x = b.x + this.face * d, gy = world.mask.surfaceY(Math.floor(x), Math.floor(b.y) - 14); return { x, y: gy - b.y <= 200 ? gy : b.y }; }
   respawn() { const b = this.body; Object.assign(b, { x: this.spawn.x, y: this.spawn.y, vx: 0, vy: 0, flying: false }); this.hp = CFG.hp; this.energy = this.maxEn; this.dead = false; this.endForm(); this.set('idle'); }
   update(dt, inp, world) {
     const b = this.body, p = inp.pressed || {}; this.t += dt; this.dbg = null;
@@ -265,7 +292,7 @@ class Fighter {
       else if (p.big && !this.hasBig && this.can('sun')) { this.energy -= ABIL.sun.cost; this.set('sun'); }                                // personagem sem etapas de carga: usa a esfera solar
       else if (p.transform && this.form) { this.endForm(); this.acd.transform = ABIL.transform.cd; }      // Z de novo: volta ao normal
       else if (p.transform && this.can('transform')) { this.energy -= ABIL.transform.cost; this.set('transform'); }
-      else if (p.special && this.can('burst')) { this.energy -= ABIL.burst.cost; this.set(this.def.dash ? 'dash' : 'burst'); this.dashHit = new Set(); }   // personagens com def.dash usam o movimento especial no lugar da onda de impacto
+      else if (p.special && this.can('burst')) { this.energy -= this.cost('burst'); this.set(this.def.ice ? 'ice' : this.def.dash ? 'dash' : 'burst'); this.dashHit = new Set(); }   // personagens com def.dash usam o movimento especial no lugar da onda de impacto
       else if (p.barrage && this.can('barrage')) { this.energy -= ABIL.barrage.cost; this.set('barrage'); this.shots = 0; }
       else if (p.sun && this.can('sun')) { this.energy -= ABIL.sun.cost; this.set('sun'); }
       else if (inp.meditate && b.grounded && !b.flying && this.energy < this.maxEn) this.set('meditate');
@@ -293,12 +320,17 @@ class Fighter {
       if (this.t >= .05) { this.form = ABIL.form.dur; this.dmgMul *= ABIL.form.dmg; b.speed = this.baseSpeed * ABIL.form.speed; this.acd.transform = ABIL.transform.cd; (world.effects ||= []).push(new Ring(this.def, b.x, b.y - 20, 8, 70, .4, '#ffd34d')); this.set('idle'); }
     }
     else if (this.state === 'meditate') {                                                                       // meditar: segura para recarregar Ki
-      if (!inp.meditate || !b.grounded || this.energy >= this.maxEn) this.set('idle'); else this.energy = Math.min(this.maxEn, this.energy + ABIL.meditateRate * (this.form ? ABIL.form.regen : 1) * dt);
+      if (!inp.meditate || !b.grounded || this.energy >= this.maxEn) this.set('idle'); else this.energy = Math.min(this.maxEn, this.energy + ABIL.meditateRate * (this.enMul || 1) * (this.form ? ABIL.form.regen : 1) * dt);
     }
     else if (this.state === 'hurt') { if (this.t >= .26) this.set('idle'); }                                     // reação ao golpe (só quem tem os quadros)
     else if (this.state === 'hurtH') { if (this.t >= .44) this.set('idle'); }
     else if (this.state === 'guardhit') { if (this.t >= .2) this.set('idle'); }                                 // golpe absorvido pela defesa
     else if (this.state === 'intro') { if (this.t >= this.def.anims.intro.f.length / this.def.anims.intro.fps) this.set('idle'); }   // introdução: toca uma vez, sem repetir
+    else if (this.state === 'ice') {                                                                            // CRISTAL DE GELO: reúne Ki → asas de energia → grito (o cristal nasce) → recuperação
+      const I = this.def.ice, cs = segAt(I.seq, this.t);
+      if (!cs) { this.acd.burst = this.cdOf('burst'); this.set('idle'); }
+      else if (cs.seg.fire && !this.fired) { this.fired = true; const c = this.crystalPos(world); this.launch(world, new Crystal(this, c.x, c.y), { t: 'ice', x: c.x, y: c.y }); (world.effects ||= []).push(new Ring(this.def, c.x, c.y - 4, 6, 44, .26, '#bdf1ff')); }
+    }
     else if (this.state === 'dash') {                                                                           // movimento especial: redemoinho → pose → rastro de energia → recuperação
       const D = this.def.dash, cs = segAt(D.seq, this.t);
       if (!cs) { this.acd.burst = ABIL.burst.cd; this.set('idle'); }
@@ -353,22 +385,24 @@ class Fighter {
     const b = this.body; let fi, cs = null;
     if (this.state === 'cast' || this.state === 'big') { const q = this.state === 'big' ? bigSeq(this.def) : this.def.cast.seq; cs = this.castSeg() || { seg: q[q.length - 1], ts: q[q.length - 1].dur - 1e-6, i: q.length - 1 }; fi = this.castFrame(cs); }
     else if (this.state === 'attack' && this.av) { const v = this.av; fi = v.f[Math.min(Math.floor(this.t * v.fps), v.f.length - 1)]; }
+    else if (this.state === 'ice') { const D = segAt(this.def.ice.seq, this.t) || { seg: this.def.ice.seq[this.def.ice.seq.length - 1], ts: 1 }, s = D.seg; fi = s.f[Math.floor(D.ts * s.fps) % s.f.length]; }
     else if (this.state === 'dash') { const D = segAt(this.def.dash.seq, this.t) || { seg: this.def.dash.seq[this.def.dash.seq.length - 1], ts: 1 }, s = D.seg; fi = s.f[Math.floor(D.ts * s.fps) % s.f.length]; }
     else fi = frameAt(this.def, animOf(this, this.state), this.t);
+    const flyMv = this.state === 'fly' && b.flying && this.def.anims.flyMove && Math.abs(b.vx) > 30; if (flyMv) fi = frameAt(this.def, 'flyMove', this.t);   // voando para o lado: quadro de voo em movimento (se o personagem tiver)
     const f = this.def.frames[fi];
     ctx.save(); if (this.flash > 0 && Math.floor(this.flash * 30) % 2) ctx.globalAlpha = .45;
     const k = this.state === 'charge' ? Math.min(1, this.t / CFG.charge.dur) : this.state === 'energy' ? Math.max(0, 1 - this.t / CFG.power.dur) : (this.state === 'transform' || this.state === 'meditate' || this.state === 'sun') ? Math.min(1, .35 + this.t) : 0;
     const sh = this.state === 'charge' && k > .6 ? (Math.floor(this.t * 30) % 2 ? 1 : -1) : 0;                     // tremor leve quando a carga está alta
     const bl = this.ball(), behind = false;                                               // segurando: esfera atrás da cabeça/mão
     if (cs) this.castFx(ctx, img, cs, false);
-    if (!this.def.bakedAura) drawAura(ctx, img, this.def, fi, b.x + sh, b.y, this.face, k, this.t, this.state === 'meditate' ? '#4fd6ff' : '#c24bff');   // personagens com aura desenhada no próprio sheet não ganham contorno extra
+    if (!this.def.bakedAura && !(this.def.bakedMeditate && this.state === 'meditate')) drawAura(ctx, img, this.def, fi, b.x + sh, b.y, this.face, k, this.t, this.state === 'meditate' ? '#4fd6ff' : (this.def.auraColor || '#c24bff'));   // personagens com aura desenhada no próprio sheet não ganham contorno extra
     if (this.form > 0 && k === 0) drawAura(ctx, img, this.def, fi, b.x, b.y, this.face, .55, this.t, '#ffd34d');                                   // transformado: contorno dourado
     if (this.state === 'meditate') drawKiFx(ctx, b.x, b.y, f.ay, this.t);                                  // CARREGAR KI: ondas, coluna de luz e faíscas
     if (behind) drawOrb(ctx, bl.x + sh, bl.y, bl.r, this.t);
     if (b.flying && this.state === 'fly') this.drawFly(ctx, img, fi, k);   // voo: balanço, inclinação, rastro e aura pulsante
     else drawFrame(ctx, img, this.def, fi, b.x + sh, b.y, this.face);
     if (cs) this.castFx(ctx, img, cs, true); ctx.restore();
-    if (this.state === 'big' && !this.fired) { const tot = bigSeq(this.def).reduce((a, q) => a + q.dur, 0) - bigSeq(this.def).slice(-1)[0].dur, u = Math.min(1, this.t / tot), h = this.hand(fi) || this.chest(); drawOrb(ctx, h.x, h.y - 4, 2 + 9 * u, this.t, PAL.pink); }   // esfera crescendo na mão enquanto carrega
+    if (this.state === 'big' && !this.fired) { const tot = bigSeq(this.def).reduce((a, q) => a + q.dur, 0) - bigSeq(this.def).slice(-1)[0].dur, u = Math.min(1, this.t / tot), h = this.hand(fi) || this.chest(); drawOrb(ctx, h.x, h.y - 4, 2 + 9 * u, this.t, PAL[this.def.bigPal] || PAL.pink); }   // esfera crescendo na mão enquanto carrega
     if (bl && !behind) drawOrb(ctx, bl.x + sh, bl.y, bl.r, this.t);
     if (this.state === 'sun' && !this.fired && !this.def.bakedAura) { const c = this.chest(); drawOrb(ctx, c.x + this.face * 4, c.y, 2 + 8 * Math.min(1, this.t / .6), this.t, PAL.yellow); }   // esfera solar crescendo na mão                                                 // lançando: esfera à frente do braço
     if (!this.me) {
@@ -379,5 +413,5 @@ class Fighter {
   }
 }
 SL.PAL = PAL;
-Object.assign(SL, { bigCfg, Fighter, segAt, Beam, Shot, Effect, KiBall, Ring, ABILITIES: ABIL, CombatCFG: CFG, frameAt, drawFrame });
+Object.assign(SL, { bigCfg, Crystal, Fighter, segAt, Beam, Shot, Effect, KiBall, Ring, ABILITIES: ABIL, CombatCFG: CFG, frameAt, drawFrame });
 })();

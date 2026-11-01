@@ -13,6 +13,7 @@ const ICONS = {
   small: '<g><path d="M8 50h30M14 40h22M14 60h22" stroke="#d9b6ff" stroke-width="5" stroke-linecap="round" opacity=".85"/><circle cx="62" cy="50" r="19" fill="#ff7fcb" stroke="#fff3c4" stroke-width="4"/><circle cx="62" cy="50" r="9" fill="#fff"/></g>',
   big: '<g><path d="M4 50h26M10 36h22M10 64h22" stroke="#d9b6ff" stroke-width="5" stroke-linecap="round" opacity=".85"/><g stroke="#ffe27a" stroke-width="4" stroke-linecap="round"><path d="M64 10v10M64 80v10M30 50h10M88 50h6M40 24l7 7M88 24l-7 7M40 76l7-7M88 76l-7-7"/></g><circle cx="64" cy="50" r="27" fill="#ff5fb8" stroke="#fff3c4" stroke-width="5"/><circle cx="64" cy="50" r="15" fill="#ffd0ee"/><circle cx="64" cy="50" r="7" fill="#fff"/></g>',
   shock: '<g fill="none" stroke-linecap="round"><circle cx="50" cy="52" r="12" fill="#fff3c4" stroke="#3a1a00" stroke-width="3"/><circle cx="50" cy="52" r="26" stroke="#9fd8ff" stroke-width="6"/><circle cx="50" cy="52" r="40" stroke="#c9a2ff" stroke-width="5" opacity=".8"/><path d="M6 52h8M86 52h8M50 8v8" stroke="#ffe27a" stroke-width="5"/></g>',
+  ice: '<g stroke="#0b2a55" stroke-width="3" stroke-linejoin="round"><path d="M50 8l14 22v46L50 92 36 76V30z" fill="#bfeeff"/><path d="M50 8l14 22-14 8-14-8z" fill="#e9fbff"/><path d="M34 46L12 62l16 22 10-8zM66 40l22 18-14 26-12-10z" fill="#7fd0ff"/><path d="M50 38v54" stroke="#58b8ff" stroke-width="3" fill="none"/></g>',
   star: '<path d="M50 10l12 26 28 3-21 19 6 28-25-14-25 14 6-28L10 39l28-3z" fill="#fff3c4" stroke="#3a1a00" stroke-width="3" stroke-linejoin="round"/>',
   lock: '<g stroke="#3a1a00" stroke-width="3"><rect x="26" y="44" width="48" height="38" rx="7" fill="#b9a6d8"/><path d="M36 44V34a14 14 0 0 1 28 0v10" fill="none" stroke="#b9a6d8" stroke-width="8"/></g>',
   shield: '<path d="M50 10l34 12v26c0 20-14 34-34 42C30 82 16 68 16 48V22z" fill="#9ae6ff" stroke="#3a1a00" stroke-width="3" stroke-linejoin="round"/><path d="M50 22l22 8v18c0 13-9 23-22 29z" fill="#fff" opacity=".55"/>',
@@ -64,6 +65,7 @@ class GameScene {
       const f = byId(d.by), q = d.d; if (!f || !f.remote || !q) return; const w = this.world, F = SL;
       if (q.t === 'shot' && f.def.cast) w.projectiles.push(new F.Shot(f, q.big && f.hasBig ? F.bigCfg(f.def) : f.def.cast, q.x, q.y, q.face));
       else if (q.t === 'ball' && q.o) w.projectiles.push(new F.KiBall(f, q.x, q.y, q.face, { ...q.o, pal: F.PAL[q.o.pal] || F.PAL.pink }));
+      else if (q.t === 'ice' && f.def.ice) w.projectiles.push(new F.Crystal(f, q.x, q.y));
       else if (q.t === 'beam' && f.def.beam) w.projectiles.push(new F.Beam(f, q.x, q.y, q.face));
     }
   }
@@ -145,7 +147,7 @@ class GameScene {
     const set = (b, ready, cd, active) => { b.classList.toggle('nope', !ready); b.classList.toggle('rdy', ready && !active); b.classList.toggle('active', !!active); const v = cd.toFixed(2); if (b._cd !== v) { b._cd = v; b.style.setProperty('--cd', v); } };
     set(U.pk, m.powerReady, m.cdFrac('small'), m.state === 'cast');                                          // PODER PEQUENO
     const bigKey = m.hasBig ? 'big' : 'sun'; set(U.power, m.ready(bigKey), m.cdFrac('big'), m.state === 'big' || m.state === 'sun');   // PODER GRANDE
-    set(U.sp, !!m.unique && m.ready('burst'), m.unique ? m.cdFrac('unique') : 0, m.state === 'burst' || m.state === 'dash');          // HABILIDADE ÚNICA
+    set(U.sp, !!m.unique && m.ready('burst'), m.unique ? m.cdFrac('unique') : 0, m.state === 'burst' || m.state === 'dash' || m.state === 'ice');          // HABILIDADE ÚNICA
     set(U.md, m.energy < (m.maxEn || C.energy) || m.state === 'meditate', 0, m.state === 'meditate');         // CARREGAR KI
     set(U.bt, true, 0, !!m.body.flying);                                                                      // PULAR / VOAR
     set(U.atk, true, 0, m.state === 'attack'); set(U.guard, true, 0, m.state === 'shield');

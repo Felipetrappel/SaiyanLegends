@@ -2,10 +2,13 @@
    desbloqueado e selecionado. Para um novo personagem: registre-o em Characters.all (com defaultUnlocked e price). */
 (() => {
 'use strict';
-const S = SL.STREET, pending = {};
+const S = SL.STREET, J = SL.JHONNY, pending = {};
 const all = {};
-if (S) all.street = { ...S, price: 0, defaultUnlocked: true, stats: { power: 100, defense: 100, energy: 100, speed: 100, k: 100 }, unique: { name: 'ONDA DE IMPACTO', icon: 'shock' },   // HABILIDADE ÚNICA do personagem (botão da tela): nome e ícone; a ação é def.dash (se houver) ou a onda de impacto
+if (S) all.street = { ...S, price: 0, defaultUnlocked: true, stats: { power: 7.0, defense: 7.0, energy: 7.0, speed: 7.0, k: 7.0 }, unique: { name: 'ONDA DE IMPACTO', icon: 'shock' },   // HABILIDADE ÚNICA do personagem (botão da tela): nome e ícone; a ação é def.dash (se houver) ou a onda de impacto
    img: Object.assign(new Image(), { src: S.sheet }) };   // pré-carrega o sheet (para trocar o preço/bloqueio, edite price e defaultUnlocked)
+/* JHONNY: atributos na escala 0–10 (uma casa decimal; k = Ki). Para vendê-lo na loja, troque defaultUnlocked para false e ajuste o price (ouro). */
+if (J) all.jhonny = { ...J, price: 1000, defaultUnlocked: true, unique: { name: 'CRISTAL DE GELO', icon: 'ice' }, ringColor: '#9fe4ff', auraColor: '#58b8ff', bigPal: 'ice', bakedMeditate: true,
+   img: Object.assign(new Image(), { src: J.sheet }) };
 const DEFAULT = Object.keys(all)[0];   // personagem padrão = o primeiro disponível
 const KEY = 'sl.profile';
 const WELCOME_GOLD = 1500;   // moedas amarelas de um perfil NOVO (dadas uma única vez: o perfil guarda 'welcomed')
