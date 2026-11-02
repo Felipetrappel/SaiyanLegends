@@ -391,7 +391,6 @@ class Fighter {
   drawFly(ctx, img, fi, k) {   // animação procedural do voo (o sheet só tem 1 quadro de voo)
     const b = this.body, T = performance.now() / 1000, fs = b.flySpeed || 230, vx = b.vx || 0, vy = b.vy || 0, sp = Math.hypot(vx, vy);
     const bob = Math.sin(T * 7) * 2.2 + Math.sin(T * 3.1) * 1.2, lean = Math.max(-.4, Math.min(.4, vx / fs * .4)) + (vy / fs) * .1 * this.face;
-    if (!this.def.bakedAura) drawAura(ctx, img, this.def, fi, b.x, b.y + bob, this.face, .4 + .15 * Math.sin(T * 10), T, '#7fdcff');
     if (sp > 25) for (let g = 3; g >= 1; g--) { ctx.save(); ctx.globalAlpha = .16 * (4 - g) / 3 * Math.min(1, sp / fs); drawFrame(ctx, img, this.def, fi, b.x - vx * .035 * g, b.y + bob - vy * .035 * g, this.face); ctx.restore(); }
     ctx.save(); ctx.translate(Math.round(b.x), Math.round(b.y - 20 + bob)); ctx.rotate(lean); drawFrame(ctx, img, this.def, fi, 0, 20, this.face); ctx.restore();
   }
