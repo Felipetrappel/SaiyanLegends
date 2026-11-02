@@ -169,7 +169,7 @@ const ABIL = {
   big: { cost: 60, cd: 6 },   // PODER GRANDE: carrega (animação real do sheet), lança um projétil maior; recarga bem maior que o poder pequeno
   form: { dur: 25, dmg: 1.4, speed: 1.15, regen: 2 }, meditateRate: 40
 };
-const STATE_ANIM = { big: 'charge', transform: 'charge', meditate: 'charge', ice: 'charge', burst: 'energy', barrage: 'energy', sun: 'charge', hurt: 'hurt', hurtH: 'hurtH', guardhit: 'guardhit', intro: 'intro', dash: 'dash' };   // estados 'hurt/hurtH/guardhit/intro/dash' só existem para personagens que têm esses quadros
+const STATE_ANIM = { big: 'charge', transform: 'charge', meditate: 'charge', ice: 'charge', sprint: 'run', burst: 'energy', barrage: 'energy', sun: 'charge', hurt: 'hurt', hurtH: 'hurtH', guardhit: 'guardhit', intro: 'intro', dash: 'dash' };   // estados 'hurt/hurtH/guardhit/intro/dash' só existem para personagens que têm esses quadros
 const animOf = (f, s) => (f.def.stateAnim && f.def.stateAnim[s]) || STATE_ANIM[s] || s;
 const segAt = (seq, t) => { let i = 0; for (const s of seq) { if (t < s.dur) return { seg: s, ts: t, i }; t -= s.dur; i++; } return null; };   // etapa de uma sequência pelo tempo
 
@@ -308,6 +308,14 @@ class Fighter {
     if (this.form > 0 && (this.form -= dt) <= 0) this.endForm();                                        // a transformação acaba sozinha
     if (Math.abs(this.kb) > 5) { b.moveX(this.kb * dt); this.kb *= Math.pow(.001, dt); } else this.kb = 0;   // recuo (respeita a colisão)
     const dir = (inp.right ? 1 : 0) - (inp.left ? 1 : 0);
+    /* DASH: tocar a mesma seta duas vezes bem rápido (≤ .28 s) dá um impulso curto para aquele lado; para trás ele continua olhando para onde olhava. Sem custo de Ki; recarga curta. */
+    this.tap ||= { L: 0, R: 0, pL: false, pR: false, fL: 1, fR: 1 }; this.cdash = Math.max(0, (this.cdash || 0) - dt); let wantDash = 0;
+    for (const [k, v, d] of [['L', !!inp.left, -1], ['R', !!inp.right, 1]]) {
+      this.tap[k] = Math.max(0, this.tap[k] - dt);
+      if (v && !this.tap['p' + k]) { if (this.tap[k] > 0) { wantDash = d; this.dashFace = this.tap['f' + k]; this.tap[k] = 0; } else { this.tap[k] = .28; this.tap['f' + k] = this.face; } }
+      this.tap['p' + k] = v;
+    }
+    if (wantDash && !this.busy && this.cdash <= 0) { this.dashDir = wantDash; this.face = this.dashFace; this.set('sprint'); }
     if (!this.busy) {
       if (dir) this.face = dir;
       if (p.fly) b.flying = !b.flying;                                                                      // VOAR liga/desliga; ao desligar a gravidade volta
@@ -354,6 +362,9 @@ class Fighter {
       const I = this.def.ice, cs = segAt(I.seq, this.t);
       if (!cs) { this.acd.burst = this.cdOf('burst'); this.set('idle'); }
       else if (cs.seg.fire && !this.fired) { this.fired = true; const c = this.crystalPos(world); this.launch(world, new Crystal(this, c.x, c.y), { t: 'ice', x: c.x, y: c.y }); (world.effects ||= []).push(new Ring(this.def, c.x, c.y - 4, 6, 44, .26, '#bdf1ff')); }
+    }
+    else if (this.state === 'sprint') {                                                                         // dash: impulso rápido (respeita paredes), velocidade acompanha o atributo Velocidade
+      b.moveX(this.dashDir * 620 * (b.speed / 240) * dt); if (b.flying) b.vy = 0; if (this.t >= .16) { this.cdash = .5; this.set('idle'); }
     }
     else if (this.state === 'dash') {                                                                           // movimento especial: redemoinho → pose → rastro de energia → recuperação
       const D = this.def.dash, cs = segAt(D.seq, this.t);
@@ -419,6 +430,7 @@ class Fighter {
     const sh = this.state === 'charge' && k > .6 ? (Math.floor(this.t * 30) % 2 ? 1 : -1) : 0;                     // tremor leve quando a carga está alta
     const bl = this.ball(), behind = false;                                               // segurando: esfera atrás da cabeça/mão
     if (cs) this.castFx(ctx, img, cs, false);
+    if (this.state === 'sprint') for (let g = 3; g >= 1; g--) { ctx.save(); ctx.globalAlpha = .13 * (4 - g); drawFrame(ctx, img, this.def, fi, b.x - this.dashDir * g * 9, b.y, this.face); ctx.restore(); }   // rastro do dash
     if (!this.def.bakedAura && !(this.def.bakedMeditate && this.state === 'meditate')) drawAura(ctx, img, this.def, fi, b.x + sh, b.y, this.face, k, this.t, this.state === 'meditate' ? '#4fd6ff' : (this.def.auraColor || '#c24bff'));   // personagens com aura desenhada no próprio sheet não ganham contorno extra
     if (this.form > 0 && k === 0) drawAura(ctx, img, this.def, fi, b.x, b.y, this.face, .55, this.t, '#ffd34d');                                   // transformado: contorno dourado
     if (this.state === 'meditate') drawKiFx(ctx, b.x, b.y, f.ay, this.t);                                  // CARREGAR KI: ondas, coluna de luz e faíscas
