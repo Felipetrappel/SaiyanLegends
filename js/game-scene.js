@@ -132,7 +132,7 @@ class GameScene {
     const inp = this.input(), dt = 1 / 60, w = this.world;
     for (const f of this.fighters) { if (f.remote) f.replicate(dt, w); else f.update(dt, f.me ? inp : f.brain ? f.brain.think(dt, w) : {}, w); }
     if (this.netIO && (this.netT += dt) >= 1 / 15) { this.netT = 0; const mine = this.fighters.filter(f => !f.dummy && !f.remote); if (mine.length) this.netIO.send({ k: 's', f: mine.map(f => f.netState()) }); }   // ~15 envios/s
-    w.projectiles.forEach(p => p.update(dt, w)); w.projectiles = w.projectiles.filter(p => !p.dead);
+    w.projectiles.forEach(p => p.update(dt, w)); SL.clashShots(w); w.projectiles = w.projectiles.filter(p => !p.dead);
     for (const f of this.fighters) {   // recompensa: derrotar um oponente (bot ou jogador) que você acertou por último rende XP e moedas de ouro
       if (f === this.me || f.dummy) continue;
       if (!f.dead) f._paid = false;
