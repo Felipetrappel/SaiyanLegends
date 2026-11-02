@@ -296,6 +296,7 @@ class Fighter {
   /* onde o cristal nasce: à frente, no chão (encurta a distância se houver parede) */
   crystalPos(world) { const b = this.body, I = this.def.ice; let d = I.dist; while (d > 22 && world.mask.at(Math.floor(b.x + this.face * d), Math.floor(b.y - 12))) d -= 6;
     const x = b.x + this.face * d, gy = world.mask.surfaceY(Math.floor(x), Math.floor(b.y) - 14); return { x, y: gy - b.y <= 200 ? gy : b.y }; }
+  missionKi(world) { if (this.me && !this.remote && !this.bot && window.SL && SL.Profile) { const md = SL.Profile.progress('ki', 1); if (md && world) world.fx.push({ x: this.body.x, y: this.body.y - 92, txt: 'MISSÃO: +' + md.gems + ' diamantes', t: 0 }); } }   // missão: usar poderes de Ki
   respawn() { const b = this.body; Object.assign(b, { x: this.spawn.x, y: this.spawn.y, vx: 0, vy: 0, flying: false }); this.hp = CFG.hp; this.energy = this.maxEn; this.dead = false; this.endForm(); this.set('idle'); }
   update(dt, inp, world) {
     const b = this.body, p = inp.pressed || {}; this.t += dt; this.dbg = null;
@@ -310,8 +311,8 @@ class Fighter {
     if (!this.busy) {
       if (dir) this.face = dir;
       if (p.fly) b.flying = !b.flying;                                                                      // VOAR liga/desliga; ao desligar a gravidade volta
-      if (p.power && this.powerReady) { this.energy -= this.powerCost; this.set(this.def.cast ? 'cast' : 'charge'); }   // 1) CHARGE
-      else if (p.big && this.hasBig && this.can('big')) { this.energy -= ABIL.big.cost; this.set('big'); }                                  // PODER GRANDE: carrega e lança
+      if (p.power && this.powerReady) { this.energy -= this.powerCost; this.set(this.def.cast ? 'cast' : 'charge'); this.missionKi(world); }   // 1) CHARGE
+      else if (p.big && this.hasBig && this.can('big')) { this.energy -= ABIL.big.cost; this.set('big'); this.missionKi(world); }                                  // PODER GRANDE: carrega e lança
       else if (p.big && !this.hasBig && this.can('sun')) { this.energy -= ABIL.sun.cost; this.set('sun'); }                                // personagem sem etapas de carga: usa a esfera solar
       else if (p.transform && this.form) { this.endForm(); this.acd.transform = ABIL.transform.cd; }      // Z de novo: volta ao normal
       else if (p.transform && this.can('transform')) { this.energy -= ABIL.transform.cost; this.set('transform'); }

@@ -141,8 +141,9 @@ class GameScene {
     for (const f of this.fighters) {   // recompensa: derrotar um oponente (bot ou jogador) que você acertou por último rende XP e moedas de ouro
       if (f === this.me || f.dummy) continue;
       if (!f.dead) f._paid = false;
-      else if (!f._paid && f.lastBy === this.me && performance.now() - f.lastByT < 10000 && SL.Profile) { f._paid = true; SL.Profile.addXp(25); SL.Profile.addCoins('gold', 10); w.fx.push({ x: this.me.body.x, y: this.me.body.y - 70, txt: '+25 XP  +10 ouro', t: 0 }); }
+      else if (!f._paid && f.lastBy === this.me && performance.now() - f.lastByT < 10000 && SL.Profile) { f._paid = true; SL.Profile.addXp(25); SL.Profile.addCoins('gold', 10); w.fx.push({ x: this.me.body.x, y: this.me.body.y - 70, txt: '+25 XP  +10 ouro', t: 0 }); const md = SL.Profile.progress('kill', 1); if (md) w.fx.push({ x: this.me.body.x, y: this.me.body.y - 92, txt: 'MISSÃO: +' + md.gems + ' diamantes', t: 0 }); }
     }
+    if (this.me.body.flying && !this.me.dead && SL.Profile) { this.flyT = (this.flyT || 0) + dt; if (this.flyT >= 1) { this.flyT -= 1; const md = SL.Profile.progress('fly', 1); if (md) w.fx.push({ x: this.me.body.x, y: this.me.body.y - 92, txt: 'MISSÃO: +' + md.gems + ' diamantes', t: 0 }); } }   // missão: voar
     w.fx.forEach(x => { x.t += dt; }); w.fx = w.fx.filter(x => x.t < .8);
     w.effects.forEach(e => e.update(dt)); w.effects = w.effects.filter(e => !e.dead);
   }

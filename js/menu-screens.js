@@ -17,7 +17,7 @@ const screen = (title, intro, body, extra) => ({ title, build(p) {
   const row = el('div', 'row'); if (extra) row.append(...extra); row.append(S.btn('Voltar', () => S.close(), true)); p.append(row);
 } });
 S.register('shop', screen('Loja', 'Itens para evoluir seu herói. (Versão inicial)', () => list(DATA.shop.map(([t, s]) => item(t, s))), [S.btn('Ir para Personagens', () => S.open('store'))]));
-S.register('missions', screen('Missões', 'Complete missões para ganhar recompensas. (Versão inicial: o progresso ainda não é salvo)', () => list(DATA.missions.map(([t, v, m]) => item(t, v + ' / ' + m, '', v / m * 100)))));
+S.register('missions', screen('Missões', 'Complete missões para ganhar DIAMANTES. O progresso é salvo e a missão recomeça ao completar.', () => list(SL.Profile.MISSIONS.map(m => { const v = SL.Profile.mp[m.id] || 0, n = SL.Profile.md[m.id] || 0; return item(m.title, v + ' / ' + m.goal + '   ·   recompensa: ' + m.gems + ' diamantes' + (n ? '   ·   concluída ' + n + 'x' : ''), '', v / m.goal * 100); }))));
 S.register('rankings', screen('Ranking', 'Classificação dos jogadores. (Versão inicial: o ranking online ainda não existe)', () => list([item('Nenhum jogador classificado ainda', 'As vitórias online vão aparecer aqui.')])));
 S.register('events', screen('Eventos', 'Eventos especiais do jogo. (Versão inicial)', () => list(DATA.events.map(([t, s]) => item(t, '', s)))));
 S.register('pass', screen('Passe', 'Recompensas por nível do passe. (Versão inicial: ainda não há níveis nem progresso)', () => list(DATA.pass.map(([t, s]) => item(t, s, 'Bloqueado')))));
