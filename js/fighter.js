@@ -270,6 +270,17 @@ class Fighter {
     this.fired = this.state === 'sun' ? this.t >= .6 : this.fired;
     if (this.state === 'burst' && !this.fired && this.t >= .25) { this.fired = true; (world.effects ||= []).push(new Ring(this.def, b.x, this.chest().y, 10, 72, .3, '#9fd8ff')); }
   }
+  /* Colisão entre lutadores: se o corpo entrou em outro, sai pelo lado de menor penetração (respeitando paredes); caindo/voando por cima, pousa na cabeça dele. */
+  separate(world) {
+    const b = this.body; if (!world || this.dead) return;
+    for (const o of world.fighters) {
+      if (o === this || o.dead || o.state === 'intro' || this.state === 'intro') continue;
+      const a = this.rect(), c = o.rect(); if (!overlap(a, c)) continue;
+      const px = Math.min(a.r - c.l, c.r - a.l), top = a.b - c.t, side = (a.l + a.r) / 2 < (c.l + c.r) / 2 ? -1 : 1;
+      if (top <= Math.max(px, 6) && a.b <= c.t + b.h * .5 && b.vy >= 0) { b.y = c.t; b.vy = 0; b.grounded = true; }      // por cima: apoia na cabeça
+      else { const dir = side || (this.player.id < o.player.id ? -1 : 1); if (!b.moveX(dir * (px + .01)) && !o.body.moveX(-dir * (px + .01))) { /* encostado nas duas paredes: deixa passar */ } }
+    }
+  }
   /* onde o cristal nasce: à frente, no chão (encurta a distância se houver parede) */
   crystalPos(world) { const b = this.body, I = this.def.ice; let d = I.dist; while (d > 22 && world.mask.at(Math.floor(b.x + this.face * d), Math.floor(b.y - 12))) d -= 6;
     const x = b.x + this.face * d, gy = world.mask.surfaceY(Math.floor(x), Math.floor(b.y) - 14); return { x, y: gy - b.y <= 200 ? gy : b.y }; }
@@ -358,6 +369,7 @@ class Fighter {
     }
     const free = !this.busy, shield = free && (inp.down || inp.guard) && b.grounded && !b.flying, mv = free && !shield;
     b.step(dt, { left: mv && inp.left, right: mv && inp.right, jump: mv && inp.up && !b.flying, up: mv && inp.up, down: mv && inp.down });
+    this.separate(world);                                                                                   // um lutador não atravessa o outro (jogadores, bots e boneco)
     if (!this.busy) {                                                                                       // animação conforme o estado atual
       const ns = shield ? 'shield' : b.flying ? 'fly' : !b.grounded ? (b.vy < 0 ? 'jump' : 'fall') : (mv && dir && b.vx ? 'run' : 'idle');
       if (ns !== this.state) this.set(ns);
