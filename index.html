@@ -29,6 +29,7 @@ function set(v){p=Math.max(p,v);bar.style.width=p+'%'}
 var iv=setInterval(function(){if(!done)set(p+(90-p)*.06)},120);
 function finish(){if(done)return;done=true;clearInterval(iv);set(100);setTimeout(function(){el.classList.add('out');setTimeout(function(){el.remove()},700)},Math.max(300,1800-(Date.now()-t0)))}
 window.addEventListener('load',function(){setTimeout(finish,200)});setTimeout(finish,12000)})();</script>
+<script src="js/fullscreen.js"></script>
 <script src="js/config.js"></script>
 <script src="js/room-system.js"></script>
 <script src="js/net.js"></script>

@@ -21,6 +21,7 @@ app.whenReady().then(async () => {
   const port = await serve();
   Menu.setApplicationMenu(null);
   const w = new BrowserWindow({ width: 1280, height: 720, minWidth: 800, minHeight: 450, backgroundColor: '#0b0220', title: 'Saiyan Legends Online', autoHideMenuBar: true, icon: path.join(__dirname, 'icon.png'), webPreferences: { preload: path.join(__dirname, 'preload.js'), contextIsolation: false, nodeIntegration: false, backgroundThrottling: false } });
+  w.setFullScreen(true);   // abre em tela cheia (F11 alterna)
   w.loadURL('http://127.0.0.1:' + port + '/index.html');
   w.webContents.setWindowOpenHandler(({ url }) => { require('electron').shell.openExternal(url); return { action: 'deny' }; });
   w.webContents.on('before-input-event', (e, i) => { if (i.type === 'keyDown' && i.key === 'F11') { w.setFullScreen(!w.isFullScreen()); e.preventDefault(); } });
