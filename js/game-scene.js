@@ -113,10 +113,15 @@ class GameScene {
     if (!un) sp.classList.add('off');
     acts.append(md, sp, power, bt, pk, atk); root.append(move, acts);   // 2 linhas × 3 colunas
     const bars = document.createElement('div'); bars.className = 'bars';
-    bars.innerHTML = '<div class="meters"><div class="bar hp"><i></i><b>HP</b></div><div class="bar en"><i></i><b>EN</b></div></div>';
-    bars.prepend(SL.Characters.portrait(this.me.player.character, 1)); host.append(bars, root);
+    const P = SL.Profile;   // HUD com a moldura de arte (assets/ui/hud-frame.png): retrato no círculo, nome, barras de HP (vermelha), EN (azul) e XP do nível (dourada)
+    bars.innerHTML = '<img class="gh-art" src="assets/ui/hud-frame.png" alt="" draggable="false"><canvas class="gh-pt" width="148" height="148"></canvas><div class="gh-nm"></div>' +
+      '<div class="gh-bar gh-hp"><i></i></div><div class="gh-bar gh-en"><i></i></div><div class="gh-bar gh-xp"><i></i></div>';
+    bars.querySelector('.gh-nm').textContent = (this.me.player.name || '') + ' · Nv.' + P.level;
+    bars.querySelector('.gh-xp i').style.width = (100 - P.levelProgress * 100) + '%';
+    { const c = SL.Characters.get(this.me.player.character), cv = bars.querySelector('.gh-pt'), x = cv.getContext('2d'), r = c.portrait, draw = () => { x.imageSmoothingEnabled = false; x.clearRect(0, 0, 148, 148); const k = Math.max(148 / r.w, 148 / r.h); x.drawImage(c.img, r.x, r.y, r.w, r.h, (148 - r.w * k) / 2, (148 - r.h * k) / 2, r.w * k, r.h * k); }; c.img.complete ? draw() : c.img.addEventListener('load', draw); }
+    host.append(bars, root);
     if (this.initCustomize) this.initCustomize(root, host);   // controles personalizáveis (js/controls-editor.js)
-    this.ui = { hp: bars.querySelector('.hp i'), en: bars.querySelector('.en i'), power, pk, sp, md, bt, atk, guard: root.querySelector('.guard') };
+    this.ui = { hp: bars.querySelector('.gh-hp i'), en: bars.querySelector('.gh-en i'), power, pk, sp, md, bt, atk, guard: root.querySelector('.guard') };
   }
   resize() {
     this.dpr = Math.min(window.devicePixelRatio || 1, 2); const r = this.cv.getBoundingClientRect();
@@ -143,7 +148,7 @@ class GameScene {
   }
   updateUI() {
     if (!this.ui) return; const m = this.me, C = SL.CombatCFG, U = this.ui, A = SL.ABILITIES;
-    U.hp.style.width = (m.hp / C.hp * 100) + '%'; U.en.style.width = (m.energy / (m.maxEn || C.energy) * 100) + '%';
+    U.hp.style.width = (100 - m.hp / C.hp * 100) + '%'; U.en.style.width = (100 - m.energy / (m.maxEn || C.energy) * 100) + '%';   // a 'i' cobre a parte vazia da barra (a cor vem da arte)
     const set = (b, ready, cd, active) => { b.classList.toggle('nope', !ready); b.classList.toggle('rdy', ready && !active); b.classList.toggle('active', !!active); const v = cd.toFixed(2); if (b._cd !== v) { b._cd = v; b.style.setProperty('--cd', v); } };
     set(U.pk, m.powerReady, m.cdFrac('small'), m.state === 'cast');                                          // PODER PEQUENO
     const bigKey = m.hasBig ? 'big' : 'sun'; set(U.power, m.ready(bigKey), m.cdFrac('big'), m.state === 'big' || m.state === 'sun');   // PODER GRANDE

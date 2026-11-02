@@ -344,3 +344,13 @@ button.rm-card{cursor:pointer;padding:0;text-align:center}
 .ctl .cbtn.nope{filter:grayscale(.55) brightness(.62)}.ctl .cbtn.nope.on{filter:grayscale(.55) brightness(.8)}
 .ctl .cbtn.off{filter:grayscale(.9) brightness(.5)}
 .ctl.custom .cbtn{margin:calc(var(--s)/-2) 0 0 calc(var(--s)/-2)}
+
+/* HUD da partida com moldura de arte (hud-frame.png, 1523×713): tudo em % da moldura, então escala junto */
+.bars.gh,.bars:has(.gh-art){top:calc(6px + env(safe-area-inset-top,0px));left:6px;display:block;width:clamp(200px,28vw,400px);aspect-ratio:1523/713;container-type:inline-size;filter:drop-shadow(0 2px 6px rgba(0,0,0,.6))}
+.gh-art{position:absolute;inset:0;width:100%;height:100%;z-index:1;user-select:none}
+.stage .gh-pt,.gh-pt{position:absolute;left:6.17%;top:25.25%;width:24.29%!important;height:51.89%!important;border-radius:50%;image-rendering:pixelated;z-index:2;background:#12042e}
+.gh-nm{position:absolute;left:34.41%;top:26.09%;width:34.8%;height:8.7%;z-index:3;display:flex;align-items:center;padding-left:2%;font:800 3.5cqw/1 system-ui,sans-serif;color:#efe0ff;text-shadow:0 1px 3px #000;white-space:nowrap;overflow:hidden;letter-spacing:.03em}
+.gh-bar{position:absolute;z-index:3;background:transparent;overflow:hidden}
+.gh-bar i{position:absolute;right:0;top:0;bottom:0;width:0;background:#10042a;transition:width .12s linear}
+.gh-hp{left:44.12%;top:40.25%;width:46.88%;height:7.71%}.gh-en{left:44.12%;top:55.4%;width:46.88%;height:7.43%}.gh-xp{left:44.12%;top:70.13%;width:45.57%;height:7.29%}
+.stage .bars:has(.gh-art){top:calc(6px + env(safe-area-inset-top,0px))}
