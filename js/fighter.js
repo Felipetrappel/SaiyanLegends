@@ -283,15 +283,14 @@ class Fighter {
     this.fired = this.state === 'sun' ? this.t >= .6 : this.fired;
     if (this.state === 'burst' && !this.fired && this.t >= .25) { this.fired = true; (world.effects ||= []).push(new Ring(this.def, b.x, this.chest().y, 10, 72, .3, '#9fd8ff')); }
   }
-  /* Colisão entre lutadores: se o corpo entrou em outro, sai pelo lado de menor penetração (respeitando paredes); caindo/voando por cima, pousa na cabeça dele. */
+  /* Colisão entre lutadores: se o corpo entrou em outro, sai para o lado (respeitando paredes); ninguém fica em pé na cabeça do outro. */
   separate(world) {
     const b = this.body; if (!world || this.dead) return;
     for (const o of world.fighters) {
       if (o === this || o.dead || o.state === 'intro' || this.state === 'intro') continue;
       const a = this.rect(), c = o.rect(); if (!overlap(a, c)) continue;
-      const px = Math.min(a.r - c.l, c.r - a.l), top = a.b - c.t, side = (a.l + a.r) / 2 < (c.l + c.r) / 2 ? -1 : 1;
-      if (top <= Math.max(px, 6) && a.b <= c.t + b.h * .5 && b.vy >= 0) { b.y = c.t; b.vy = 0; b.grounded = true; }      // por cima: apoia na cabeça
-      else { const dir = side || (this.player.id < o.player.id ? -1 : 1); if (!b.moveX(dir * (px + .01)) && !o.body.moveX(-dir * (px + .01))) { /* encostado nas duas paredes: deixa passar */ } }
+      const px = Math.min(a.r - c.l, c.r - a.l), side = (a.l + a.r) / 2 < (c.l + c.r) / 2 ? -1 : 1;
+      { const dir = side || (this.player.id < o.player.id ? -1 : 1); if (!b.moveX(dir * (px + .01)) && !o.body.moveX(-dir * (px + .01))) { /* encostado nas duas paredes: deixa passar */ } }
     }
   }
   /* onde o cristal nasce: à frente, no chão (encurta a distância se houver parede) */
