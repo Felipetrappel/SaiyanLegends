@@ -5,7 +5,8 @@ const { Emitter, RoomState } = SL;
 
 /* Dados dos mapas. Arte e máscara têm a MESMA resolução e coordenadas 1:1; a máscara nunca é exibida. */
 const MAP_DATA = {
-  forest: { art: 'assets/maps/forest.png', mask: 'assets/maps/forest_collision.png', w: 2872, h: 624, spawn: { x: 60, y: 300 } }
+  forest: { art: 'assets/maps/forest.png', mask: 'assets/maps/forest_collision.png', w: 2872, h: 624, spawn: { x: 60, y: 300 } },
+  ruins: { art: 'assets/maps/ruins.png', mask: 'assets/maps/ruins_collision.png', w: 1672, h: 941, spawn: { x: 1100, y: 300, y0: 300 } }   // y0: o nascimento procura o chão a partir dessa altura (há um teto no topo esquerdo)
 };
 const loadImg = src => new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = () => rej(new Error('Falha ao carregar a imagem do mapa.')); i.src = src; });
 

@@ -18,7 +18,7 @@ const http = require('http'), fs = require('fs'), path = require('path'), crypto
 const PORT = +process.env.PORT || 8080, GRACE_MS = +process.env.GRACE_MS || 20000, PING_MS = +process.env.PING_MS || 5000;
 const ORIGINS = (process.env.ORIGINS || '').split(',').map(s => s.trim()).filter(Boolean);
 const SERVE_STATIC = process.env.STATIC !== '0', ROOT = path.resolve(__dirname, '..');
-const MAPS = ['forest'], MAX_PLAYERS = 8, MIN_TO_START = 1, MAX_PAYLOAD = 16 * 1024;
+const MAPS = ['forest', 'ruins'], MAX_PLAYERS = 8, MIN_TO_START = 1, MAX_PAYLOAD = 16 * 1024;
 /* Modos de sala (mantenha igual a SL.MODES em js/room-system.js): limite de jogadores, mínimo para iniciar e se há bots automáticos. */
 const MODES = { pvp: { min: 2, max: 8, start: 2 }, bots: { min: 2, max: 8, start: 2, bots: true }, '2v2': { min: 4, max: 4, start: 4, teams: true }, custom: { min: 2, max: 8, start: 1 } };
 const pwHash = (pw, salt) => crypto.scryptSync(String(pw), salt, 32).toString('hex');

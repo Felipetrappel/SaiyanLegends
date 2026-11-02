@@ -45,7 +45,7 @@ class GameScene {
   addPlayer(p, i) { const f = this.add(p.bot && SL.BotAI ? { ...p, character: SL.BotAI.characterFor(++this.nb) } : p, p.id === this.meId, this.map.def.spawn.x + i * 10); f.remote = this.isRemote(p); if (f.def.anims.intro && !f.remote) f.set('intro'); return f; }   // introdução do personagem (toca uma vez ao entrar na luta)
   ensureDummy() { // alvo de treino só quando o jogador está sozinho
     const real = this.fighters.filter(f => !f.dummy), d = this.fighters.find(f => f.dummy);
-    if (real.length === 1 && !d) { const x = this.add({ id: 'dummy', name: 'TREINO', character: SL.Characters.DEFAULT }, false, 120); x.dummy = true; x.face = -1; }
+    if (real.length === 1 && !d) { const x = this.add({ id: 'dummy', name: 'TREINO', character: SL.Characters.DEFAULT }, false, this.map.def.spawn.x + 60); x.dummy = true; x.face = -1; }
     else if (real.length > 1 && d) this.fighters.splice(this.fighters.indexOf(d), 1);
   }
   /* Entradas e saídas na sala durante a partida: cria/remove os personagens e recalcula quem controla cada um (host muda → bots mudam de dono). */
@@ -70,7 +70,7 @@ class GameScene {
     }
   }
   add(p, me, x) {
-    const body = new Body(this.mask, x, this.mask.surfaceY(x)), f = new Fighter(body, p, me, { x, y: body.y }); f.world = this.world; this.fighters.push(f); if (p.bot && SL.BotAI) new SL.BotAI.BotBrain(f); return f;
+    const body = new Body(this.mask, x, this.mask.surfaceY(Math.floor(x), this.map.def.spawn.y0 || 0)), f = new Fighter(body, p, me, { x, y: body.y }); f.world = this.world; this.fighters.push(f); if (p.bot && SL.BotAI) new SL.BotAI.BotBrain(f); return f;
   }
   toggleDebug() { this.debug = !this.debug; }
   key(e, down) {

@@ -1,6 +1,6 @@
 /* CRIAR SALA — fluxo de 4 telas (arte roxa/dourada, em coordenadas 1672×941 como a loja):
  *   createRoom  → escolha do MODO (PVP · BOTS · 2v2 · CUSTOM)
- *   createMap   → escolha do MAPA (só existem mapas com arte no jogo: hoje, FLORESTA = SL.MAPS / SL.MAP_DATA)
+ *   createMap   → escolha do MAPA (só existem mapas com arte no jogo: hoje, FLORESTA e RUÍNAS = SL.MAPS / SL.MAP_DATA)
  *   createConfig→ nome, senha (opcional), jogadores (limites do modo), resumo, CRIAR SALA (validado)
  *   lobby       → SALA CRIADA / aguardando jogadores (salas com modo). Salas antigas (sem modo) continuam no lobby antigo.
  * A lógica de salas é a de sempre (SaiyanGame.rooms): servidor online quando houver; senão modo offline (aviso na tela).
@@ -12,7 +12,8 @@ const { MODES, MAPS, LIMITS } = SL, ART = { w: 1672, h: 941, src: 'assets/ui/roo
 const el = (t, c = '', p = {}) => Object.assign(document.createElement(t), { className: c, ...p });
 const MODE_ORDER = ['pvp', 'bots', '2v2', 'custom'];
 /* Mapas disponíveis na interface = só os que têm arte e colisão no projeto (SL.MAP_DATA). Textos/prévia por mapa: */
-const MAP_INFO = { forest: { name: 'FLORESTA', desc: 'Um mapa clássico, com muitas árvores e plataformas.', img: 'assets/maps/forest.png', pos: '9% 50%' } };
+const MAP_INFO = { forest: { name: 'FLORESTA', desc: 'Um mapa clássico, com muitas árvores e plataformas.', img: 'assets/maps/forest.png', pos: '9% 50%' },
+  ruins: { name: 'RUÍNAS', desc: 'Ruínas de pedra cobertas de neve, com plataformas e torres.', img: 'assets/maps/ruins.png', pos: '50% 50%' } };
 const maps = () => MAPS.filter(m => SL.MAP_DATA && SL.MAP_DATA[m.id] && MAP_INFO[m.id]);
 
 /* Rascunho da sala em criação (vale só durante o fluxo; ao abrir CREATE ROOM do menu ele recomeça) */
