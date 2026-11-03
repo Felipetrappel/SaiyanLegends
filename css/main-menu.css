@@ -327,7 +327,8 @@ button.rm-card{cursor:pointer;padding:0;text-align:center}
 /* ───── Botões de combate (js/game-scene.js): roxo/preto/dourado, ícones SVG, anel de recarga ───── */
 .ctl .acts{--s:clamp(54px,15vmin,86px);--g:calc(var(--s)*.09);--cols:3;grid-template-areas:"md sp power" "bt pk atk"}
 .ctl .acts .md{grid-area:md}.ctl .acts .sp{grid-area:sp}.ctl .acts .power{grid-area:power}.ctl .acts .bt{grid-area:bt}.ctl .acts .pk{grid-area:pk}.ctl .acts .atk{grid-area:atk}
-.ctl .move{--s:clamp(54px,14vmin,92px);--cols:2;grid-template-areas:". g" "l r"}
+.ctl .move{--s:clamp(54px,14vmin,92px);--cols:2;grid-template-areas:"tp g" "l r"}
+.ctl .move .tp{grid-area:tp}
 .ctl .move .guard{grid-area:g}
 .ctl .cbtn{border-radius:50%;opacity:.95;background:radial-gradient(circle at 50% 28%,#7b34e0 0%,#4a1aa8 45%,#1c0648 100%);
   box-shadow:inset 0 0 0 calc(var(--s)*.055) #e8a413,inset 0 0 0 calc(var(--s)*.085) #190733,inset 0 calc(var(--s)*.1) calc(var(--s)*.12) rgba(255,255,255,.18),0 3px 0 #0b0230,0 0 14px rgba(150,70,255,.55);overflow:visible}
