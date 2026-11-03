@@ -166,7 +166,7 @@ class Crystal {
 /* Habilidades extras dos botões (valem para qualquer personagem: usam as animações padrão idle/run/charge/energy/attack). */
 const ABIL = {
   transform: { cost: 30, cd: 2 }, burst: { cost: 25, cd: 3 }, barrage: { cost: 20, cd: 1 }, sun: { cost: 45, cd: 2.5 },
-  tp: { cost: 15, cd: 1.5, dist: 170 },   // TELEPORTE: vai instantaneamente para o lado da seta apertada (sem seta: para onde olha); para antes de uma parede
+  tp: { cost: 15, cd: 1.5, dist: 170 },   // TELEPORTE: segurando a DEFESA, tocar ← ou → vai instantaneamente para aquele lado; para antes de uma parede
   big: { cost: 60, cd: 6 },   // PODER GRANDE: carrega (animação real do sheet), lança um projétil maior; recarga bem maior que o poder pequeno
   form: { dur: 25, dmg: 1.4, speed: 1.15, regen: 2 }, meditateRate: 40
 };
@@ -302,7 +302,7 @@ class Fighter {
     const b = this.body, x0 = b.x, y0 = b.y; let best = 0;
     for (let k = 4; k <= ABIL.tp.dist; k += 4) { if (b.free(x0 + d * k, y0)) best = k; else break; }
     if (best < 8) return;   // colado numa parede: não há para onde ir
-    b.x = x0 + d * best; b.vx = 0; this.face = d; (world.effects ||= []).push(new Ring(this.def, x0, y0 - 20, 4, 30, .22, '#9fe4ff'), new Ring(this.def, b.x, b.y - 20, 30, 4, .22, '#ffffff')); this.flash = .12;
+    b.x = x0 + d * best; b.vx = 0; (world.effects ||= []).push(new Ring(this.def, x0, y0 - 20, 4, 30, .22, '#9fe4ff'), new Ring(this.def, b.x, b.y - 20, 30, 4, .22, '#ffffff')); this.flash = .12;
   }
   missionKi(world) { if (this.me && !this.remote && !this.bot && window.SL && SL.Profile) { const md = SL.Profile.progress('ki', 1); if (md && world) world.fx.push({ x: this.body.x, y: this.body.y - 92, txt: 'MISSÃO: +' + md.gems + ' diamantes', t: 0 }); } }   // missão: usar poderes de Ki
   respawn() { const b = this.body; Object.assign(b, { x: this.spawn.x, y: this.spawn.y, vx: 0, vy: 0, flying: false }); this.hp = CFG.hp; this.energy = this.maxEn; this.dead = false; this.endForm(); this.set('idle'); }
@@ -317,12 +317,15 @@ class Fighter {
     if (Math.abs(this.kb) > 5) { b.moveX(this.kb * dt); this.kb *= Math.pow(.001, dt); } else this.kb = 0;   // recuo (respeita a colisão)
     const dir = (inp.right ? 1 : 0) - (inp.left ? 1 : 0);
     /* DASH: tocar a mesma seta duas vezes bem rápido (≤ .28 s) dá um impulso curto para aquele lado; para trás ele continua olhando para onde olhava. Sem custo de Ki; recarga curta. */
-    this.tap ||= { L: 0, R: 0, pL: false, pR: false, fL: 1, fR: 1 }; this.cdash = Math.max(0, (this.cdash || 0) - dt); let wantDash = 0;
+    this.tap ||= { L: 0, R: 0, pL: false, pR: false, fL: 1, fR: 1 }; this.cdash = Math.max(0, (this.cdash || 0) - dt); let wantDash = 0, edge = 0; const faceBefore = this.face;
     for (const [k, v, d] of [['L', !!inp.left, -1], ['R', !!inp.right, 1]]) {
       this.tap[k] = Math.max(0, this.tap[k] - dt);
-      if (v && !this.tap['p' + k]) { if (this.tap[k] > 0) { wantDash = d; this.dashFace = this.tap['f' + k]; this.tap[k] = 0; } else { this.tap[k] = .28; this.tap['f' + k] = this.face; } }
+      if (v && !this.tap['p' + k]) { edge = d; if (this.tap[k] > 0) { wantDash = d; this.dashFace = this.tap['f' + k]; this.tap[k] = 0; } else { this.tap[k] = .28; this.tap['f' + k] = this.face; } }
       this.tap['p' + k] = v;
     }
+    const guarding = (inp.guard || inp.down) && b.grounded && !b.flying && !this.busy;   // TELEPORTE: segurando a DEFESA, tocar ← ou → leva para aquele lado
+    if (guarding && edge && this.can('tp')) { this.energy -= ABIL.tp.cost; this.acd.tp = ABIL.tp.cd; this.teleport(edge, world); this.face = faceBefore; wantDash = 0; }
+    if (guarding) wantDash = 0;
     if (wantDash && !this.busy && this.cdash <= 0) { this.dashDir = wantDash; this.face = this.dashFace; this.set('sprint'); }
     if (!this.busy) {
       if (dir) this.face = dir;
@@ -332,7 +335,6 @@ class Fighter {
       else if (p.big && !this.hasBig && this.can('sun')) { this.energy -= ABIL.sun.cost; this.set('sun'); }                                // personagem sem etapas de carga: usa a esfera solar
       else if (p.transform && this.form) { this.endForm(); this.acd.transform = ABIL.transform.cd; }      // Z de novo: volta ao normal
       else if (p.transform && this.can('transform')) { this.energy -= ABIL.transform.cost; this.set('transform'); }
-      else if (p.tp && this.can('tp')) { this.energy -= ABIL.tp.cost; this.acd.tp = ABIL.tp.cd; this.teleport(dir || this.face, world); }
       else if (p.special && this.can('burst')) { this.energy -= this.cost('burst'); this.set(this.def.ice ? 'ice' : this.def.dash ? 'dash' : 'burst'); this.dashHit = new Set(); }   // personagens com def.dash usam o movimento especial no lugar da onda de impacto
       else if (p.barrage && this.can('barrage')) { this.energy -= ABIL.barrage.cost; this.set('barrage'); this.shots = 0; }
       else if (p.sun && this.can('sun')) { this.energy -= ABIL.sun.cost; this.set('sun'); }

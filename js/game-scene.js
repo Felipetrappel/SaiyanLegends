@@ -22,7 +22,7 @@ const ICONS = {
   right: '<path d="M38 18l34 32-34 32" fill="none" stroke="#fff3c4" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"/>'
 };
 const KEYS = { left: ['ArrowLeft', 'KeyA'], right: ['ArrowRight', 'KeyD'], up: ['ArrowUp', 'KeyW', 'Space'], down: ['ArrowDown', 'KeyS'], attack: ['KeyJ', 'KeyZ'], meditate: ['KeyM'] };
-const TAP_KEYS = { KeyF: 'fly', KeyT: 'tp', KeyK: 'power', KeyX: 'power', KeyE: 'power', KeyB: 'big', KeyR: 'special', KeyQ: 'barrage', KeyC: 'sun', };   // (a transformação não tem tecla nem botão: o sistema ainda não existe)   // teclado: um toque
+const TAP_KEYS = { KeyF: 'fly', KeyK: 'power', KeyX: 'power', KeyE: 'power', KeyB: 'big', KeyR: 'special', KeyQ: 'barrage', KeyC: 'sun', };   // (a transformação não tem tecla nem botão: o sistema ainda não existe)   // teclado: um toque
 
 class GameScene {
   constructor(canvas, loaded, players, meId, opts = {}) {
@@ -87,7 +87,7 @@ class GameScene {
   held(k) { return KEYS[k].some(c => this.K.has(c)); }
   input() { // teclado + botões na tela; ações de um toque (voar/poder) chegam como "pressed"
     const P = this.pad, N = this.pend, inp = { left: this.held('left') || P.left, right: this.held('right') || P.right, up: this.held('up') || P.jump || N.jump, down: this.held('down'), guard: !!P.guard, meditate: this.held('meditate') || !!P.meditate,
-      pressed: { attack: this.held('attack') || P.attack || N.attack, fly: N.fly, power: N.power, big: N.big, tp: N.tp, special: N.special, barrage: N.barrage, sun: N.sun } };
+      pressed: { attack: this.held('attack') || P.attack || N.attack, fly: N.fly, power: N.power, big: N.big, special: N.special, barrage: N.barrage, sun: N.sun } };
     /* buffer de entrada: um toque de poder/ação dado enquanto o personagem ainda está ocupado (ex.: no fim de um soco) não se perde: vale por ~0,4 s */
     const me = this.me, B = this.buf || (this.buf = {});
     for (const k in inp.pressed) { if (inp.pressed[k]) B[k] = me && me.busy ? 24 : 0; else if (B[k] > 0) { if (me && !me.busy) { inp.pressed[k] = true; B[k] = 0; } else B[k]--; } }
@@ -107,7 +107,7 @@ class GameScene {
     };
     const root = document.createElement('div'), move = document.createElement('div'), acts = document.createElement('div'), un = this.me.unique;
     root.className = 'ctl'; move.className = 'move'; acts.className = 'acts';
-    move.append(mk('l', 'left', 'hold', 'left', 'Esquerda', ''), mk('r', 'right', 'hold', 'right', 'Direita', ''), mk('guard', 'guard', 'hold', 'shield', 'Defesa (segure)', 'DEFESA'), mk('tp', 'tp', 'tap', 'tp', 'Teleporte: segure ← ou → e toque (sem seta, vai para onde olha)', 'TP'));
+    move.append(mk('l', 'left', 'hold', 'left', 'Esquerda', ''), mk('r', 'right', 'hold', 'right', 'Direita', ''), mk('guard', 'guard', 'hold', 'shield', 'Defesa (segure) · segurando, toque ← ou → para se teletransportar', 'DEFESA'));
     const sp = mk('sp', 'special', 'tap', un ? un.icon : 'lock', un ? 'Habilidade única: ' + un.name.toLowerCase() : 'Habilidade única (este personagem ainda não tem)', un ? 'ÚNICA' : 'ÚNICA');
     const power = mk('power', 'big', 'tap', 'big', 'Poder grande: carrega e dispara (recarga longa)', 'GRANDE'), pk = mk('pk', 'power', 'tap', 'small', 'Poder pequeno: projétil rápido', 'PEQUENO'),
       md = mk('md', 'meditate', 'hold', 'charge', 'Carregar Ki (segure)', 'CARREGAR'), bt = mk('bt', 'jump', 'hold', 'wing', 'Pular (toque) · voar (toque duplo)', 'PULAR/VOAR', { dbl: 'fly' }), atk = mk('atk', 'attack', 'hold', 'fist', 'Soco (toque várias vezes)', 'SOCO');
@@ -122,7 +122,7 @@ class GameScene {
     { const c = SL.Characters.get(this.me.player.character), cv = bars.querySelector('.gh-pt'), x = cv.getContext('2d'), r = c.portrait, draw = () => { x.imageSmoothingEnabled = false; x.clearRect(0, 0, 148, 148); const k = Math.max(148 / r.w, 148 / r.h); x.drawImage(c.img, r.x, r.y, r.w, r.h, (148 - r.w * k) / 2, (148 - r.h * k) / 2, r.w * k, r.h * k); }; c.img.complete ? draw() : c.img.addEventListener('load', draw); }
     host.append(bars, root);
     if (this.initCustomize) this.initCustomize(root, host);   // controles personalizáveis (js/controls-editor.js)
-    this.ui = { hp: bars.querySelector('.gh-hp i'), en: bars.querySelector('.gh-en i'), power, pk, sp, md, bt, atk, guard: root.querySelector('.guard'), tp: root.querySelector('.tp') };
+    this.ui = { hp: bars.querySelector('.gh-hp i'), en: bars.querySelector('.gh-en i'), power, pk, sp, md, bt, atk, guard: root.querySelector('.guard') };
   }
   resize() {
     this.dpr = Math.min(window.devicePixelRatio || 1, 2); const r = this.cv.getBoundingClientRect();
@@ -157,7 +157,6 @@ class GameScene {
     set(U.sp, !!m.unique && m.ready('burst'), m.unique ? m.cdFrac('unique') : 0, m.state === 'burst' || m.state === 'dash' || m.state === 'ice');          // HABILIDADE ÚNICA
     set(U.md, m.energy < (m.maxEn || C.energy) || m.state === 'meditate', 0, m.state === 'meditate');         // CARREGAR KI
     set(U.bt, true, 0, !!m.body.flying);                                                                      // PULAR / VOAR
-    set(U.tp, m.ready('tp'), Math.max(0, Math.min(1, (m.acd.tp || 0) / A.tp.cd)), false);                                   // TELEPORTE
     set(U.atk, true, 0, m.state === 'attack'); set(U.guard, true, 0, m.state === 'shield');
   }
   layer(c) {
