@@ -177,7 +177,7 @@ const segAt = (seq, t) => { let i = 0; for (const s of seq) { if (t < s.dur) ret
 /* PODER GRANDE: usa as etapas reais do sheet (def.cast.seqLento: carregar → preparar → segurar → lançar), um pouco aceleradas. */
 const BIG_K = .62;
 const bigSeq = def => def._bigSeq || (def._bigSeq = def.cast.seqLento.map(q => ({ ...q, dur: q.dur * BIG_K, fps: q.fps / BIG_K })));
-const bigCfg = def => ({ ...def.cast, proj: def.proj.red ? 'red' : def.cast.proj, dmg: Math.round(def.cast.dmg * 2.1), speed: def.cast.speed * .9, range: def.cast.range * 1.15, kb: def.cast.kb * 1.7, size: 1.35 });
+const bigCfg = def => ({ ...def.cast, proj: def.proj.red ? 'red' : def.cast.proj, dmg: Math.round(def.cast.dmg * 2.1), speed: def.cast.speed * .9, range: def.cast.range * 1.15, kb: def.cast.kb * 1.7, size: 1.35, ...(def.big && def.big.cfg) });   // def.big.cfg ajusta o poder grande do personagem
 /* Efeito de Ki em volta do personagem enquanto ele CARREGA (botão CARREGAR KI): ondas no chão, coluna de luz e faíscas subindo. */
 function drawKiFx(ctx, x, y, h, t) {
   x = Math.round(x); y = Math.round(y); ctx.save(); ctx.imageSmoothingEnabled = false;
@@ -201,8 +201,8 @@ class Fighter {
   }
   get busy() { return this.state === 'attack' || this.state === 'charge' || this.state === 'energy' || this.state === 'cast' || this.state in STATE_ANIM; }
   atkList() { const d = this.def; return (d.attacks || []).concat(d.attackUp || [], d.attackDown || []); }   // todas as variações de golpe (índice usado na rede)
-  cost(a) { return a === 'burst' && this.def.ice ? this.def.ice.cost : ABIL[a].cost; }      // HABILIDADE ÚNICA com custo/recarga próprios (def.ice)
-  cdOf(a) { return a === 'burst' && this.def.ice ? this.def.ice.cd : ABIL[a].cd; }
+  cost(a) { const U = a === 'burst' ? (this.def.ice || this.def.dash) : a === 'big' ? this.def.big : null; return U && U.cost != null ? U.cost : ABIL[a].cost; }   // custo/recarga próprios: HABILIDADE ÚNICA (def.ice | def.dash) e PODER GRANDE (def.big)      // HABILIDADE ÚNICA com custo/recarga próprios (def.ice)
+  cdOf(a) { const U = a === 'burst' ? (this.def.ice || this.def.dash) : a === 'big' ? this.def.big : null; return U && U.cd != null ? U.cd : ABIL[a].cd; }
   ready(a) { return !this.dead && this.energy >= this.cost(a) && !((this.acd[a] || 0) > 0); }   // pronto para o botão (só energia/recarga)
   can(a) { return !this.dead && !this.busy && this.energy >= this.cost(a) && !((this.acd[a] || 0) > 0); }
   muzzle() { const d = this.def, h = d.muzzle !== undefined ? this.hand(d.muzzle) : null; return h || this.chest(); }   // ponto de onde saem as esferas (mão do quadro de disparo, se o personagem definir)
@@ -331,11 +331,11 @@ class Fighter {
       if (dir) this.face = dir;
       if (p.fly) b.flying = !b.flying;                                                                      // VOAR liga/desliga; ao desligar a gravidade volta
       if (p.power && this.powerReady) { this.energy -= this.powerCost; this.set(this.def.cast ? 'cast' : 'charge'); this.missionKi(world); }   // 1) CHARGE
-      else if (p.big && this.hasBig && this.can('big')) { this.energy -= ABIL.big.cost; this.set('big'); this.missionKi(world); }                                  // PODER GRANDE: carrega e lança
+      else if (p.big && this.hasBig && this.can('big')) { this.energy -= this.cost('big'); this.set('big'); this.missionKi(world); }                                  // PODER GRANDE: carrega e lança
       else if (p.big && !this.hasBig && this.can('sun')) { this.energy -= ABIL.sun.cost; this.set('sun'); }                                // personagem sem etapas de carga: usa a esfera solar
       else if (p.transform && this.form) { this.endForm(); this.acd.transform = ABIL.transform.cd; }      // Z de novo: volta ao normal
       else if (p.transform && this.can('transform')) { this.energy -= ABIL.transform.cost; this.set('transform'); }
-      else if (p.special && this.can('burst')) { this.energy -= this.cost('burst'); this.set(this.def.ice ? 'ice' : this.def.dash ? 'dash' : 'burst'); this.dashHit = new Set(); }   // personagens com def.dash usam o movimento especial no lugar da onda de impacto
+      else if (p.special && this.can('burst')) { this.energy -= this.cost('burst'); this.set(this.def.ice ? 'ice' : this.def.dash ? 'dash' : 'burst'); this.dashHit = new Set(); this.aoeHit = new Set(); this.aoeFx = false; }   // personagens com def.dash usam o movimento especial no lugar da onda de impacto
       else if (p.barrage && this.can('barrage')) { this.energy -= ABIL.barrage.cost; this.set('barrage'); this.shots = 0; }
       else if (p.sun && this.can('sun')) { this.energy -= ABIL.sun.cost; this.set('sun'); }
       else if (inp.meditate && b.grounded && !b.flying && this.energy < this.maxEn) this.set('meditate');
@@ -356,8 +356,12 @@ class Fighter {
     }
     else if (this.state === 'big') {                                                                           // carregar → preparar → segurar → lançar (quadros reais do sheet)
       const cs = this.castSeg();
-      if (!cs) { this.acd.big = ABIL.big.cd; this.set('idle'); }
-      else if (cs.seg.fire && !this.fired) { this.fired = true; const h = this.hand(this.castFrame(cs)) || this.chest(); this.launch(world, new Shot(this, bigCfg(this.def), h.x, h.y, this.face), { t: 'shot', x: h.x, y: h.y, big: 1 }); }
+      if (!cs) { this.acd.big = this.cdOf('big'); this.set('idle'); }
+      else if (cs.seg.fire && !this.fired) { this.fired = true; const h = this.hand(this.castFrame(cs)) || this.chest(); this.launch(world, new Shot(this, bigCfg(this.def), h.x, h.y, this.face), { t: 'shot', x: h.x, y: h.y, big: 1 }); const B = this.def.big; this.vol = (B && B.volley || 1) - 1; this.volT = this.t + (B && B.gap || .12); }
+      if (cs && this.fired && this.vol > 0 && this.t >= this.volT) {                                           // rajada: dispara as ondas seguintes enquanto segura a pose
+        this.vol--; this.volT = this.t + (this.def.big.gap || .12); const h = this.hand(this.castFrame(cs)) || this.chest(), yy = h.y + (this.vol % 2 ? -7 : 7);
+        this.launch(world, new Shot(this, bigCfg(this.def), h.x, yy, this.face), { t: 'shot', x: h.x, y: yy, big: 1 });
+      }
     }
     else if (this.state === 'transform') {                                                                       // Z: aura (anim. de carregar) → ganha a forma
       if (this.t >= .05) { this.form = ABIL.form.dur; this.dmgMul *= ABIL.form.dmg; b.speed = this.baseSpeed * ABIL.form.speed; this.acd.transform = ABIL.transform.cd; (world.effects ||= []).push(new Ring(this.def, b.x, b.y - 20, 8, 70, .4, '#ffd34d')); this.set('idle'); }
@@ -379,7 +383,12 @@ class Fighter {
     }
     else if (this.state === 'dash') {                                                                           // movimento especial: redemoinho → pose → rastro de energia → recuperação
       const D = this.def.dash, cs = segAt(D.seq, this.t);
-      if (!cs) { this.acd.burst = ABIL.burst.cd; this.set('idle'); }
+      if (!cs) { this.acd.burst = this.cdOf('burst'); this.set('idle'); }
+      else if (cs.seg.aoe) {                                                                                      // giro de espada: acerta todos em volta uma vez
+        b.vy = 0; const R = cs.seg.aoe, c = this.chest();
+        if (!this.aoeFx) { this.aoeFx = true; (world.effects ||= []).push(new Ring(this.def, b.x, c.y, 10, R, .3, this.def.ringColor || '#ff4fa8')); }
+        for (const f of world.fighters) if (f !== this && !f.dead && !this.aoeHit.has(f) && Math.abs(f.body.x - b.x) <= R && Math.abs(f.body.y - b.y) <= 50) { this.aoeHit.add(f); f.hurt(D.aoeDmg * this.dmgMul, f.body.x >= b.x ? 1 : -1, D.aoeKb || D.kb, this); }
+      }
       else if (cs.seg.move) {
         b.vy = 0; b.moveX(this.face * D.speed * dt); const r = this.rect();
         for (const f of world.fighters) if (f !== this && !f.dead && !this.dashHit.has(f) && overlap(r, f.rect())) { this.dashHit.add(f); f.hurt(D.dmg * this.dmgMul, this.face, D.kb, this); }
