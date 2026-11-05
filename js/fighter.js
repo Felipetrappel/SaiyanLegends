@@ -54,23 +54,23 @@ function drawAura(ctx, img, def, fi, x, feetY, face, k, t, color = '#c24bff') { 
 
 class Beam { // feixe de energia: cauda + trecho repetido + cabeça (sprites do sheet)
   constructor(owner, x0, yc, face) { Object.assign(this, { owner, x0, yc, face, sc: CFG.power.scale0, head: x0 + owner.def.beam.headR * CFG.power.scale0, dist: 0, life: 0, fade: 0, ending: false, dead: false, hits: new Set(), dbg: null }); }
-  len() { const d = this.owner.def, F = d.frames, B = d.beam.A; return (F[B.tail].w + CFG.beamMid * F[B.mid].w + F[B.head].w) * this.sc * (d.beam.k || 1); }
-  rect() { const L = this.len(), hh = (this.owner.def.beam.hh || 20) * this.sc; return this.face > 0 ? { l: Math.max(this.head - L, this.x0), r: this.head, t: this.yc - hh, b: this.yc + hh } : { l: this.head, r: Math.min(this.head + L, this.x0), t: this.yc - hh, b: this.yc + hh }; }
+  len() { const F = this.owner.def.frames, B = this.owner.def.beam.A; return (F[B.tail].w + CFG.beamMid * F[B.mid].w + F[B.head].w) * this.sc; }
+  rect() { const L = this.len(); return this.face > 0 ? { l: Math.max(this.head - L, this.x0), r: this.head, t: this.yc - 20 * this.sc, b: this.yc + 20 * this.sc } : { l: this.head, r: Math.min(this.head + L, this.x0), t: this.yc - 20 * this.sc, b: this.yc + 20 * this.sc }; }
   update(dt, world) {
     this.life += dt; this.sc = Math.min(1, CFG.power.scale0 + (1 - CFG.power.scale0) * this.life / .25);   // a energia cresce ao sair da mão
     if (this.ending) { this.fade += dt; if (this.fade > .2) this.dead = true; return; }
-    const bm = this.owner.def.beam, st = (bm.speed || CFG.power.speed) * dt; this.head += this.face * st; this.dist += st;
-    if (world.mask.at(Math.floor(this.head + this.face * 3), Math.floor(this.yc)) || this.dist >= (bm.range || CFG.power.range)) { this.ending = true; return; } // some no terreno ou no alcance máximo
+    const st = CFG.power.speed * dt; this.head += this.face * st; this.dist += st;
+    if (world.mask.at(Math.floor(this.head + this.face * 3), Math.floor(this.yc)) || this.dist >= CFG.power.range) { this.ending = true; return; } // some no terreno ou no alcance máximo
     const r = this.dbg = this.rect();
-    for (const f of world.fighters) if (f !== this.owner && !f.dead && !this.hits.has(f) && overlap(r, f.rect())) { this.hits.add(f); if (!this.owner.remote) f.hurt((bm.dmg || CFG.power.dmg) * this.owner.dmgMul * (bm.dmg ? this.owner.kiMul : 1), this.face, bm.kb || CFG.power.kb, this.owner); }
+    for (const f of world.fighters) if (f !== this.owner && !f.dead && !this.hits.has(f) && overlap(r, f.rect())) { this.hits.add(f); if (!this.owner.remote) f.hurt(CFG.power.dmg * this.owner.dmgMul, this.face, CFG.power.kb, this.owner); }
   }
   draw(ctx, img) {
     if (!img.complete) return;
-    const d = this.owner.def, B = d.beam[Math.floor(this.life * 16) % 2 ? 'B' : 'A'], F = d.frames, K = d.beam.k || 1;
+    const d = this.owner.def, B = d.beam[Math.floor(this.life * 16) % 2 ? 'B' : 'A'], F = d.frames, cy = d.beam.cy;
     ctx.save(); ctx.imageSmoothingEnabled = false; ctx.globalAlpha = this.ending ? Math.max(0, 1 - this.fade / .2) : 1;
-    ctx.beginPath(); ctx.rect(this.face > 0 ? this.x0 : this.x0 - 5000, this.yc - 160, 5000, 320); ctx.clip(); // o feixe "nasce" da mão
-    ctx.translate(Math.round(this.head), Math.round(this.yc)); if (this.face < 0) ctx.scale(-1, 1); ctx.scale(this.sc * K, this.sc * K);
-    const put = (fi, lx) => { const f = F[fi]; ctx.drawImage(img, f.x, f.y, f.w, f.h, lx, -Math.round(f.h / 2), f.w, f.h); };   // cada trecho do feixe é centrado na linha do tiro
+    ctx.beginPath(); ctx.rect(this.face > 0 ? this.x0 : this.x0 - 5000, this.yc - 100, 5000, 200); ctx.clip(); // o feixe "nasce" da mão
+    ctx.translate(Math.round(this.head), Math.round(this.yc)); if (this.face < 0) ctx.scale(-1, 1); ctx.scale(this.sc, this.sc);
+    const put = (fi, lx) => { const f = F[fi]; ctx.drawImage(img, f.x, f.y, f.w, f.h, lx, f.y - cy, f.w, f.h); };
     let x = -F[B.head].w; put(B.head, x);
     for (let k = 0; k < CFG.beamMid; k++) { x -= F[B.mid].w; put(B.mid, x); }
     x -= F[B.tail].w; put(B.tail, x); ctx.restore();
@@ -335,7 +335,7 @@ class Fighter {
       else if (p.big && !this.hasBig && this.can('sun')) { this.energy -= ABIL.sun.cost; this.set('sun'); }                                // personagem sem etapas de carga: usa a esfera solar
       else if (p.transform && this.form) { this.endForm(); this.acd.transform = ABIL.transform.cd; }      // Z de novo: volta ao normal
       else if (p.transform && this.can('transform')) { this.energy -= ABIL.transform.cost; this.set('transform'); }
-      else if (p.special && this.can('burst')) { this.energy -= this.cost('burst'); this.set(this.def.ice ? 'ice' : this.def.dash ? 'dash' : 'burst'); this.dashHit = new Set(); this.dashFx = false; }   // personagens com def.dash usam o movimento especial no lugar da onda de impacto
+      else if (p.special && this.can('burst')) { this.energy -= this.cost('burst'); this.set(this.def.ice ? 'ice' : this.def.dash ? 'dash' : 'burst'); this.dashHit = new Set(); }   // personagens com def.dash usam o movimento especial no lugar da onda de impacto
       else if (p.barrage && this.can('barrage')) { this.energy -= ABIL.barrage.cost; this.set('barrage'); this.shots = 0; }
       else if (p.sun && this.can('sun')) { this.energy -= ABIL.sun.cost; this.set('sun'); }
       else if (inp.meditate && b.grounded && !b.flying && this.energy < this.maxEn) this.set('meditate');
@@ -357,9 +357,7 @@ class Fighter {
     else if (this.state === 'big') {                                                                           // carregar → preparar → segurar → lançar (quadros reais do sheet)
       const cs = this.castSeg();
       if (!cs) { this.acd.big = ABIL.big.cd; this.set('idle'); }
-      else if (cs.seg.fire && !this.fired) { this.fired = true; const h = this.hand(this.castFrame(cs)) || this.chest();
-        if (this.def.beam) { this.launch(world, new Beam(this, h.x, h.y, this.face), { t: 'beam', x: h.x, y: h.y }); const fl = this.def.beam.flash; if (fl) (world.effects ||= []).push(new Effect(this.def, fl, h.x, h.y)); }   // Kamehameha (feixe com cauda, trecho repetido e cabeça)
-        else this.launch(world, new Shot(this, bigCfg(this.def), h.x, h.y, this.face), { t: 'shot', x: h.x, y: h.y, big: 1 }); }
+      else if (cs.seg.fire && !this.fired) { this.fired = true; const h = this.hand(this.castFrame(cs)) || this.chest(); this.launch(world, new Shot(this, bigCfg(this.def), h.x, h.y, this.face), { t: 'shot', x: h.x, y: h.y, big: 1 }); }
     }
     else if (this.state === 'transform') {                                                                       // Z: aura (anim. de carregar) → ganha a forma
       if (this.t >= .05) { this.form = ABIL.form.dur; this.dmgMul *= ABIL.form.dmg; b.speed = this.baseSpeed * ABIL.form.speed; this.acd.transform = ABIL.transform.cd; (world.effects ||= []).push(new Ring(this.def, b.x, b.y - 20, 8, 70, .4, '#ffd34d')); this.set('idle'); }
@@ -383,7 +381,6 @@ class Fighter {
       const D = this.def.dash, cs = segAt(D.seq, this.t);
       if (!cs) { this.acd.burst = ABIL.burst.cd; this.set('idle'); }
       else if (cs.seg.move) {
-        if (!this.dashFx && D.fx) { this.dashFx = true; const c = this.chest(); (world.effects ||= []).push(new Effect(this.def, D.fx, b.x - this.face * 18, c.y)); }
         b.vy = 0; b.moveX(this.face * D.speed * dt); const r = this.rect();
         for (const f of world.fighters) if (f !== this && !f.dead && !this.dashHit.has(f) && overlap(r, f.rect())) { this.dashHit.add(f); f.hurt(D.dmg * this.dmgMul, this.face, D.kb, this); }
       }
