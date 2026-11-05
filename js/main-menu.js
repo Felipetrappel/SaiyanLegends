@@ -83,7 +83,7 @@ class Background {
  * O fundo (assets/ui/menu-bg.jpg, 1672×940) NÃO tem botões: eles são criados aqui, um a um, em coordenadas da arte.
  * Para mover/redimensionar um botão, mude x/y/w (largura; a altura segue a proporção) ou cx/cy (círculos); para trocar a função, mude `screen`
  * (id de uma tela registrada em SaiyanMenu.screens) ou `url`. Nada disso exige editar a imagem. */
-const SOCIAL = { discord: '', youtube: '', facebook: '' };    // cole aqui os links do seu servidor / canal: com link, o botão abre o site; sem link, mostra um aviso
+const SOCIAL = { discord: 'https://discord.gg/zpKjkbSCJ2', youtube: 'https://youtube.com/@felipedzn1?si=ACav6t_FE5HhAh7z', facebook: '' };    // cole aqui os links do seu servidor / canal: com link, o botão abre o site; sem link, mostra um aviso
 const SVGNS = 'http://www.w3.org/2000/svg';
 /* ── Botões grandes (direita) ── */
 const BIG = [
