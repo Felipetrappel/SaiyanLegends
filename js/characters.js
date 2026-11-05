@@ -16,7 +16,7 @@ const DEFAULT = Object.keys(all)[0];   // personagem padrão = o primeiro dispon
 const KEY = 'sl.profile';
 const WELCOME_GOLD = 1500;   // moedas amarelas de um perfil NOVO (dadas uma única vez: o perfil guarda 'welcomed')
 const Profile = {
-  selected: DEFAULT, unlocked: [DEFAULT],
+  selected: DEFAULT, picked: false, unlocked: [DEFAULT],   // picked = o jogador escolheu um personagem (o menu só mostra o herói depois disso)
   xp: 0, gold: 0, silver: 0, gems: 0, welcomed: false, _ls: [], mp: {}, md: {},   // mp = progresso das missões, md = quantas vezes cada uma foi concluída            // nível e moedas: começam ZERADOS (ganhos reais: addXp / addCoins; gastos: spend)
   /* nível = floor(√(xp/100)): Lv.1 com 100 XP, Lv.2 com 400, Lv.3 com 900… */
   get level() { return Math.floor(Math.sqrt(this.xp / 100)); },
@@ -37,12 +37,13 @@ const Profile = {
   /* compra com moedas amarelas (ouro): confere o saldo, gasta, libera o personagem e salva. Retorna 'ok' | 'owned' | 'poor' | 'none' */
   buy(id) { const c = all[id]; if (!c) return 'none'; if (this.isUnlocked(id)) return 'owned'; if (this.gold < c.price) return 'poor'; this.gold -= c.price; this.unlocked.push(id); this.save(); this._emit('coins'); this._emit('buy'); return 'ok'; },
   isUnlocked(id) { return !!all[id] && (all[id].defaultUnlocked || this.unlocked.includes(id)); },
-  select(id) { if (!this.isUnlocked(id)) return false; this.selected = id; this.save(); this._emit('select'); return true; },
-  save() { try { localStorage.setItem(KEY, JSON.stringify({ selected: this.selected, unlocked: this.unlocked, welcomed: this.welcomed, xp: this.xp, gold: this.gold, silver: this.silver, gems: this.gems, mp: this.mp, md: this.md })); } catch (e) {} },
+  select(id) { if (!this.isUnlocked(id)) return false; this.selected = id; this.picked = true; this.save(); this._emit('select'); return true; },
+  save() { try { localStorage.setItem(KEY, JSON.stringify({ selected: this.selected, picked: this.picked, unlocked: this.unlocked, welcomed: this.welcomed, xp: this.xp, gold: this.gold, silver: this.silver, gems: this.gems, mp: this.mp, md: this.md })); } catch (e) {} },
   load() {
     let raw = null; try { raw = localStorage.getItem(KEY); } catch (e) {}
     try { const d = JSON.parse(raw || '{}'); if (Array.isArray(d.unlocked)) this.unlocked = d.unlocked.filter(id => all[id]);   // ignora ids de personagens que não existem mais
       if (d.selected && this.isUnlocked(d.selected)) this.selected = d.selected;
+      this.picked = !!d.picked || !!(d.selected && d.selected !== DEFAULT && this.isUnlocked(d.selected));   // perfis antigos que já usavam outro herói contam como escolhido
       for (const k of ['xp', 'gold', 'silver', 'gems']) if (Number.isFinite(d[k]) && d[k] > 0) this[k] = Math.floor(d[k]);
       this.welcomed = !!d.welcomed; if (d.mp && typeof d.mp === 'object') this.mp = d.mp; if (d.md && typeof d.md === 'object') this.md = d.md;
       /* Saldo inicial: só quando o perfil é criado (nada salvo). Perfil antigo, salvo antes desta regra e que nunca ganhou nada (0 ouro, 0 XP), recebe uma vez; quem já tem saldo/XP mantém o que tem. */

@@ -56,7 +56,7 @@ S.register('help', { title: 'Ajuda', build(p) {
 
 /* ── YouTube / Facebook ── */
 S.register('social', { title: 'Redes', build(p) {
-  const n = M.social === 'facebook' ? 'Facebook' : 'YouTube';
+  const n = M.social === 'discord' ? 'Discord' : M.social === 'facebook' ? 'Facebook' : 'YouTube';
   p.append(el('h2', '', { textContent: n }), el('p', '', { textContent: `O link do ${n} ainda não foi configurado. Cole o endereço em SOCIAL, no começo de js/main-menu.js, e o botão passa a abrir o site.` }), el('div', 'row'));
   p.lastChild.append(S.btn('Voltar', () => S.close(), true));
 } });
