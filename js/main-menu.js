@@ -229,12 +229,14 @@ class MenuButtons {
     this.el = el('nav', 'buttons'); this.el.setAttribute('aria-label', 'Menu principal');
     const svg = document.createElementNS(SVGNS, 'svg'); svg.setAttribute('viewBox', `0 0 ${ART.w} ${ART.h}`); svg.setAttribute('class', 'hsvg');
     const tpDefs = `<defs>${TOP.map(b => `<linearGradient id="tp-${b.id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${b.c[0]}"/><stop offset="1" stop-color="${b.c[1]}"/></linearGradient>`).join('')}</defs>`;
-    svg.innerHTML = DEFS + tpDefs + STATIC + BIG.map(bigSvg).join('') + SIDE.map(sideSvg).join('') + TOP.map(topSvg).join('') + MISC.map(miscSvg).join('');
+    const grp = (a, s) => `<g data-a="${a}">${s}</g>`;   // âncora: l = canto esquerdo, r = canto direito, c = centro (em telas mais largas que a arte, cada grupo gruda na sua borda)
+    svg.innerHTML = DEFS + tpDefs + grp('l', STATIC) + grp('r', BIG.map(bigSvg).join('')) + grp('l', SIDE.map(sideSvg).join('')) + grp('r', TOP.map(topSvg).join('')) + grp('l', MISC.map(miscSvg).join(''));
     this.svg = svg;
     this.list = ALL.map(h => new MenuButton(menu, h, svg.querySelector(`.mb[data-id="${h.id}"]`)));
     this.el.append(svg);
   }
-  place(r) { const s = this.el.style; s.left = r.x + 'px'; s.top = r.y + 'px'; s.width = r.w + 'px'; s.height = r.h + 'px'; }
+  /* a camada cobre a tela inteira; o SVG estica junto com o cenário (preserveAspectRatio="none") */
+  place(W, H) { const s = this.el.style; s.left = '0'; s.top = '0'; s.width = W + 'px'; s.height = H + 'px'; this.svg.setAttribute('preserveAspectRatio', 'none'); }
 }
 
 /* ───────── Telas secundárias ───────── */
@@ -301,10 +303,13 @@ class MainMenu extends Emitter {
   /* A arte e as áreas clicáveis ocupam sempre o mesmo retângulo, então ficam alinhadas em qualquer resolução. */
   layout() {
     if (document.body.classList.contains('kb')) return;   // teclado aberto: não encolhe o menu junto com a janela
-    const app = this.root.parentElement, r = this.background.fit(app.clientWidth, app.clientHeight);
-    const s = this.background.art.style; s.left = r.x + 'px'; s.top = r.y + 'px'; s.width = r.w + 'px'; s.height = r.h + 'px';
-    this.buttons.place(r);
-    const hs = this.hud.style, k = r.w / ART.w; hs.left = r.x + 'px'; hs.top = r.y + 'px'; hs.transform = `scale(${k})`;
+    const app = this.root.parentElement, W = app.clientWidth, H = app.clientHeight; if (!W || !H) return;
+    /* TELA CHEIA: cenário, botões e textos são esticados juntos até as bordas (sem faixas pretas, sem desfoque). Como tudo usa a mesma
+       escala (W/1672 × H/940), os botões continuam exatamente sobre o cenário em qualquer proporção de tela. */
+    const sx = W / ART.w, sy = H / ART.h, s = this.background.art.style;
+    s.left = '0px'; s.top = '0px'; s.width = W + 'px'; s.height = H + 'px';
+    this.buttons.place(W, H);
+    const hs = this.hud.style; hs.left = '0px'; hs.top = '0px'; hs.transform = `scale(${sx},${sy})`;
   }
 }
 

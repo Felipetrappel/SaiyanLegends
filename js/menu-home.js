@@ -94,7 +94,8 @@ function composer() {
 }
 field.addEventListener('click', composer); field.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); composer(); } });
 send.addEventListener('click', composer);
-M.hud.append(photo, cc, msgs, chat); paintChat(); paint();
+photo.dataset.a = 'l'; cc.dataset.a = 'c'; msgs.dataset.a = 'l'; chat.dataset.a = 'l';
+M.hud.append(photo, cc, msgs, chat); paintChat(); paint(); M.layout();
 
 /* ── tela JOGAR: abre as telas de salas que já existem ── */
 S.register('play', { title: 'Jogar', build(p) {
