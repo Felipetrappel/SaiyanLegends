@@ -17,7 +17,7 @@ async function api(name, body) {
   let r; try { r = await fetch(b + '/api/auth/' + name, body === undefined ? {} : { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) }); }
   catch (_) { throw new Error('Sem conexão com o servidor. Se ele estava dormindo, espere 1 minuto e tente de novo.'); }
   let d = {}; try { d = await r.json(); } catch (_) {}
-  if (!r.ok || d.ok === false) { const e = new Error(d.error || 'Erro ' + r.status); e.status = r.status; throw e; }
+  if (!r.ok || d.ok === false) { const e = new Error(d.error || 'Erro ' + r.status); e.status = r.status; e.data = d; throw e; }
   return d;
 }
 const Auth = {
@@ -28,7 +28,7 @@ const Auth = {
     if (acct) { try { const m = await api('me', { token: acct.token }); acct.name = m.name; localStorage.setItem(KEY, JSON.stringify(acct)); } catch (e) { if (e.status === 401) { localStorage.removeItem(KEY); acct = null; if (!sessionStorage.getItem('sl_authfix')) { sessionStorage.setItem('sl_authfix', '1'); location.reload(); } } } }
   },
   async finish(d) { try { localStorage.setItem(KEY, JSON.stringify({ token: d.token, pid: d.pid, name: d.name })); sessionStorage.removeItem('sl_authfix'); } catch (_) {} },
-  register: b => api('register', b), login: b => api('login', b),
+  api, register: b => api('register', b), login: b => api('login', b),
   async logout() { const t = Auth.token(); try { await api('logout', { token: t }); } catch (_) {} try { localStorage.removeItem(KEY); sessionStorage.removeItem('sl_pid'); } catch (_) {} location.reload(); }
 };
 SL.Auth = Auth; Auth.ready = Auth.init();
