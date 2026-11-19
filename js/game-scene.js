@@ -111,7 +111,7 @@ class GameScene {
     move.append(mk('l', 'left', 'hold', 'left', 'Esquerda', ''), mk('r', 'right', 'hold', 'right', 'Direita', ''), mk('guard', 'guard', 'hold', 'shield', 'Defesa (segure) · segurando, toque ← ou → para se teletransportar', 'DEFESA'));
     const sp = mk('sp', 'special', 'tap', un ? un.icon : 'lock', un ? 'Habilidade única: ' + un.name.toLowerCase() : 'Habilidade única (este personagem ainda não tem)', un ? 'ÚNICA' : 'ÚNICA');
     const power = mk('power', 'big', 'tap', 'big', 'Poder grande: carrega e dispara (recarga longa)', 'GRANDE'), pk = mk('pk', 'power', 'tap', 'small', 'Poder pequeno: projétil rápido', 'PEQUENO'),
-      md = mk('md', 'meditate', 'hold', 'charge', 'Carregar Ki (segure)', 'CARREGAR'), bt = mk('bt', 'jump', 'hold', 'wing', 'Pular (toque) · voar (toque duplo)', 'PULAR/VOAR', { dbl: 'fly' }), atk = mk('atk', 'attack', 'hold', 'fist', 'Soco (toque várias vezes)', 'SOCO');
+      md = mk('md', 'meditate', 'hold', 'charge', 'Carregar Ki (segure)', 'CARREGAR'), bt = mk('bt', 'jump', 'hold', 'wing', 'Voar: segure para subir, solte para cair (toque rápido = pulo)', 'VOAR'), atk = mk('atk', 'attack', 'hold', 'fist', 'Soco (toque várias vezes)', 'SOCO');
     if (!un) sp.classList.add('off');
     acts.append(md, sp, power, bt, pk, atk); root.append(move, acts);   // 2 linhas × 3 colunas
     const bars = document.createElement('div'); bars.className = 'bars';

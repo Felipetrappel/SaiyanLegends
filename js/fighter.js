@@ -266,7 +266,7 @@ class Fighter {
   /* Multiplayer: estado enviado ao servidor (jogador local ou bot do host) e aplicado nas réplicas dos outros clientes. */
   netState() {
     const b = this.body, r = Math.round;
-    return { id: this.player.id, x: r(b.x * 10) / 10, y: r(b.y * 10) / 10, vx: r(b.vx), vy: r(b.vy), fl: b.flying ? 1 : 0, f: this.face, st: this.state, hp: r(this.hp * 10) / 10, en: r(this.energy), d: this.dead ? 1 : 0, fm: this.form > 0 ? 1 : 0,
+    return { id: this.player.id, x: r(b.x * 10) / 10, y: r(b.y * 10) / 10, vx: r(b.vx), vy: r(b.vy), fl: (b.flying || b.climbing) ? 1 : 0, f: this.face, st: this.state, hp: r(this.hp * 10) / 10, en: r(this.energy), d: this.dead ? 1 : 0, fm: this.form > 0 ? 1 : 0,
       ai: this.av && this.def.attacks ? this.atkList().indexOf(this.av) : -1 };
   }
   applyNet(s, first) {
@@ -415,7 +415,7 @@ class Fighter {
     b.step(dt, { left: mv && inp.left, right: mv && inp.right, jump: mv && inp.up && !b.flying, climb: mv && inp.up && !b.flying, up: mv && inp.up, down: mv && inp.down });
     this.separate(world);                                                                                   // um lutador não atravessa o outro (jogadores, bots e boneco)
     if (!this.busy) {                                                                                       // animação conforme o estado atual
-      const ns = shield ? 'shield' : b.flying ? 'fly' : !b.grounded ? (b.vy < 0 ? 'jump' : 'fall') : (mv && dir && b.vx ? 'run' : 'idle');
+      const ns = shield ? 'shield' : (b.flying || b.climbing) ? 'fly' : !b.grounded ? (b.vy < 0 ? 'jump' : 'fall') : (mv && dir && b.vx ? 'run' : 'idle');
       if (ns !== this.state) this.set(ns);
     }
   }
@@ -443,7 +443,7 @@ class Fighter {
     else if (this.state === 'ice') { const D = segAt(this.def.ice.seq, this.t) || { seg: this.def.ice.seq[this.def.ice.seq.length - 1], ts: 1 }, s = D.seg; fi = s.f[Math.floor(D.ts * s.fps) % s.f.length]; }
     else if (this.state === 'dash') { const D = segAt(this.def.dash.seq, this.t) || { seg: this.def.dash.seq[this.def.dash.seq.length - 1], ts: 1 }, s = D.seg; fi = s.f[Math.floor(D.ts * s.fps) % s.f.length]; }
     else fi = frameAt(this.def, animOf(this, this.state), this.t);
-    const flyMv = this.state === 'fly' && b.flying && this.def.anims.flyMove && Math.abs(b.vx) > 30; if (flyMv) fi = frameAt(this.def, 'flyMove', this.t);   // voando para o lado: quadro de voo em movimento (se o personagem tiver)
+    const flyMv = this.state === 'fly' && (b.flying || b.climbing) && this.def.anims.flyMove && Math.abs(b.vx) > 30; if (flyMv) fi = frameAt(this.def, 'flyMove', this.t);   // voando para o lado: quadro de voo em movimento (se o personagem tiver)
     const f = this.def.frames[fi];
     ctx.save(); if (this.flash > 0 && Math.floor(this.flash * 30) % 2) ctx.globalAlpha = .45;
     const k = this.state === 'charge' ? Math.min(1, this.t / CFG.charge.dur) : this.state === 'energy' ? Math.max(0, 1 - this.t / CFG.power.dur) : (this.state === 'transform' || this.state === 'meditate' || this.state === 'sun') ? Math.min(1, .35 + this.t) : 0;
@@ -455,7 +455,7 @@ class Fighter {
     if (this.form > 0 && k === 0) drawAura(ctx, img, this.def, fi, b.x, b.y, this.face, .55, this.t, '#ffd34d');                                   // transformado: contorno dourado
     if (this.state === 'meditate') drawKiFx(ctx, b.x, b.y, f.ay, this.t);                                  // CARREGAR KI: ondas, coluna de luz e faíscas
     if (behind) drawOrb(ctx, bl.x + sh, bl.y, bl.r, this.t);
-    if (b.flying && this.state === 'fly') this.drawFly(ctx, img, fi, k);   // voo: balanço, inclinação, rastro e aura pulsante
+    if ((b.flying || b.climbing) && this.state === 'fly') this.drawFly(ctx, img, fi, k);   // voo: balanço, inclinação, rastro e aura pulsante
     else drawFrame(ctx, img, this.def, fi, b.x + sh, b.y, this.face);
     if (cs) this.castFx(ctx, img, cs, true); ctx.restore();
     if (this.state === 'big' && !this.fired) { const tot = bigSeq(this.def).reduce((a, q) => a + q.dur, 0) - bigSeq(this.def).slice(-1)[0].dur, u = Math.min(1, this.t / tot), h = this.hand(fi) || this.chest(); drawOrb(ctx, h.x, h.y - 4, 2 + 9 * u, this.t, PAL[this.def.bigPal] || PAL.pink); }   // esfera crescendo na mão enquanto carrega
