@@ -58,7 +58,7 @@ class CollisionMask {
 /* Corpo com collider retangular (x = centro, y = pés). Colisão por eixo, pixel a pixel (sem túnel). */
 class Body {
   constructor(mask, x, y, o = {}) {
-    Object.assign(this, { mask, x, y, w: 20, h: 38, vx: 0, vy: 0, speed: 240, jumpV: 700, g: 2000, maxFall: 1200, stepUp: 6, flying: false, flySpeed: 170, grounded: false, hit: null, pushed: null }, o);
+    Object.assign(this, { mask, x, y, w: 20, h: 38, vx: 0, vy: 0, speed: 240, jumpV: 700, g: 2000, maxFall: 1200, stepUp: 6, flying: false, flySpeed: 170, climbV: 420, climbA: 3600, climbing: false, grounded: false, hit: null, pushed: null }, o);
   }
   /* true se o retângulo inteiro do corpo (não só um ponto) cabe em (x, y). */
   free(x = this.x, y = this.y) {
@@ -116,7 +116,12 @@ class Body {
     if (this.flying) this.vy = ((inp.down ? 1 : 0) - (inp.up ? 1 : 0)) * this.flySpeed;   // voo: sem gravidade, sobe/desce com input
     else {
       if (inp.jump && this.grounded) { this.vy = -this.jumpV; this.grounded = false; }
-      this.vy = Math.min(this.vy + this.g * dt, this.maxFall);
+      /* SEGURAR pular/↑ no ar: sobe (empuxo maior que a gravidade, até climbV); SOLTAR: perde a subida na hora e começa a cair */
+      const climb = !!inp.climb && !this.grounded;
+      let nv = this.vy + (climb ? this.g - this.climbA : this.g) * dt;
+      if (climb && this.vy >= -this.climbV) nv = Math.max(nv, -this.climbV);
+      if (this.climbing && !climb && nv < 0) nv *= .2;
+      this.climbing = climb; this.vy = Math.min(nv, this.maxFall);
     }
     this.moveX(this.vx * dt);
     this.moveY(this.vy * dt);

@@ -412,7 +412,7 @@ class Fighter {
       if (this.t >= CFG.power.dur) { this.pcd = CFG.power.cd; this.set('idle'); }
     }
     const free = !this.busy, shield = free && (inp.down || inp.guard) && b.grounded && !b.flying, mv = free && !shield;
-    b.step(dt, { left: mv && inp.left, right: mv && inp.right, jump: mv && inp.up && !b.flying, up: mv && inp.up, down: mv && inp.down });
+    b.step(dt, { left: mv && inp.left, right: mv && inp.right, jump: mv && inp.up && !b.flying, climb: mv && inp.up && !b.flying, up: mv && inp.up, down: mv && inp.down });
     this.separate(world);                                                                                   // um lutador não atravessa o outro (jogadores, bots e boneco)
     if (!this.busy) {                                                                                       // animação conforme o estado atual
       const ns = shield ? 'shield' : b.flying ? 'fly' : !b.grounded ? (b.vy < 0 ? 'jump' : 'fall') : (mv && dir && b.vx ? 'run' : 'idle');
