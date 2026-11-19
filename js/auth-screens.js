@@ -18,7 +18,7 @@ S.register('account', { title: 'Conta', build(p) {
       const n = field('Nome de usuário', { maxLength: 16, autocapitalize: 'none' }), pw = field('Senha', { type: 'password', autocomplete: 'current-password' });
       const go = S.btn('ENTRAR', () => { go.disabled = true; say(''); A.login({ name: n.value, password: pw.value }).then(d => { say('Conectado! Entrando…', true); return done(d, next); }).catch(x => say(x.message)).finally(() => { go.disabled = false; }); });
       pw.addEventListener('keydown', k => { if (k.key === 'Enter') go.click(); });
-      wrap.replaceChildren(el('h2', '', { textContent: 'Entrar' }), el('p', 'hint', { textContent: 'Entre com o seu nome e a senha.' }), n, pw, msg, row(go, S.btn('CRIAR CONTA', show.register, true)), row(back())); n.focus();
+      wrap.replaceChildren(el('h2', '', { textContent: 'Entrar' }), el('p', 'hint', { textContent: 'Entre com o seu nome e a senha.' }), n, pw, msg, row(go, back())); n.focus();
     },
     register() {
       const n = field('Nome de usuário (3 a 16)', { maxLength: 16, autocapitalize: 'none' }), pw = field('Senha (mín. 5)', { type: 'password', autocomplete: 'new-password' }), pw2 = field('Repita a senha', { type: 'password', autocomplete: 'new-password' });
