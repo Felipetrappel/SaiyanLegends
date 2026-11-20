@@ -5,7 +5,9 @@
 'use strict';
 const KEY = 'sl.account';
 const read = () => { try { const d = JSON.parse(localStorage.getItem(KEY) || 'null'); return d && d.token && d.pid ? d : null; } catch (_) { return null; } };
-let acct = read(), cfg = { required: false };
+/* LOGIN DESATIVADO: o jogo não pede nem usa conta. O código das contas continua aqui (e em server/auth.js) para poder ser religado: LOGIN_ATIVO = true. */
+const LOGIN_ATIVO = false;
+let acct = LOGIN_ATIVO ? read() : null, cfg = { required: false };
 
 function base() {   // mesmo servidor do WebSocket (?server=, SL_CONFIG.serverUrl ou a própria origem)
   const q = /[?&]server=([^&#]+)/.exec(location.search); let u = q ? decodeURIComponent(q[1]) : (window.SL_CONFIG && SL_CONFIG.serverUrl) || '';
@@ -24,6 +26,7 @@ const Auth = {
   get user() { return acct; }, get required() { return !!cfg.required; }, token: () => (acct ? acct.token : ''),
   needsLogin() { return cfg.required && !acct; },
   async init() {
+    if (!LOGIN_ATIVO) return;
     try { cfg = await api('config'); } catch (_) { /* servidor fora do ar: o modo offline já avisa */ }
     if (acct) { try { const m = await api('me', { token: acct.token }); acct.name = m.name; localStorage.setItem(KEY, JSON.stringify(acct)); } catch (e) { if (e.status === 401) { localStorage.removeItem(KEY); acct = null; if (!sessionStorage.getItem('sl_authfix')) { sessionStorage.setItem('sl_authfix', '1'); location.reload(); } } } }
   },

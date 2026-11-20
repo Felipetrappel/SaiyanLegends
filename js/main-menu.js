@@ -110,7 +110,7 @@ const TOP = [
 const MISC = [
   { id: 'plusGold', label: 'Mais moedas',     screen: 'store', cx: 735,  cy: 64, plus: true },
   { id: 'plusGem',  label: 'Mais diamantes',  screen: 'store', cx: 1025, cy: 64, plus: true },
-  { id: 'profile',  label: 'Perfil e conta',  screen: 'account', rect: [8, 8, 470, 152] }
+  { id: 'profile',  label: 'Perfil',  screen: 'characters', rect: [8, 8, 470, 152] }
 ];
 const ICONS = {   // desenhados em um quadrado de -26..26
   play:     '<path d="M-14 -22L22 0L-14 22Z" fill="#fff3c0" stroke="#7a4300" stroke-width="4" stroke-linejoin="round"/>',

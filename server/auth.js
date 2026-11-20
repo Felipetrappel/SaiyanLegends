@@ -9,7 +9,7 @@
 const crypto = require('crypto'), fs = require('fs'), path = require('path');
 const DB = require('./db');
 
-const ENV = process.env, REQUIRED = ENV.REQUIRE_LOGIN === '1';
+const ENV = process.env, REQUIRED = false;   // LOGIN DESATIVADO (para religar: ENV.REQUIRE_LOGIN === '1'); o servidor nunca exige conta
 const SESSION_TTL = 30 * 864e5, MAX_SESSIONS = 8;
 const sha = s => crypto.createHash('sha256').update(s).digest('hex');
 const E = (m, status = 400) => { const e = new Error(m); e.user = true; e.status = status; return e; };
