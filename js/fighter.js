@@ -229,7 +229,7 @@ class Fighter {
     else if (id === 'charge2') { ctx.save(); drawFrame(ctx, img, this.def, fx.sparks[Math.floor(t * 14) % 2], b.x, b.y - 3, 1); ctx.restore(); }
   }
   rect() { const b = this.body; return { l: b.x - b.w / 2, r: b.x + b.w / 2, t: b.y - b.h, b: b.y }; }
-  set(s) { this.state = s; this.t = 0; this.fired = false; }
+  set(s) { if (s !== this.state && window.SaiyanSFX) SaiyanSFX.fighterState(s); this.state = s; this.t = 0; this.fired = false; }
   /* posição (mundo) da mão no frame fi, já considerando para onde ele olha */
   hand(fi) { const f = this.def.frames[fi], h = f.hand, b = this.body; return h ? { x: b.x + this.face * (h.x - f.ax), y: b.y - f.ay + h.y } : null; }
   /* Esfera de energia: presa à mão enquanto carrega/segura; no lançamento acompanha o braço até soltar. null = sem esfera. */
@@ -255,7 +255,7 @@ class Fighter {
     if (this.state === 'meditate') this.set('idle');                                                 // levar dano interrompe a meditação
     if (this.state === 'big' && !this.fired) { this.acd.big = 1.5; this.set('idle'); }                  // levar dano interrompe o carregamento do PODER GRANDE
     dmg /= this.defMul || 1; const guarded = this.state === 'shield' && dir === -this.face; if (guarded) dmg *= 1 - CFG.shieldReduce;
-    this.hp = Math.max(0, this.hp - dmg); this.flash = .25; this.kb = dir * kb * (guarded ? .3 : 1);
+    this.hp = Math.max(0, this.hp - dmg); this.flash = .25; if (window.SaiyanSFX && !guarded) SaiyanSFX.play('hit'); this.kb = dir * kb * (guarded ? .3 : 1);
     if (this.world) this.world.fx.push({ x: this.body.x, y: this.body.y - 52, txt: String(Math.round(dmg)), t: 0 });
     if (this.hp <= 0) { this.dead = true; this.rt = CFG.respawn; this.endForm(); this.set('idle'); return; }
     const A = this.def.anims;                                                                          // reações com quadros próprios (prioridade: ataque em andamento > reação)

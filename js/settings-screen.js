@@ -51,9 +51,9 @@ S.register('options', { title: 'Configurações', sticky: true, noFocus: true, b
     },
     audio() {
       const vol = slider(() => (A ? A.state.volume : 0), v => { if (!A) return; A.setVolume(v); if (A.state.muted && v > 0) A.setMuted(false); });
-      const fx = slider(() => 0, () => {}, true), ck = check('Música de fundo', musicOn, musicSet, !A), ck2 = check('Efeitos sonoros', () => false, () => {}, true, 'indisponível');
+      const X = window.SaiyanSFX, fx = slider(() => (X ? X.state.volume : 0), v => { if (!X) return; X.setVolume(v); if (v > 0 && !X.state.enabled) X.setEnabled(true); X.play('punch'); }, !X), ck = check('Música de fundo', musicOn, musicSet, !A), ck2 = check('Efeitos sonoros', () => X && X.state.enabled, on => X && X.setEnabled(on), !X);
       live.push(() => { vol.repaint(); ck.repaint(); });
-      body.append(row('🎵', 'VOLUME DA MÚSICA', vol), row('💥', 'VOLUME DOS EFEITOS', fx, note('O jogo ainda não tem efeitos sonoros.')), el('div', 'cf-checks')); body.lastChild.append(ck, ck2);
+      body.append(row('🎵', 'VOLUME DA MÚSICA', vol), row('💥', 'VOLUME DOS EFEITOS', fx, note('Soco, poder pequeno, grande e único.')), el('div', 'cf-checks')); body.lastChild.append(ck, ck2);
     },
     video() {
       const ck = check('Tela cheia', fsGet, fsSet, !(window.SLFullscreen));
@@ -71,7 +71,7 @@ S.register('options', { title: 'Configurações', sticky: true, noFocus: true, b
   }
   TABS.forEach(([id, label, ico]) => { const b = el('button', 'cf-tab', { type: 'button' }); b.dataset.t = id; b.append(el('i', '', { textContent: ico }), el('span', '', { textContent: label })); b.addEventListener('click', () => { tab = id; render(); }); nav.append(b); });
   const reset = el('button', 'cf-btn alt', { type: 'button', textContent: '↻ RESTAURAR' }), ok = el('button', 'cf-btn', { type: 'button', textContent: '✓ APLICAR' });
-  reset.addEventListener('click', () => { if (A) { A.setVolume(.6); A.setMuted(false); } SL.ControlType.set('arrows'); render(); say('Padrões restaurados.'); });
+  reset.addEventListener('click', () => { if (A) { A.setVolume(.6); A.setMuted(false); } if (window.SaiyanSFX) { SaiyanSFX.setVolume(.8); SaiyanSFX.setEnabled(true); } SL.ControlType.set('arrows'); render(); say('Padrões restaurados.'); });
   ok.addEventListener('click', () => S.close()); foot.append(reset, ok); close.addEventListener('click', () => S.close());
 
   const onAudio = () => live.forEach(f => f()); if (A) A.on('change', onAudio);
