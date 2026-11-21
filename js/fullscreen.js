@@ -20,5 +20,5 @@ const first = () => { if (done) return; done = true; removeEventListener('pointe
 if (can && !standalone) { addEventListener('pointerdown', first, true); addEventListener('keydown', first, true); }
 /* F = liga/desliga a tela cheia (fora de campos de texto) */
 addEventListener('keydown', e => { if (e.code === 'KeyF' && e.shiftKey && !/INPUT|TEXTAREA|SELECT/.test((e.target || {}).tagName)) { isFs() ? (d.exitFullscreen || d.webkitExitFullscreen).call(d) : enter(); } });
-window.SL = window.SL || {}; SL.fullscreen = { enter, exit: () => isFs() && (d.exitFullscreen || d.webkitExitFullscreen).call(d), get on() { return isFs(); } };
+window.SL = window.SL || {}; SL.fullscreen = { enter, exit: () => isFs() && (d.exitFullscreen || d.webkitExitFullscreen).call(d), get on() { return isFs(); } }; window.SLFullscreen = SL.fullscreen;
 })();
