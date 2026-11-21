@@ -13,6 +13,7 @@ const el = (t, c = '', p = {}) => Object.assign(document.createElement(t), { cla
 const MODE_ORDER = ['pvp', 'bots', '2v2', 'custom'];
 /* Mapas disponíveis na interface = só os que têm arte e colisão no projeto (SL.MAP_DATA). Textos/prévia por mapa: */
 const MAP_INFO = { forest: { name: 'FLORESTA', desc: 'Floresta encantada ao luar, com plataformas flutuantes e cachoeiras.', img: 'assets/maps/forest.png', pos: '50% 50%' },
+  natal: { name: 'NATAL', desc: 'Vila coberta de neve à noite, com árvore de Natal, cabana e plataformas flutuantes.', img: 'assets/maps/natal.png', pos: '50% 50%' },
   ruins: { name: 'RUÍNAS', desc: 'Ruínas de pedra cobertas de neve, com plataformas e torres.', img: 'assets/maps/ruins.png', pos: '50% 50%' } };
 const maps = () => MAPS.filter(m => SL.MAP_DATA && SL.MAP_DATA[m.id] && MAP_INFO[m.id]);
 
