@@ -454,3 +454,11 @@ button.rm-card{cursor:pointer;padding:0;text-align:center}
 .ns-tech{flex:1;overflow:hidden;padding:10px 12px}.ns-slot{display:grid;grid-template-columns:40px 1fr auto;align-items:center;gap:8px;padding:6px 0;border-top:1px solid #2c8c6855}.ns-slot i{font-style:normal;font-size:26px;text-align:center}
 .ns-slot b{display:block;font-size:19px;letter-spacing:.3px}.ns-slot span{display:block;font-size:14px;color:#a8d4c3;line-height:1.15;font-family:system-ui,sans-serif}.ns-slot em{font-style:normal;font-size:12px;font-weight:700;color:#3a1c00;background:#ffd75a;border-radius:4px;padding:2px 6px}
 .ns-toast{position:absolute;left:50%;bottom:6px;transform:translateX(-50%) translateY(20px);max-width:900px;padding:8px 22px;border-radius:20px;background:#12063a;border:2px solid #f3c744;font-size:20px;opacity:0;pointer-events:none;transition:.2s;z-index:5;text-align:center}.ns-toast.on{opacity:1;transform:translateX(-50%)}
+
+/* Joystick (opção de controle): base com setas + esfera roxa que segue o dedo */
+.move.jm{display:flex;align-items:flex-end;gap:calc(var(--s)*.2)}
+.cbtn.joy{width:calc(var(--s)*2.3);height:calc(var(--s)*2.3);border-radius:50%}
+.cbtn.joy img{position:absolute;left:0;top:0;width:100%;height:100%;image-rendering:pixelated}
+.cbtn.joy .jk{left:50%;top:50%;width:42%;height:42%;transform:translate(-50%,-50%);transition:transform .06s}
+.cbtn.joy.on{transform:none}
+.ctl.custom .cbtn.joy,.ctl.custom .cbtn.joy.on{margin:calc(var(--s)*-1.15) 0 0 calc(var(--s)*-1.15)}

@@ -3,7 +3,7 @@
  * Abre pelo botão CONTROLES do HUD da partida. Sem layout salvo, vale o layout padrão (grade 3×3 + setas). */
 (() => {
 'use strict';
-const KEY = 'sl.controls', BASE_MOVE = 'clamp(54px,13vmin,96px)', BASE_ACT = 'clamp(44px,9.5vmin,76px)';
+const KEY = SL.ControlType.get() === 'joystick' ? 'sl.controls.joy' : 'sl.controls', BASE_MOVE = 'clamp(54px,13vmin,96px)', BASE_ACT = 'clamp(44px,9.5vmin,76px)';
 const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
 const el = (t, c, o) => Object.assign(document.createElement(t), c ? { className: c } : {}, o || {});
 const G = SL.GameScene.prototype;
@@ -25,7 +25,7 @@ G.applyLayout = function () {
   for (const b of this.btns) {
     if (!L) { b.style.removeProperty('--s'); b.style.left = b.style.top = ''; continue; }
     const c = L.b[b.dataset.id]; if (!c) continue;
-    const base = b.dataset.id === 'l' || b.dataset.id === 'r' ? BASE_MOVE : BASE_ACT;
+    const base = b.dataset.id === 'l' || b.dataset.id === 'r' || b.dataset.id === 'joy' ? BASE_MOVE : BASE_ACT;
     b.style.left = (c.x * 100) + '%'; b.style.top = (c.y * 100) + '%'; b.style.setProperty('--s', `calc(${base} * ${(c.k * L.scale).toFixed(3)})`);
   }
   if (L) this.ctlRoot.style.setProperty('--op', L.op); else this.ctlRoot.style.removeProperty('--op');

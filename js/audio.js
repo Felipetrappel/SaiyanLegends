@@ -91,7 +91,7 @@ if (M) {
     vol.addEventListener('input', () => { api.setVolume(vol.value / 100); if (state.muted && vol.value > 0) api.setMuted(false); });
     p.append(el('h2', '', { textContent: 'Opções' }), el('div', 'optrow', { innerHTML: '<span>Música</span>' }), vol, val,
       el('div', 'row', {}), );
-    p.lastChild.append(mute, S.btn('Sair do jogo', () => M.exit(), true), S.btn('Voltar', () => S.close(), true));
+    p.lastChild.append(mute, S.btn('Controles: ' + (SL.ControlType.get() === 'joystick' ? 'JOYSTICK' : 'SETAS'), function () { SL.ControlType.set(SL.ControlType.get() === 'joystick' ? 'arrows' : 'joystick'); this.textContent = 'Controles: ' + (SL.ControlType.get() === 'joystick' ? 'JOYSTICK' : 'SETAS'); }, true), S.btn('Sair do jogo', () => M.exit(), true), S.btn('Voltar', () => S.close(), true));
     api.on('change', sync); sync();
     return () => api.off('change', sync);
   } });

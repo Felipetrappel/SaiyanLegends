@@ -22,6 +22,9 @@ const ICONS = {
   left: '<path d="M62 18L28 50l34 32" fill="none" stroke="#fff3c4" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"/>',
   right: '<path d="M38 18l34 32-34 32" fill="none" stroke="#fff3c4" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"/>'
 };
+SL.ControlType = SL.ControlType || { KEY: 'sl.ctrltype',
+  get() { try { return localStorage.getItem(this.KEY) === 'joystick' ? 'joystick' : 'arrows'; } catch (_) { return 'arrows'; } },
+  set(v) { try { localStorage.setItem(this.KEY, v === 'joystick' ? 'joystick' : 'arrows'); } catch (_) {} } };
 const KEYS = { left: ['ArrowLeft', 'KeyA'], right: ['ArrowRight', 'KeyD'], up: ['ArrowUp', 'KeyW', 'Space'], down: ['ArrowDown', 'KeyS'], attack: ['KeyJ', 'KeyZ'], meditate: ['KeyM'] };
 const TAP_KEYS = { KeyF: 'fly', KeyK: 'power', KeyX: 'power', KeyE: 'power', KeyB: 'big', KeyR: 'special', KeyQ: 'barrage', KeyC: 'sun', };   // (a transformação não tem tecla nem botão: o sistema ainda não existe)   // teclado: um toque
 
@@ -87,7 +90,7 @@ class GameScene {
   }
   held(k) { return KEYS[k].some(c => this.K.has(c)); }
   input() { // teclado + botões na tela; ações de um toque (voar/poder) chegam como "pressed"
-    const P = this.pad, N = this.pend, inp = { left: this.held('left') || P.left, right: this.held('right') || P.right, up: this.held('up') || P.jump || N.jump, down: this.held('down'), guard: !!P.guard, meditate: this.held('meditate') || !!P.meditate,
+    const P = this.pad, N = this.pend, inp = { left: this.held('left') || P.left, right: this.held('right') || P.right, up: this.held('up') || P.jump || N.jump || !!P.sUp, down: this.held('down') || !!P.sDown, guard: !!P.guard, meditate: this.held('meditate') || !!P.meditate,
       pressed: { attack: this.held('attack') || P.attack || N.attack, fly: N.fly, power: N.power, big: N.big, special: N.special, barrage: N.barrage, sun: N.sun } };
     /* buffer de entrada: um toque de poder/ação dado enquanto o personagem ainda está ocupado (ex.: no fim de um soco) não se perde: vale por ~0,4 s */
     const me = this.me, B = this.buf || (this.buf = {});
@@ -96,6 +99,23 @@ class GameScene {
   }
   /* Controles na tela (botões desenhados em SVG, roxo/dourado). Direita: HABILIDADE ÚNICA · PODER GRANDE · CARREGAR KI / PULAR-VOAR · PODER PEQUENO · SOCO.
      Esquerda: ← → e DEFESA. Não há botão de transformação (o sistema ainda não existe). Cada botão tem recarga (anel escuro) e fica apagado sem Ki. */
+  /* Joystick: arraste a esfera; ← → andam, ↑ sobe (voar), ↓ defende/desce. Zona morta no centro; a esfera segue o dedo dentro do anel. */
+  makeJoystick() {
+    const b = Object.assign(document.createElement('button'), { type: 'button', className: 'cbtn joy' }); b.tabIndex = -1; b.setAttribute('aria-label', 'Joystick'); b.title = 'Joystick: arraste para andar e voar';
+    b.innerHTML = '<img src="assets/ui/joy-base.png" alt="" draggable="false"><img class="jk" src="assets/ui/joy-knob.png" alt="" draggable="false">';
+    const knob = b.querySelector('.jk'), P = this.pad; let id = null;
+    const reset = () => { id = null; b.classList.remove('on'); P.left = P.right = P.sUp = P.sDown = false; knob.style.transform = 'translate(-50%,-50%)'; };
+    const move = e => {
+      const r = b.getBoundingClientRect(), R = r.width / 2; let dx = e.clientX - (r.left + R), dy = e.clientY - (r.top + R); const L = Math.hypot(dx, dy) || 1, mx = R * .5, k = Math.min(1, mx / L);
+      knob.style.transform = `translate(calc(-50% + ${dx * k}px),calc(-50% + ${dy * k}px))`;
+      const dead = R * .22, h = R * .30;   // horizontal: zona morta pequena; vertical: um pouco maior para não subir sem querer
+      P.left = dx < -dead; P.right = dx > dead; P.sUp = dy < -R * .38 && Math.abs(dy) > Math.abs(dx) * .7; P.sDown = dy > R * .38 && Math.abs(dy) > Math.abs(dx) * .7;
+    };
+    b.addEventListener('pointerdown', e => { if (this.editing) return; e.preventDefault(); try { b.setPointerCapture(e.pointerId); } catch (_) {} id = e.pointerId; b.classList.add('on'); move(e); });
+    b.addEventListener('pointermove', e => { if (id === e.pointerId && !this.editing) move(e); });
+    ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(n => b.addEventListener(n, e => { if (id === null || id === e.pointerId) reset(); }));
+    b.addEventListener('contextmenu', e => e.preventDefault()); return b;
+  }
   attachControls(host) {
     const mk = (cls, key, mode, icon, label, text, o = {}) => {
       const b = Object.assign(document.createElement('button'), { type: 'button', className: 'cbtn ' + cls }); b.tabIndex = -1; b.setAttribute('aria-label', label); b.title = label;
@@ -108,7 +128,9 @@ class GameScene {
     };
     const root = document.createElement('div'), move = document.createElement('div'), acts = document.createElement('div'), un = this.me.unique;
     root.className = 'ctl'; move.className = 'move'; acts.className = 'acts';
-    move.append(mk('l', 'left', 'hold', 'left', 'Esquerda', ''), mk('r', 'right', 'hold', 'right', 'Direita', ''), mk('guard', 'guard', 'hold', 'shield', 'Defesa (segure) · segurando, toque ← ou → para se teletransportar', 'DEFESA'));
+    /* Controle de movimento: SETAS (padrão) ou JOYSTICK (escolhido em Opções → Controles; vale a partir da próxima partida) */
+    const joy = SL.ControlType.get() === 'joystick' ? this.makeJoystick() : null; if (joy) move.classList.add('jm');
+    move.append(...(joy ? [joy] : [mk('l', 'left', 'hold', 'left', 'Esquerda', ''), mk('r', 'right', 'hold', 'right', 'Direita', '')]), mk('guard', 'guard', 'hold', 'shield', 'Defesa (segure) · segurando, toque ← ou → para se teletransportar', 'DEFESA'));
     const sp = mk('sp', 'special', 'tap', un ? un.icon : 'lock', un ? 'Habilidade única: ' + un.name.toLowerCase() : 'Habilidade única (este personagem ainda não tem)', un ? 'ÚNICA' : 'ÚNICA');
     const power = mk('power', 'big', 'tap', 'big', 'Poder grande: carrega e dispara (recarga longa)', 'GRANDE'), pk = mk('pk', 'power', 'tap', 'small', 'Poder pequeno: projétil rápido', 'PEQUENO'),
       md = mk('md', 'meditate', 'hold', 'charge', 'Carregar Ki (segure)', 'CARREGAR'), bt = mk('bt', 'jump', 'hold', 'wing', 'Voar: segure para subir, solte para cair (toque rápido = pulo)', 'VOAR'), atk = mk('atk', 'attack', 'hold', 'fist', 'Soco (toque várias vezes)', 'SOCO');
