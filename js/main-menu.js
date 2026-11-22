@@ -88,7 +88,7 @@ const SVGNS = 'http://www.w3.org/2000/svg';
 /* ── Botões grandes (direita) ── */
 const BIG = [
   { id: 'play',      label: 'JOGAR',         sub: 'ENTRE NA BATALHA',  screen: 'play',       x: 1196, y: 326, w: 462, h: 136, pal: 'gold',   ico: 'play',  deco: 'ball' },
-  { id: 'character', label: 'PERSONAGEM',    sub: 'ESCOLHA SEU HERÓI', screen: 'characters', x: 1198, y: 468, w: 458, h: 128, pal: 'purple', ico: 'group', deco: 'sil' },
+  { id: 'character', label: 'LOBBY',         sub: 'ENTRE NA CIDADE',   screen: 'hub', x: 1198, y: 468, w: 458, h: 128, pal: 'purple', ico: 'group', deco: 'sil' },
   { id: 'shop',      label: 'LOJA',          sub: 'COMPRE E EVOLUA',   screen: 'store',      x: 1198, y: 600, w: 456, h: 132, pal: 'green',  ico: 'cart' },
   { id: 'settings',  label: 'CONFIGURAÇÕES', sub: 'AJUSTE SEU JOGO',   screen: 'options',    x: 1203, y: 736, w: 455, h: 130, pal: 'blue',   ico: 'gear' }
 ];

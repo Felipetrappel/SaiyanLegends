@@ -503,3 +503,9 @@ button.rm-card{cursor:pointer;padding:0;text-align:center}
 .cf-btn{min-width:0;flex:1;font-size:25px;white-space:nowrap}.cf-foot{gap:16px}
 .cf-sl input{display:block;height:18px;padding:0;background:linear-gradient(90deg,#f7b21b var(--p,50%),#4a4a52 var(--p,50%))!important;border:2px solid #8a8a92!important}
 .cf-sl input::-webkit-slider-runnable-track{height:14px;background:transparent}.cf-sl input::-webkit-slider-thumb{margin-top:-14px}
+
+/* ═══ LOBBY (js/lobby-hub.js) ═══ */
+.lobbywrap{background:#10204a!important}.lb-cv{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none}
+.lb-btn{position:absolute;top:14px;height:56px;padding:0 22px;border-radius:12px;font-size:22px;font-weight:900;letter-spacing:1px;color:#fff;background:linear-gradient(#7a4dff,#3d1fa8);border:3px solid #f3c744;text-shadow:0 2px 0 #000;box-shadow:0 4px 10px #0008}
+.lb-back{left:16px}.lb-sw{right:16px}.lb-btn:hover{filter:brightness(1.2)}
+.lb-hint{position:absolute;left:0;right:0;bottom:12px;text-align:center;font:600 17px system-ui,sans-serif;color:#fff;text-shadow:0 2px 4px #000;pointer-events:none;opacity:.85}
