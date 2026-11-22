@@ -32,6 +32,12 @@ let STAFF = {};
 const parseStaff = raw => { try { const o = JSON.parse(raw || '{}'), r = {}; for (const [k, v] of Object.entries(o)) if (k.length >= 12 && TAGS.has(String(v).toUpperCase())) r[k] = String(v).toUpperCase(); return r; } catch (_) { return {}; } };
 const staffTag = code => { code = String(code || ''); let found = ''; for (const k of Object.keys(STAFF)) if (k.length === code.length) { let d = 0; for (let i = 0; i < k.length; i++) d |= k.charCodeAt(i) ^ code.charCodeAt(i); if (!d) found = STAFF[k]; } return found; };
 const tagOf = pid => (sessions.get(pid) || {}).tag || '';
+/* ── Banco de dados (Cloudflare D1): progresso do jogador. A chave secreta (40 hex) fica no aparelho; o servidor só guarda o SHA-256 dela. ── */
+let ENV = {}, dbReady = null;
+const sha = async t => [...new Uint8Array(await crypto.subtle.digest('SHA-256', enc.encode(t)))].map(b => b.toString(16).padStart(2, '0')).join('');
+const DB = () => { if (!ENV.DB) throw E('Salvamento na nuvem indisponível.'); return ENV.DB; };
+const dbInit = () => dbReady || (dbReady = DB().prepare('CREATE TABLE IF NOT EXISTS players (id TEXT PRIMARY KEY, name TEXT, progress TEXT NOT NULL, rev INTEGER NOT NULL DEFAULT 1, updated INTEGER NOT NULL)').run().catch(e => { dbReady = null; throw e; }));
+const keyId = async m => { const k = String(m.key || ''); if (!/^[a-f0-9]{40}$/.test(k)) throw E('Código de backup inválido.'); return sha(k); };
 const sessions = new Map();   // pid → { pid, token, name, ws, roomId, timer }
 const rooms = new Map();      // id  → sala
 const clients = new Set();    // conexões abertas (para empurrar a lista de salas)
@@ -89,6 +95,18 @@ const hubLeave = pid => { if (hub.delete(pid)) hubSend(pid, { push: 'hub', t: 'l
 const hubX = v => Math.max(0, Math.min(20000, +v || 0));
 
 const OPS = {
+  async loadProfile(s, m) {
+    await dbInit(); const id = await keyId(m);
+    const r = await DB().prepare('SELECT progress, rev, updated FROM players WHERE id = ?1').bind(id).first();
+    return r ? { exists: true, progress: JSON.parse(r.progress), rev: r.rev, updated: r.updated } : { exists: false };
+  },
+  async saveProfile(s, m) {
+    await dbInit(); const id = await keyId(m), now = Date.now();
+    if (now - (s.lastSave || 0) < 700) throw E('Salvando rápido demais.'); s.lastSave = now;
+    const txt = m.progress && typeof m.progress === 'object' ? JSON.stringify(m.progress) : ''; if (!txt || txt.length > 40000) throw E('Dados inválidos.');
+    await DB().prepare('INSERT INTO players (id, name, progress, rev, updated) VALUES (?1, ?2, ?3, 1, ?4) ON CONFLICT(id) DO UPDATE SET name = ?2, progress = ?3, rev = rev + 1, updated = ?4').bind(id, clean(m.name, 16), txt, now).run();
+    const r = await DB().prepare('SELECT rev FROM players WHERE id = ?1').bind(id).first(); return { rev: r ? r.rev : 1 };
+  },
   /* Ativa a tag da equipe com o código secreto (vazio = remove). */
   staff(s, m) {
     const code = String(m.code || '').slice(0, 80), tag = code ? staffTag(code) : '';
@@ -197,7 +215,7 @@ function accept(sock) {
   ws.onclose = () => { clearInterval(tick); clients.delete(ws); const s = conn.s; if (s && s.ws === ws) { s.ws = null; hubLeave(s.pid); disconnected(s); } setTimeout(pushOnline, 0); };
 }
 export class World extends DurableObject {
-  constructor(ctx, env) { super(ctx, env); STAFF = parseStaff(env.STAFF_CODES); }
+  constructor(ctx, env) { super(ctx, env); ENV = env; STAFF = parseStaff(env.STAFF_CODES); }
   async fetch(request) {
     const pair = new WebSocketPair(), [client, server] = Object.values(pair);
     accept(server);

@@ -5,7 +5,7 @@
 'use strict';
 const M = SaiyanMenu, S = M.screens, A = window.SaiyanAudio;
 const el = (t, c = '', p = {}) => Object.assign(document.createElement(t), { className: c, ...p });
-const TABS = [['geral', 'GERAL', '⚙'], ['ctrl', 'CONTROLES', '🎮'], ['audio', 'ÁUDIO', '🔊'], ['video', 'VÍDEO', '🖥'], ['sobre', 'SOBRE', 'ℹ']];
+const TABS = [['geral', 'GERAL', '⚙'], ['ctrl', 'CONTROLES', '🎮'], ['audio', 'ÁUDIO', '🔊'], ['video', 'VÍDEO', '🖥'], ['nuvem', 'NUVEM', '☁'], ['sobre', 'SOBRE', 'ℹ']];
 const STAGE = { w: 1280, h: 720 };
 
 S.register('options', { title: 'Configurações', sticky: true, noFocus: true, build(p) {
@@ -32,7 +32,7 @@ S.register('options', { title: 'Configurações', sticky: true, noFocus: true, b
   const note = t => el('p', 'cf-note', { textContent: t });
   const fsGet = () => !!(window.SLFullscreen && window.SLFullscreen.on), fsSet = on => { try { on ? window.SLFullscreen.enter() : window.SLFullscreen.exit(); } catch (_) {} };
   const musicOn = () => A && !A.state.muted, musicSet = on => { if (A) A.setMuted(!on); };
-  const live = [];   // coisas a repintar quando o áudio muda por outro lugar (ex.: tecla M)
+  const live = [], cleanups = [];   // coisas a repintar quando o áudio muda por outro lugar (ex.: tecla M)
 
   const pages = {
     geral() {
@@ -59,6 +59,18 @@ S.register('options', { title: 'Configurações', sticky: true, noFocus: true, b
       const ck = check('Tela cheia', fsGet, fsSet, !(window.SLFullscreen));
       body.append(row('🖥', 'EXIBIÇÃO', el('div', 'cf-checks one')), note('A imagem sempre se ajusta à tela do aparelho, sem cortar nem desfocar. Não há opções de qualidade gráfica.')); body.querySelector('.cf-checks').append(ck);
     },
+    nuvem() {
+      const CS = window.SLCloud; if (!CS) { body.append(note('Salvamento na nuvem indisponível.')); return; }
+      const st = el('div', 'cf-cstate'), paint = () => { const s = CS.state; st.textContent = s === 'saved' ? '☁ Progresso salvo na nuvem' : s === 'saving' ? '☁ Salvando…' : s === 'error' ? '⚠ ' + (CS.error || 'Sem conexão') + ' — tentarei de novo' : '☁ Aguardando conexão com o servidor'; st.className = 'cf-cstate ' + (s || 'idle'); };
+      const off = CS.onChange(paint); paint(); cleanups.push(off);
+      const now = el('button', 'cf-sbtn', { type: 'button', textContent: 'SALVAR AGORA' }); now.addEventListener('click', async () => { await CS.push(); paint(); say(CS.state === 'saved' ? 'Salvo!' : 'Não foi possível salvar agora.'); });
+      const code = el('input', 'cf-sin', { type: 'text', readOnly: true, value: CS.key }), cp = el('button', 'cf-sbtn', { type: 'button', textContent: 'COPIAR' });
+      cp.addEventListener('click', async () => { try { await navigator.clipboard.writeText(CS.key); say('Código copiado!'); } catch (_) { code.select(); say('Selecione e copie o código.'); } });
+      const inp = el('input', 'cf-sin', { type: 'text', placeholder: 'Colar código de outro aparelho', autocomplete: 'off', maxLength: 40 }), rs = el('button', 'cf-sbtn alt', { type: 'button', textContent: 'RESTAURAR' });
+      rs.addEventListener('click', async () => { try { await CS.restore(inp.value); inp.value = ''; say('Progresso restaurado!'); } catch (e) { say(e.message || 'Não foi possível restaurar.'); } });
+      const r1 = el('div', 'cf-staff'); r1.append(now); const r2 = el('div', 'cf-staff'); r2.append(code, cp); const r3 = el('div', 'cf-staff'); r3.append(inp, rs);
+      body.append(row('☁', 'PROGRESSO NA NUVEM', st, r1, note('Moedas, personagens, nível e missões ficam guardados no servidor e voltam se você reinstalar.')), row('🔑', 'CÓDIGO DE BACKUP', r2, note('Guarde este código. Quem tiver ele recupera o seu progresso.')), row('📥', 'TROCOU DE APARELHO?', r3));
+    },
     sobre() {
       { const w = el('div', 'cf-staff'), i = el('input', 'cf-sin', { type: 'password', placeholder: 'Código da equipe', autocomplete: 'off', maxLength: 80 }), b = el('button', 'cf-sbtn', { type: 'button', textContent: 'ATIVAR' }), c = el('button', 'cf-sbtn alt', { type: 'button', textContent: 'REMOVER' });
         try { i.value = localStorage.getItem('sl.staff') || ''; } catch (_) {}
@@ -84,6 +96,6 @@ S.register('options', { title: 'Configurações', sticky: true, noFocus: true, b
   const fit = () => { const W = p.clientWidth, H = p.clientHeight; if (!W || !H) return; const k = Math.min(W / STAGE.w, H / STAGE.h); stage.style.transform = `translate(${(W - STAGE.w * k) / 2}px,${(H - STAGE.h * k) / 2}px) scale(${k})`; };
   const ro = new ResizeObserver(fit); ro.observe(p); fit(); render();
   const key = e => { if (e.key === 'Escape') S.close(); }; addEventListener('keydown', key);
-  return () => { ro.disconnect(); if (A) A.off('change', onAudio); removeEventListener('keydown', key); clearTimeout(tt); };
+  return () => { cleanups.forEach(f => { try { f(); } catch (_) {} }); ro.disconnect(); if (A) A.off('change', onAudio); removeEventListener('keydown', key); clearTimeout(tt); };
 } });
 })();
