@@ -99,7 +99,7 @@ S.register('lobby', { sticky: true, build(p) {
     [['ROOM ID', r.id], ['ROOM', r.name || r.id], ['HOST', host.name], ['PLAYERS', r.players.length + ' / ' + r.maxPlayers], ['MAP', mapName(r.map)], ['STATUS', st]]
       .forEach(([k, v]) => kv.append(el('span', 'k', { textContent: k }), el('span', '', { textContent: v })));
     const ul = el('ul', 'plist');
-    r.players.forEach(x => { const li = el('li'); li.append(SL.Characters.portrait(x.character, .5), el('span', '', { textContent: x.name + (x.id === r.hostId ? ' (HOST)' : '') + (x.id === rooms.me.id ? ' (you)' : '') })); ul.append(li); });
+    r.players.forEach(x => { const li = el('li'); li.append(SL.Characters.portrait(x.character, .5), ...[window.SLTags && SLTags.chip(x.tag)].filter(Boolean), el('span', '', { textContent: x.name + (x.id === r.hostId ? ' (HOST)' : '') + (x.id === rooms.me.id ? ' (you)' : '') })); ul.append(li); });
     if (isHost) {
       const pick = S.btn('SELECT MAP', () => attempt(err, rooms.openMapSelection().then(() => S.open('mapSelect'))));
       pick.disabled = !['WAITING', 'READY'].includes(st);

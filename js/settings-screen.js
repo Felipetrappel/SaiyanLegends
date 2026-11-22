@@ -60,6 +60,12 @@ S.register('options', { title: 'Configurações', sticky: true, noFocus: true, b
       body.append(row('🖥', 'EXIBIÇÃO', el('div', 'cf-checks one')), note('A imagem sempre se ajusta à tela do aparelho, sem cortar nem desfocar. Não há opções de qualidade gráfica.')); body.querySelector('.cf-checks').append(ck);
     },
     sobre() {
+      { const w = el('div', 'cf-staff'), i = el('input', 'cf-sin', { type: 'password', placeholder: 'Código da equipe', autocomplete: 'off', maxLength: 80 }), b = el('button', 'cf-sbtn', { type: 'button', textContent: 'ATIVAR' }), c = el('button', 'cf-sbtn alt', { type: 'button', textContent: 'REMOVER' });
+        try { i.value = localStorage.getItem('sl.staff') || ''; } catch (_) {}
+        const done = (m, ok) => { say(m); if (ok) { try { localStorage.setItem('sl.staff', i.value.trim()); } catch (_) {} } };
+        b.addEventListener('click', async () => { try { const t = await SaiyanGame.service.setStaff(i.value.trim()); if (t) { done('Tag ativada: <' + t + '>', true); } else say('Digite o código.'); } catch (e) { say(e.message || 'Código inválido.'); } });
+        c.addEventListener('click', async () => { try { await SaiyanGame.service.setStaff(''); } catch (_) {} i.value = ''; try { localStorage.removeItem('sl.staff'); } catch (_) {} say('Tag removida.'); });
+        w.append(i, b, c); setTimeout(() => body.append(row('🏷', 'EQUIPE', w, note('Só para a equipe do jogo. Mostra a sua tag ao lado do nome.'))), 0); }
       if (typeof M.exit === 'function') { const ex = el('button', 'cf-ck', { type: 'button' }); ex.append(el('span', '', { textContent: '⏻ Sair do jogo' })); ex.addEventListener('click', () => M.exit()); setTimeout(() => { const w = el('div', 'cf-checks one'); w.append(ex); body.append(row('⏻', 'SAIR', w)); }, 0); }
       body.append(row('ℹ', 'SAIYAN LEGENDS ONLINE', note('Jogo de luta 2D em pixel art. Salas online, modo contra bots e treino.')), row('🎮', 'COMUNIDADE', (() => { const r = el('div', 'cf-checks one'); r.append(Object.assign(el('button', 'cf-ck', { type: 'button' }), { onclick: () => S.open('social') })); r.firstChild.append(el('i'), el('span', '', { textContent: 'Discord, YouTube e redes' })); r.firstChild.querySelector('i').style.display = 'none'; return r; })()));
     }

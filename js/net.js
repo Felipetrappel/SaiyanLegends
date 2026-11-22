@@ -42,8 +42,8 @@ class RemoteRoomService extends Emitter {
   }
   _reconnect() { clearTimeout(this._rt); this._rt = setTimeout(() => this._open(null, null), Math.min(5000, 500 * 2 ** this.retry++)); }
   async _hello() {
-    const r = await this._req('hello', { pid: this.ident.pid, token: this.ident.token, name: this.ident.name, auth: SL.Auth ? SL.Auth.token() : '' }, true);
-    this.ident.token = r.token; this.ident.save('token', r.token); this.online = true; this.lastMsg = Date.now();
+    const r = await this._req('hello', { pid: this.ident.pid, token: this.ident.token, name: this.ident.name, auth: SL.Auth ? SL.Auth.token() : '', staff: (() => { try { return localStorage.getItem('sl.staff') || ''; } catch (_) { return ''; } })() }, true);
+    this.myTag = r.tag || ''; this.ident.token = r.token; this.ident.save('token', r.token); this.online = true; this.lastMsg = Date.now();
     clearInterval(this._ka); this._ka = setInterval(() => { // keepalive: sem resposta por 25s = conexão morta → reconecta
       if (!this.online) return; if (Date.now() - this.lastMsg > 25000) { try { this.ws.close(); } catch (_) {} return; } this._raw({ op: 'ping' }); }, 8000);
     if (r.room) { this.current = r.room.id; this.resumed = this.resumed || r.room; this.emit('room:' + r.room.id, r.room); }
@@ -82,6 +82,7 @@ class RemoteRoomService extends Emitter {
   hubMove(x, f, mv) { this._raw({ op: 'hubMove', x, f, mv: mv ? 1 : 0 }); }
   hubLeave() { this._raw({ op: 'hubLeave' }); }
   sendChat(text, lv, name) { return this._req('chat', { text, lv, name }); }
+  async setStaff(code) { const t = (await this._req('staff', { code })).tag || ''; this.myTag = t; return t; }
   _op(op, extra) { return this._req(op, extra).then(r => r.room); }
   beginMapSelection() { return this._op('beginMapSelection'); }
   cancelMapSelection() { return this._op('cancelMapSelection'); }
@@ -117,6 +118,8 @@ class AutoService extends Emitter {
   resume() { return this.ready.then(() => this.impl.resume ? this.impl.resume() : null); }
   subscribe(id, fn) { return this.impl.subscribe(id, fn); }
   relay(d) { this.impl.relay && this.impl.relay(d); }
+  async setStaff(code) { await this.ready; if (this.mode === 'online' && this.impl.setStaff) return this.impl.setStaff(code); throw new Error('Só funciona online.'); }
+  get myTag() { return (this.mode === 'online' && this.impl && this.impl.myTag) || ''; }
   /* lobby: só funciona online; offline você anda sozinho */
   async hubJoin(info) { await this.ready; return this.mode === 'online' && this.impl.hubJoin ? this.impl.hubJoin(info) : null; }
   hubMove(x, f, mv) { if (this.mode === 'online' && this.impl.hubMove) this.impl.hubMove(x, f, mv); }

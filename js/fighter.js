@@ -464,7 +464,7 @@ class Fighter {
     if (!this.me) {
       const top = b.y - f.ay - 6, w = 28; ctx.fillStyle = '#10042a'; ctx.fillRect(b.x - w / 2 - 1, top - 1, w + 2, 5);
       ctx.fillStyle = '#e0304f'; ctx.fillRect(b.x - w / 2, top, w * Math.max(0, this.hp / CFG.hp), 3);
-      ctx.font = '8px system-ui'; ctx.textAlign = 'center'; ctx.fillStyle = '#fff'; ctx.fillText(this.player.name, b.x, top - 3);
+      ctx.font = '8px system-ui'; ctx.textAlign = 'center'; if (window.SLTags && this.player.tag) SLTags.drawName(ctx, this.player.tag, this.player.name, b.x, top - 3, { size: 8, color: '#fff' }); else { ctx.fillStyle = '#fff'; ctx.fillText(this.player.name, b.x, top - 3); }
     }
   }
 }

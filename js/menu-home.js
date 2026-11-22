@@ -72,7 +72,7 @@ onl.innerHTML = '<i></i><span></span>'; head.append(onl);
 send.setAttribute('aria-label', 'Enviar mensagem'); field.setAttribute('aria-label', 'Escrever no chat global');
 send.innerHTML = '<svg viewBox="0 0 30 30"><path d="M6 15h17M15 6l9 9-9 9" fill="none" stroke="#fff" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 const crow = el('div', 'hm-chat-r'); crow.append(field, send); chat.append(head, crow);
-const rowOf = m => { const r = el('div', 'hc-row'); r.append(el('span', 'hc-lv', { textContent: Math.max(0, m.lv | 0) }), el('b', 'hc-nm', { textContent: String(m.name || 'Jogador').slice(0, 16) }), el('span', 'hc-tx', { textContent: String(m.text || '').slice(0, 90) })); return r; };
+const rowOf = m => { const r = el('div', 'hc-row'); r.append(el('span', 'hc-lv', { textContent: Math.max(0, m.lv | 0) }), ...[window.SLTags && SLTags.chip(m.tag)].filter(Boolean), el('b', 'hc-nm', { textContent: String(m.name || 'Jogador').slice(0, 16) }), el('span', 'hc-tx', { textContent: String(m.text || '').slice(0, 90) })); return r; };
 function paintChat() {
   const online = svc.mode === 'online'; onl.classList.toggle('off', !online);
   onl.lastChild.textContent = online ? Math.max(1, SL.Social.online) + ' online' : 'Offline';

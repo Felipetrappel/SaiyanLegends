@@ -30,7 +30,7 @@ S.register('hub', { title: 'Lobby', sticky: true, noFocus: true, build(p) {
     label();
   };
   const onStatus = () => { if (svc.mode !== 'online') { joined = false; others.clear(); } join(); label(); };
-  const drawLog = () => { log.replaceChildren(...(SL.Social ? SL.Social.log : []).slice(-6).map(m => { const r = el('div', 'lb-msg'); r.append(el('b', '', { textContent: (m.name || '?') + ': ' }), document.createTextNode(m.text)); return r; })); log.scrollTop = log.scrollHeight; };
+  const drawLog = () => { log.replaceChildren(...(SL.Social ? SL.Social.log : []).slice(-6).map(m => { const r = el('div', 'lb-msg'); const tc = window.SLTags && SLTags.chip(m.tag); if (tc) r.append(tc); r.append(el('b', '', { textContent: (m.name || '?') + ': ' }), document.createTextNode(m.text)); return r; })); log.scrollTop = log.scrollHeight; };
   const onChat = m => { drawLog(); if (m && m.name) bubbles.set(m.name, { text: String(m.text).slice(0, 60), until: performance.now() + 5000 }); };
   const send = async () => { const t = inp.value.replace(/\s+/g, ' ').trim(); if (!t) return; err.textContent = ''; try { await SL.Social.send(t); inp.value = ''; } catch (e) { err.textContent = e.message || 'Não foi possível enviar.'; } };
   inp.addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') { e.preventDefault(); send(); } else if (e.key === 'Escape') inp.blur(); }); inp.addEventListener('keyup', e => e.stopPropagation());
@@ -56,7 +56,7 @@ S.register('hub', { title: 'Lobby', sticky: true, noFocus: true, build(p) {
       const px = (i * bg.width - g.cx) * g.s, pw = bg.width * g.s; if (px > g.W || px + pw < 0) continue;
       ctx.save(); ctx.translate(Math.round(px), 0); if (i % 2) { ctx.translate(pw, 0); ctx.scale(-1, 1); } ctx.drawImage(bg, 0, g.oy, Math.ceil(pw) + 1, g.dh); ctx.restore();
     }
-    const sprite = (id, x, face, moving, name, me) => {
+    const sprite = (id, x, face, moving, name, me, tag) => {
       const d = C.get(C.all[id] ? id : Object.keys(C.all)[0]); if (!d || !d.img || !d.img.complete) return;
       const sc = Math.max(2, Math.round(g.dh * .3 / idleH(d))), f = frameOf(d, moving ? 'run' : 'idle', t), fy = g.oy + g.dh * (me ? .8 : .78), sxp = (x - g.cx) * g.s;
       if (!f) return;
@@ -64,8 +64,8 @@ S.register('hub', { title: 'Lobby', sticky: true, noFocus: true, build(p) {
       ctx.save(); ctx.translate(Math.round(sxp), 0); ctx.scale(face < 0 ? -1 : 1, 1);
       ctx.fillStyle = 'rgba(0,0,0,.3)'; ctx.beginPath(); ctx.ellipse(0, fy, f.w * sc * .35, 7 * (g.dh / 887) + 3, 0, 0, 7); ctx.fill();
       ctx.drawImage(d.img, f.x, f.y, f.w, f.h, Math.round(-f.ax * sc), Math.round(fy - f.ay * sc), f.w * sc, f.h * sc); ctx.restore();
-      ctx.font = `bold ${Math.round(g.dh * .04)}px system-ui,sans-serif`; ctx.textAlign = 'center'; ctx.lineWidth = 4; ctx.strokeStyle = '#000b'; ctx.fillStyle = me ? '#ffe27a' : '#fff';
-      const ny = fy - idleH(d) * sc - g.dh * .03; ctx.strokeText(name, sxp, ny); ctx.fillText(name, sxp, ny);
+      const ny = fy - idleH(d) * sc - g.dh * .03; SLTags.drawName(ctx, tag, name, sxp, ny, { size: Math.round(g.dh * .04), color: me ? '#ffe27a' : '#fff', stroke: 4 });
+      ctx.font = `bold ${Math.round(g.dh * .04)}px system-ui,sans-serif`; ctx.textAlign = 'center';
       const b = bubbles.get(name); if (b && b.until > now) {            // balão de fala
         const fs = Math.round(g.dh * .036); ctx.font = `600 ${fs}px system-ui,sans-serif`; const w = Math.min(g.W * .5, ctx.measureText(b.text).width + fs * 1.2), by = ny - fs * 2.2;
         ctx.fillStyle = '#fff'; ctx.strokeStyle = '#2a0a66'; ctx.lineWidth = 3; ctx.beginPath(); ctx.roundRect(sxp - w / 2, by - fs, w, fs * 1.9, fs * .5); ctx.fill(); ctx.stroke();
@@ -73,8 +73,8 @@ S.register('hub', { title: 'Lobby', sticky: true, noFocus: true, build(p) {
       }
     };
     const me = myInfo();
-    for (const q of others.values()) sprite(q.character, q.x, q.f, q.mv2, q.name || 'Jogador', false);
-    sprite(me.character, pos, face, moving, me.name, true);
+    for (const q of others.values()) sprite(q.character, q.x, q.f, q.mv2, q.name || 'Jogador', false, q.tag);
+    sprite(me.character, pos, face, moving, me.name, true, svc.myTag);
   }
   raf = requestAnimationFrame(frame);
   return () => { cancelAnimationFrame(raf); if (joined) svc.hubLeave(); svc.off('hub', onHub); svc.off('status', onStatus); svc.off('chat', onChat); ro.disconnect(); removeEventListener('keydown', kd); removeEventListener('keyup', ku); };

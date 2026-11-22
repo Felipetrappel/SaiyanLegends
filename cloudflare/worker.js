@@ -26,6 +26,12 @@ function wrap(sock) {
 }
 
 /* ───────────────────────── Salas ───────────────────────── */
+/* Tags da equipe: o SERVIDOR decide quem tem tag. Segredo STAFF_CODES (JSON: {"codigo-secreto":"DEV", ...}) definido na Cloudflare. */
+const TAGS = new Set(['DEV', 'ADM', 'GM', 'CM']);
+let STAFF = {};
+const parseStaff = raw => { try { const o = JSON.parse(raw || '{}'), r = {}; for (const [k, v] of Object.entries(o)) if (k.length >= 12 && TAGS.has(String(v).toUpperCase())) r[k] = String(v).toUpperCase(); return r; } catch (_) { return {}; } };
+const staffTag = code => { code = String(code || ''); let found = ''; for (const k of Object.keys(STAFF)) if (k.length === code.length) { let d = 0; for (let i = 0; i < k.length; i++) d |= k.charCodeAt(i) ^ code.charCodeAt(i); if (!d) found = STAFF[k]; } return found; };
+const tagOf = pid => (sessions.get(pid) || {}).tag || '';
 const sessions = new Map();   // pid → { pid, token, name, ws, roomId, timer }
 const rooms = new Map();      // id  → sala
 const clients = new Set();    // conexões abertas (para empurrar a lista de salas)
@@ -33,7 +39,7 @@ const clients = new Set();    // conexões abertas (para empurrar a lista de sal
 const clean = (s, n) => String(s == null ? '' : s).replace(/[\u0000-\u001f\u007f<>]/g, '').trim().slice(0, n);
 const humans = r => r.players.filter(p => !p.bot);
 const snapshot = r => ({ id: r.id, name: r.name, hostId: r.hostId, maxPlayers: r.maxPlayers, map: r.map, state: r.state, loaded: r.loaded.slice(), mode: r.mode || null, locked: !!r.pw, minPlayers: r.minPlayers || MIN_TO_START,
-  players: r.players.map(p => ({ id: p.id, name: p.name, bot: p.bot, character: p.character })) });
+  players: r.players.map(p => ({ id: p.id, name: p.name, bot: p.bot, character: p.character, tag: p.bot ? '' : tagOf(p.id) })) });
 const summary = r => ({ id: r.id, name: r.name, host: (r.players.find(p => p.id === r.hostId) || {}).name || '?', players: r.players.length, max: r.maxPlayers, map: r.map, state: r.state, mode: r.mode || null, locked: !!r.pw, full: r.players.length >= r.maxPlayers && !(r.mode && MODES[r.mode].bots && r.players.some(p => p.bot)) });
 const listAll = () => [...rooms.values()].filter(r => humans(r).length).map(summary).sort((a, b) => a.id.localeCompare(b.id));
 
@@ -83,9 +89,17 @@ const hubLeave = pid => { if (hub.delete(pid)) hubSend(pid, { push: 'hub', t: 'l
 const hubX = v => Math.max(0, Math.min(20000, +v || 0));
 
 const OPS = {
+  /* Ativa a tag da equipe com o código secreto (vazio = remove). */
+  staff(s, m) {
+    const code = String(m.code || '').slice(0, 80), tag = code ? staffTag(code) : '';
+    if (code && !tag) throw E('Código inválido.');
+    s.tag = tag; const h = hub.get(s.pid); if (h) { h.tag = tag; hubSend(s.pid, { push: 'hub', t: 'join', p: h }); }
+    const r = s.roomId && rooms.get(s.roomId); if (r) pushRoom(r);
+    return { tag };
+  },
   hubJoin(s, m) {
     if (!hub.has(s.pid) && hub.size >= HUB_MAX) throw E('Lobby cheio.');
-    const p = { id: s.pid, name: (s.acct ? s.name : clean(m.name, 16)) || s.name || 'Jogador', character: clean(m.character, 24) || 'street', x: hubX(m.x), f: m.f < 0 ? -1 : 1, mv: 0 };
+    const p = { id: s.pid, name: (s.acct ? s.name : clean(m.name, 16)) || s.name || 'Jogador', character: clean(m.character, 24) || 'street', x: hubX(m.x), f: m.f < 0 ? -1 : 1, mv: 0, tag: s.tag || '' };
     hub.set(s.pid, p); hubSend(s.pid, { push: 'hub', t: 'join', p }); return { players: [...hub.values()].filter(q => q.id !== s.pid) };
   },
   hubMove(s, m) { const p = hub.get(s.pid); if (!p) return {}; p.x = hubX(m.x); p.f = m.f < 0 ? -1 : 1; p.mv = m.mv ? 1 : 0; hubSend(s.pid, { push: 'hub', t: 'move', pid: s.pid, x: p.x, f: p.f, mv: p.mv }); return {}; },
@@ -93,7 +107,7 @@ const OPS = {
   chat(s, m) {
     const text = clean(m.text, 120).replace(/\s+/g, ' ').trim(); if (!text) throw E('Escreva uma mensagem.');
     const now = Date.now(); if (now - (s.lastChat || 0) < 700) throw E('Calma! Espere um instante para enviar de novo.'); s.lastChat = now;
-    const msg = { n: ++chatSeq, name: s.acct ? s.name : (clean(m.name, 16) || s.name), lv: Math.max(0, Math.min(999, m.lv | 0)), text, t: now };
+    const msg = { n: ++chatSeq, name: s.acct ? s.name : (clean(m.name, 16) || s.name), lv: Math.max(0, Math.min(999, m.lv | 0)), tag: s.tag || '', text, t: now };
     chatLog.push(msg); if (chatLog.length > 30) chatLog.shift(); broadcast({ push: 'chat', msg }); return {};
   },
   list: () => ({ rooms: listAll() }),
@@ -159,10 +173,11 @@ function handle(ws, text, conn) {
     if (m.acct) { s.acct = true; s.name = clean(m.name, 16) || s.name; if (tok !== s.token) s.token = rnd(16); } else if (s.acct) return ws.send(JSON.stringify({ id: m.id, ok: false, error: 'Identificação já em uso.' }));
     if (s.ws && s.ws !== ws && s.ws.open) { const old = s.ws; old.onclose = null; clients.delete(old); old.send(JSON.stringify({ push: 'replaced' })); old.close(4000); }   // mesma identidade em outra aba/conexão: a nova assume
     clearTimeout(s.timer); s.timer = null; s.ws = ws; conn.s = s;
+    if (m.staff !== undefined) s.tag = staffTag(m.staff);
     const r = s.roomId && rooms.get(s.roomId);
     if (s.roomId && !r) s.roomId = null;
     if (r) log(s.name, 'reconectou à sala', r.id);
-    setImmediate(pushOnline); return ws.send(JSON.stringify({ id: m.id, ok: true, pid, token: s.token, room: r ? snapshot(r) : null, rooms: listAll(), online: onlineCount(), chat: chatLog, server: { maxPlayers: MAX_PLAYERS, maps: MAPS } }));
+    setTimeout(pushOnline, 0); return ws.send(JSON.stringify({ id: m.id, ok: true, pid, token: s.token, tag: s.tag || '', room: r ? snapshot(r) : null, rooms: listAll(), online: onlineCount(), chat: chatLog, server: { maxPlayers: MAX_PLAYERS, maps: MAPS } }));
   }
   const s = conn.s; if (!s) return ws.send(JSON.stringify({ id: m.id, ok: false, error: 'Envie hello primeiro.' }));
   if (m.op === 'relay') return relay(s, m);
@@ -182,6 +197,7 @@ function accept(sock) {
   ws.onclose = () => { clearInterval(tick); clients.delete(ws); const s = conn.s; if (s && s.ws === ws) { s.ws = null; hubLeave(s.pid); disconnected(s); } setTimeout(pushOnline, 0); };
 }
 export class World extends DurableObject {
+  constructor(ctx, env) { super(ctx, env); STAFF = parseStaff(env.STAFF_CODES); }
   async fetch(request) {
     const pair = new WebSocketPair(), [client, server] = Object.values(pair);
     accept(server);
