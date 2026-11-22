@@ -197,7 +197,7 @@ S.register('store', { build(p) {
 } });
 
 /* Atalho de teste: abre o jogo com #collision (segue o fluxo: sala → mapa → START GAME → carrega o mapa). */
-if (location.hash === '#collision') rooms.createRoom().then(() => rooms.openMapSelection()).then(() => rooms.setMap('forest')).then(() => rooms.startGame()).then(() => S.open('lobby')).catch(console.error);
+if (location.hash === '#collision') rooms.createRoom().then(() => rooms.openMapSelection()).then(() => rooms.setMap('swamp')).then(() => rooms.startGame()).then(() => S.open('lobby')).catch(console.error);
 
 /* Recarregou a página no meio de uma sala? O servidor guarda a vaga por alguns segundos: volta para a mesma sala/partida. */
 rooms.resume().then(r => { if (r) S.open('lobby'); }).catch(() => {});

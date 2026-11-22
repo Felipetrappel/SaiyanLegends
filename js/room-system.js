@@ -8,7 +8,7 @@
 (() => {
 'use strict';
 const RoomState = Object.freeze({ WAITING: 'WAITING', MAP_SELECTION: 'MAP_SELECTION', READY: 'READY', STARTING: 'STARTING', IN_GAME: 'IN_GAME', FINISHED: 'FINISHED' });
-const MAPS = Object.freeze([{ id: 'forest', name: 'FOREST' }, { id: 'ruins', name: 'RUINS' }, { id: 'natal', name: 'NATAL' }]);
+const MAPS = Object.freeze([{ id: 'swamp', name: 'PÂNTANO' }]);
 const LIMITS = Object.freeze({ maxPlayers: 8, minToStart: 1 });
 /* Modos de sala (mantenha igual a MODES em server/server.js). min/max = jogadores permitidos na sala; start = mínimo para o host iniciar. */
 const MODES = Object.freeze({

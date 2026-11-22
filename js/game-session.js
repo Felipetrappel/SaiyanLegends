@@ -5,9 +5,7 @@ const { Emitter, RoomState } = SL;
 
 /* Dados dos mapas. Arte e máscara têm a MESMA resolução e coordenadas 1:1; a máscara nunca é exibida. */
 const MAP_DATA = {
-  forest: { art: 'assets/maps/forest.png', mask: 'assets/maps/forest_collision.png', w: 1672, h: 941, spawn: { x: 250, y: 250, y0: 250 } },
-  natal: { art: 'assets/maps/natal.png', mask: 'assets/maps/natal_collision.png', w: 2172, h: 724, spawn: { x: 900, y: 300, y0: 300 } },   // só as plataformas (neve + rocha) têm colisão
-  ruins: { art: 'assets/maps/ruins.png', mask: 'assets/maps/ruins_collision.png', w: 1672, h: 941, spawn: { x: 1100, y: 300, y0: 300 } }   // y0: o nascimento procura o chão a partir dessa altura (há um teto no topo esquerdo)
+  swamp: { art: 'assets/maps/swamp.png', mask: 'assets/maps/swamp_collision.png', w: 1672, h: 941, spawn: { x: 800, y: 300, y0: 300 } }   // chão de pedra na parte de baixo
 };
 const loadImg = src => new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = () => rej(new Error('Falha ao carregar a imagem do mapa.')); i.src = src; });
 
