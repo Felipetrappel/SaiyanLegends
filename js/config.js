@@ -11,4 +11,4 @@
  */
 window.SL_CONFIG = Object.assign({ serverUrl: '' }, window.SL_CONFIG);
 /* App Android (Capacitor): a página roda em https://localhost, sem servidor próprio — aponta para o servidor de salas na internet. */
-if (!window.SL_CONFIG.serverUrl && location.protocol === 'https:' && location.hostname === 'localhost') window.SL_CONFIG.serverUrl = 'wss://saiyanlegends.onrender.com/ws';
+if (!window.SL_CONFIG.serverUrl && location.protocol === 'https:' && location.hostname === 'localhost') window.SL_CONFIG.serverUrl = 'wss://saiyanlegends.saiyanlegends.workers.dev/ws';
