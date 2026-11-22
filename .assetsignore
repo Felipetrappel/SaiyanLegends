@@ -11,3 +11,7 @@ wrangler.jsonc
 .gitignore
 render.yaml
 serve.py
+.git
+.wrangler
+bun.lock
+bun.lockb
