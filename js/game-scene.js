@@ -191,7 +191,7 @@ class GameScene {
   }
   draw() {
     const { ctx, cv } = this, W = cv.width, H = cv.height, m = this.map, dw = m.def.w, dh = m.def.h, b = this.me.body, w = this.world;
-    const kick = w.kick || 0, s = Math.max(H / dh, W / 1100) * 1.4 * (1 + kick), vw = W / s, vh = H / s;     // câmera mais perto (x1.4) + "soquinho" de zoom nos impactos
+    const kick = w.kick || 0, s = Math.max(H / dh, W / 1100) * 2.0 * (1 + kick), vw = W / s, vh = H / s;     // câmera mais perto (x2.0) + "soquinho" de zoom nos impactos
     const sh = w.shake || 0, ox = sh > .3 ? (Math.random() - .5) * 2 * sh : 0, oy = sh > .3 ? (Math.random() - .5) * 2 * sh : 0;   // tremor de tela
     const cx = Math.floor(Math.min(Math.max(b.x - vw / 2 + ox, 0), Math.max(0, dw - vw))), cy = Math.floor(Math.min(Math.max(b.y - b.h / 2 - vh / 2 + oy, 0), Math.max(0, dh - vh)));
     ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.imageSmoothingEnabled = false; ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W, H);
