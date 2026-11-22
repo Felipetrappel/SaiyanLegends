@@ -255,7 +255,7 @@ class Fighter {
     if (this.state === 'meditate') this.set('idle');                                                 // levar dano interrompe a meditação
     if (this.state === 'big' && !this.fired) { this.acd.big = 1.5; this.set('idle'); }                  // levar dano interrompe o carregamento do PODER GRANDE
     dmg /= this.defMul || 1; const guarded = this.state === 'shield' && dir === -this.face; if (guarded) dmg *= 1 - CFG.shieldReduce;
-    this.hp = Math.max(0, this.hp - dmg); this.flash = .25; if (window.SaiyanSFX && !guarded) SaiyanSFX.play('hit'); this.kb = dir * kb * (guarded ? .3 : 1);
+    this.hp = Math.max(0, this.hp - dmg); this.flash = .25; if (window.SaiyanSFX && !guarded) SaiyanSFX.play('hit'); if (this.world) { const W = this.world, big = Math.min(1, dmg / 30); W.shake = Math.max(W.shake || 0, (guarded ? 2 : 3 + 7 * big) * (this.me || (by && by.me) ? 1 : .5)); W.kick = Math.max(W.kick || 0, (guarded ? .005 : .015 + .04 * big)); } this.kb = dir * kb * (guarded ? .3 : 1);
     if (this.world) this.world.fx.push({ x: this.body.x, y: this.body.y - 52, txt: String(Math.round(dmg)), t: 0 });
     if (this.hp <= 0) { this.dead = true; this.rt = CFG.respawn; this.endForm(); this.set('idle'); return; }
     const A = this.def.anims;                                                                          // reações com quadros próprios (prioridade: ataque em andamento > reação)

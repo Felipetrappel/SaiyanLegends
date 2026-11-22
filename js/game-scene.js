@@ -169,7 +169,7 @@ class GameScene {
     }
     if (this.me.body.flying && !this.me.dead && SL.Profile) { this.flyT = (this.flyT || 0) + dt; if (this.flyT >= 1) { this.flyT -= 1; const md = SL.Profile.progress('fly', 1); if (md) w.fx.push({ x: this.me.body.x, y: this.me.body.y - 92, txt: 'MISSÃO: +' + md.gems + ' diamantes', t: 0 }); } }   // missão: voar
     w.fx.forEach(x => { x.t += dt; }); w.fx = w.fx.filter(x => x.t < .8);
-    w.effects.forEach(e => e.update(dt)); w.effects = w.effects.filter(e => !e.dead);
+    w.shake = (w.shake || 0) * Math.exp(-dt * 9); w.kick = (w.kick || 0) * Math.exp(-dt * 8); w.effects.forEach(e => e.update(dt)); w.effects = w.effects.filter(e => !e.dead);
   }
   updateUI() {
     if (!this.ui) return; const m = this.me, C = SL.CombatCFG, U = this.ui, A = SL.ABILITIES;
@@ -191,8 +191,9 @@ class GameScene {
   }
   draw() {
     const { ctx, cv } = this, W = cv.width, H = cv.height, m = this.map, dw = m.def.w, dh = m.def.h, b = this.me.body, w = this.world;
-    const s = Math.max(H / dh, W / 1100), vw = W / s, vh = H / s;
-    const cx = Math.floor(Math.min(Math.max(b.x - vw / 2, 0), Math.max(0, dw - vw))), cy = Math.floor(Math.min(Math.max(b.y - b.h / 2 - vh / 2, 0), Math.max(0, dh - vh)));
+    const kick = w.kick || 0, s = Math.max(H / dh, W / 1100) * 1.4 * (1 + kick), vw = W / s, vh = H / s;     // câmera mais perto (x1.4) + "soquinho" de zoom nos impactos
+    const sh = w.shake || 0, ox = sh > .3 ? (Math.random() - .5) * 2 * sh : 0, oy = sh > .3 ? (Math.random() - .5) * 2 * sh : 0;   // tremor de tela
+    const cx = Math.floor(Math.min(Math.max(b.x - vw / 2 + ox, 0), Math.max(0, dw - vw))), cy = Math.floor(Math.min(Math.max(b.y - b.h / 2 - vh / 2 + oy, 0), Math.max(0, dh - vh)));
     ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.imageSmoothingEnabled = false; ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W, H);
     ctx.drawImage(m.art, cx, cy, vw, vh, 0, 0, W, H);
     if (this.debug) for (const c of [1, 2, 3]) if (this.layers[c]) ctx.drawImage(this.layer(c), cx, cy, vw, vh, 0, 0, W, H);
