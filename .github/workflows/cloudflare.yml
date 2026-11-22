@@ -10,8 +10,16 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with: { node-version: 20 }
+      - name: Limpar o token (tira espaços e quebras de linha coladas junto)
+        env:
+          RAW: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          T=$(printf '%s' "$RAW" | grep -oE '[A-Za-z0-9_-]{40}' | head -n1)
+          if [ -z "$T" ]; then T=$(printf '%s' "$RAW" | tr -d '[:space:]'); fi
+          echo "::add-mask::$T"
+          echo "Token: ${#T} caracteres"
+          echo "CLOUDFLARE_API_TOKEN=$T" >> "$GITHUB_ENV"
       - name: Publicar (wrangler deploy)
         run: npx --yes wrangler@4 deploy
         env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ce91b6e6d2ce338af5ebd71da0db49f7
