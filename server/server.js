@@ -129,7 +129,20 @@ function broadcast(o) { const out = JSON.stringify(o); for (const ws of clients)
 function onlineCount() { let n = 0; for (const s of sessions.values()) if (s.ws && s.ws.open) n++; return n; }
 const pushOnline = () => broadcast({ push: 'online', n: onlineCount() });
 
+/* ── Lobby (hub): jogadores conectados andando juntos na cidade. Só posição/nome/personagem; o chat usa o chat global. ── */
+const hub = new Map(), HUB_MAX = 60;
+const hubSend = (except, obj) => { const out = JSON.stringify(obj); for (const pid of hub.keys()) if (pid !== except) { const o = sessions.get(pid); if (o && o.ws && o.ws.open) o.ws.send(out); } };
+const hubLeave = pid => { if (hub.delete(pid)) hubSend(pid, { push: 'hub', t: 'leave', pid }); };
+const hubX = v => Math.max(0, Math.min(20000, +v || 0));
+
 const OPS = {
+  hubJoin(s, m) {
+    if (!hub.has(s.pid) && hub.size >= HUB_MAX) throw E('Lobby cheio.');
+    const p = { id: s.pid, name: (s.acct ? s.name : clean(m.name, 16)) || s.name || 'Jogador', character: clean(m.character, 24) || 'street', x: hubX(m.x), f: m.f < 0 ? -1 : 1, mv: 0 };
+    hub.set(s.pid, p); hubSend(s.pid, { push: 'hub', t: 'join', p }); return { players: [...hub.values()].filter(q => q.id !== s.pid) };
+  },
+  hubMove(s, m) { const p = hub.get(s.pid); if (!p) return {}; p.x = hubX(m.x); p.f = m.f < 0 ? -1 : 1; p.mv = m.mv ? 1 : 0; hubSend(s.pid, { push: 'hub', t: 'move', pid: s.pid, x: p.x, f: p.f, mv: p.mv }); return {}; },
+  hubLeave(s) { hubLeave(s.pid); return {}; },
   chat(s, m) {
     const text = clean(m.text, 120).replace(/\s+/g, ' ').trim(); if (!text) throw E('Escreva uma mensagem.');
     const now = Date.now(); if (now - (s.lastChat || 0) < 700) throw E('Calma! Espere um instante para enviar de novo.'); s.lastChat = now;
@@ -248,7 +261,7 @@ server.on('upgrade', (req, socket) => {
   clients.add(ws);
   const tick = setInterval(() => { conn.rate.n = 0; }, 1000);
   ws.onmessage = t => handle(ws, t, conn);
-  ws.onclose = () => { clearInterval(tick); clients.delete(ws); const s = conn.s; if (s && s.ws === ws) { s.ws = null; disconnected(s); } setImmediate(pushOnline); };
+  ws.onclose = () => { clearInterval(tick); clients.delete(ws); const s = conn.s; if (s && s.ws === ws) { s.ws = null; hubLeave(s.pid); disconnected(s); } setImmediate(pushOnline); };
 });
 /* Heartbeat: quem não responde ao ping por 2 intervalos é considerado desconectado (entra no prazo de tolerância). */
 setInterval(() => { for (const ws of clients) { if (!ws.alive) { ws.socket.destroy(); ws._closed(); continue; } ws.alive = false; ws.ping(); } }, PING_MS).unref();

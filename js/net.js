@@ -67,6 +67,7 @@ class RemoteRoomService extends Emitter {
     else if (m.push === 'relay') this.emit('relay', { from: m.from, data: m.data });
     else if (m.push === 'chat') this.emit('chat', m.msg);
     else if (m.push === 'online') this.emit('online', m.n);
+    else if (m.push === 'hub') this.emit('hub', m);
     else if (m.push === 'replaced') { this.dead = true; this.online = false; this.emit('replaced'); this.emit('status', this); }
   }
   resume() { const r = this.resumed; this.resumed = null; return Promise.resolve(r); }
@@ -77,6 +78,9 @@ class RemoteRoomService extends Emitter {
   async joinRoom(id, player, password) { const r = (await this._req('join', { room: String(id).trim(), password: password || '', player: { name: player.name, character: player.character } })).room; this.current = r.id; return r; }
   async leaveRoom() { this.current = null; try { await this._req('leave'); } catch (_) {} }
   relay(data) { this._raw({ op: 'relay', data }); }
+  async hubJoin(info) { return (await this._req('hubJoin', info)).players || []; }
+  hubMove(x, f, mv) { this._raw({ op: 'hubMove', x, f, mv: mv ? 1 : 0 }); }
+  hubLeave() { this._raw({ op: 'hubLeave' }); }
   sendChat(text, lv, name) { return this._req('chat', { text, lv, name }); }
   _op(op, extra) { return this._req(op, extra).then(r => r.room); }
   beginMapSelection() { return this._op('beginMapSelection'); }
@@ -105,7 +109,7 @@ class AutoService extends Emitter {
     try {
       const r = new RemoteRoomService(this.url, this.ident); await r.connect();
       r.on('rooms', l => this.emit('rooms', l)); r.on('relay', e => this.emit('relay', e)); r.on('status', () => this.emit('status')); r.on('replaced', () => this.emit('replaced')); r.on('chat', c => this.emit('chat', c)); r.on('online', n => this.emit('online', n));
-      this.impl = r; this.reason = '';
+      r.on('hub', e => this.emit('hub', e)); this.impl = r; this.reason = '';
     } catch (e) { this.reason = e.message; }
     this.emit('status');
   }
@@ -113,6 +117,10 @@ class AutoService extends Emitter {
   resume() { return this.ready.then(() => this.impl.resume ? this.impl.resume() : null); }
   subscribe(id, fn) { return this.impl.subscribe(id, fn); }
   relay(d) { this.impl.relay && this.impl.relay(d); }
+  /* lobby: só funciona online; offline você anda sozinho */
+  async hubJoin(info) { await this.ready; return this.mode === 'online' && this.impl.hubJoin ? this.impl.hubJoin(info) : null; }
+  hubMove(x, f, mv) { if (this.mode === 'online' && this.impl.hubMove) this.impl.hubMove(x, f, mv); }
+  hubLeave() { if (this.mode === 'online' && this.impl.hubLeave) this.impl.hubLeave(); }
   /* chat global: online vai para todos; offline só aparece para você (eco local) */
   async sendChat(text, lv, name) { await this.ready; if (this.mode === 'online' && this.impl.sendChat) return this.impl.sendChat(text, lv, name); this.emit('chat', { n: 'l' + Date.now(), name, lv, text, t: Date.now(), local: true }); }
   onRooms(fn) { this.on('rooms', fn); return () => this.off('rooms', fn); }

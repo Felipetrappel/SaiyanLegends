@@ -509,3 +509,10 @@ button.rm-card{cursor:pointer;padding:0;text-align:center}
 .lb-btn{position:absolute;top:14px;height:56px;padding:0 22px;border-radius:12px;font-size:22px;font-weight:900;letter-spacing:1px;color:#fff;background:linear-gradient(#7a4dff,#3d1fa8);border:3px solid #f3c744;text-shadow:0 2px 0 #000;box-shadow:0 4px 10px #0008}
 .lb-back{left:16px}.lb-sw{right:16px}.lb-btn:hover{filter:brightness(1.2)}
 .lb-hint{position:absolute;left:0;right:0;bottom:12px;text-align:center;font:600 17px system-ui,sans-serif;color:#fff;text-shadow:0 2px 4px #000;pointer-events:none;opacity:.85}
+.lb-cnt{position:absolute;top:22px;left:50%;transform:translateX(-50%);padding:8px 18px;border-radius:20px;background:#12052acc;border:2px solid #f3c744;font:700 18px system-ui,sans-serif;color:#fff;white-space:nowrap}
+.lb-chat{position:absolute;left:14px;top:84px;width:min(380px,58vw);display:flex;flex-direction:column;gap:6px}
+.lb-log{max-height:150px;overflow:hidden;display:flex;flex-direction:column;justify-content:flex-end;gap:2px;padding:6px 10px;border-radius:10px;background:#12052a99;font:600 15px system-ui,sans-serif;color:#fff;text-shadow:0 1px 2px #000;min-height:24px}
+.lb-msg b{color:#ffe27a}.lb-crow{display:flex;gap:6px}
+.lb-in{flex:1;min-width:0;height:44px;padding:0 12px;border-radius:10px;border:2px solid #7a4dff;background:#12052acc;color:#fff;font:600 16px system-ui,sans-serif;outline:none}
+.lb-in:focus{border-color:#f3c744}.lb-send{width:48px;height:44px;border-radius:10px;border:2px solid #f3c744;background:linear-gradient(#7a4dff,#3d1fa8);color:#fff;font-size:20px}
+.lb-err{font:600 14px system-ui,sans-serif;color:#ff9a9a;min-height:0}
