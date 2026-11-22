@@ -1,0 +1,13 @@
+server
+cloudflare
+.github
+desktop
+screenshots
+node_modules
+*.md
+package.json
+package-lock.json
+wrangler.jsonc
+.gitignore
+render.yaml
+serve.py
