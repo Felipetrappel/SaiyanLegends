@@ -518,7 +518,7 @@ button.rm-card{cursor:pointer;padding:0;text-align:center}
 .lb-err{font:600 14px system-ui,sans-serif;color:#ff9a9a;min-height:0}
 
 /* ═══ Tags da equipe (js/tags.js) ═══ */
-.sl-tag{display:inline-block;margin-right:5px;padding:0 5px;border:1px solid;border-radius:4px;font:800 .78em/1.35 system-ui,sans-serif;letter-spacing:.3px;vertical-align:baseline;white-space:nowrap}
+.sl-tag{display:inline-block;height:1.7em;width:auto;margin-right:5px;vertical-align:middle;object-fit:contain;pointer-events:none}
 .cf-staff{display:flex;gap:8px;flex-wrap:wrap}.cf-sin{flex:1;min-width:180px;height:48px;padding:0 12px;border-radius:8px;border:2px solid #7a4dff;background:#12052acc;color:#fff;font:600 18px system-ui,sans-serif;outline:none}
 .cf-sbtn{height:48px;padding:0 18px;border-radius:8px;border:2px solid #fff1a8;background:linear-gradient(#ffd75a,#e29a10);color:#2a1000;font:900 18px system-ui,sans-serif}.cf-sbtn.alt{background:linear-gradient(#7a4dff,#3d1fa8);color:#fff;border-color:#c06bd8}
 .cf-tab{height:68px!important}.cf-nav{gap:8px!important}

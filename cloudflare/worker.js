@@ -28,7 +28,7 @@ function wrap(sock) {
 
 /* ───────────────────────── Salas ───────────────────────── */
 /* Tags da equipe: o SERVIDOR decide quem tem tag. Segredo STAFF_CODES (JSON: {"codigo-secreto":"DEV", ...}) definido na Cloudflare. */
-const TAGS = new Set(['DEV', 'ADM', 'GM', 'CM']);
+const TAGS = new Set(['DEV', 'ADM', 'GM', 'CM', 'YT']);
 let STAFF = {};
 const parseStaff = raw => { try { const o = JSON.parse(raw || '{}'), r = {}; for (const [k, v] of Object.entries(o)) if (k.length >= 12 && TAGS.has(String(v).toUpperCase())) r[k] = String(v).toUpperCase(); return r; } catch (_) { return {}; } };
 const staffTag = code => { code = String(code || ''); let found = ''; for (const k of Object.keys(STAFF)) if (k.length === code.length) { let d = 0; for (let i = 0; i < k.length; i++) d |= k.charCodeAt(i) ^ code.charCodeAt(i); if (!d) found = STAFF[k]; } return found; };
