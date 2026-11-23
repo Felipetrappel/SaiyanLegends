@@ -462,6 +462,7 @@ class Fighter {
     if (this.state === 'big' && !this.fired) { const tot = bigSeq(this.def).reduce((a, q) => a + q.dur, 0) - bigSeq(this.def).slice(-1)[0].dur, u = Math.min(1, this.t / tot), h = this.hand(fi) || this.chest(); drawOrb(ctx, h.x, h.y - 4, 2 + 9 * u, this.t, PAL[this.def.bigPal] || PAL.pink); }   // esfera crescendo na mão enquanto carrega
     if (bl && !behind) drawOrb(ctx, bl.x + sh, bl.y, bl.r, this.t);
     if (this.state === 'sun' && !this.fired && !this.def.bakedAura) { const c = this.chest(); drawOrb(ctx, c.x + this.face * 4, c.y, 2 + 8 * Math.min(1, this.t / .6), this.t, PAL.yellow); }   // esfera solar crescendo na mão                                                 // lançando: esfera à frente do braço
+    if (this.me) { if (window.SLTags && this.player.name) { const top = b.y - f.ay - 6; ctx.textAlign = 'center'; SLTags.drawName(ctx, this.player.tag || (window.SL && SL.Net && SL.Net.myTag) || '', this.player.name, b.x, top - 3, { size: 8, color: '#ffe27a', stroke: 2 }); } }   // nome + TAG também no próprio jogador
     if (!this.me) {
       const top = b.y - f.ay - 6, w = 28; ctx.fillStyle = '#10042a'; ctx.fillRect(b.x - w / 2 - 1, top - 1, w + 2, 5);
       ctx.fillStyle = '#e0304f'; ctx.fillRect(b.x - w / 2, top, w * Math.max(0, this.hp / CFG.hp), 3);

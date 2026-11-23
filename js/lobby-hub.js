@@ -58,7 +58,7 @@ S.register('hub', { title: 'Lobby', sticky: true, noFocus: true, build(p) {
     }
     const sprite = (id, x, face, moving, name, me, tag) => {
       const d = C.get(C.all[id] ? id : Object.keys(C.all)[0]); if (!d || !d.img || !d.img.complete) return;
-      const sc = Math.max(2, Math.round(g.dh * .3 / idleH(d))), f = frameOf(d, moving ? 'run' : 'idle', t), fy = g.oy + g.dh * (me ? .8 : .78), sxp = (x - g.cx) * g.s;
+      const sc = Math.max(1, g.H * .14 / idleH(d)), f = frameOf(d, moving ? 'run' : 'idle', t), fy = g.oy + g.dh * (me ? .8 : .78), sxp = (x - g.cx) * g.s;
       if (!f) return;
       if (sxp < -200 || sxp > g.W + 200) return;
       ctx.save(); ctx.translate(Math.round(sxp), 0); ctx.scale(face < 0 ? -1 : 1, 1);

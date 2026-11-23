@@ -47,7 +47,7 @@ const ICON_OFF = '<svg viewBox="0 0 48 48"><path d="M7 19h8l10-9v28L15 29H7z" fi
 const paintSound = () => { const m = window.SaiyanAudio && SaiyanAudio.state && SaiyanAudio.state.muted; snd.innerHTML = m ? ICON_OFF : ICON_ON; const b = stage.querySelector('[data-id=sound]'); if (b) b.setAttribute('aria-pressed', m ? 'true' : 'false'); };
 
 /* personagem escolhido, na rua */
-const cc = el('canvas', 'mv2-char'); cc.width = 360; cc.height = 300; pos(cc, [660, 380, 360, 300]); stage.append(cc);
+const cc = el('canvas', 'mv2-char'); cc.width = 360; cc.height = 450; pos(cc, [756, 230, 360, 450]); stage.append(cc);
 
 /* botões */
 HS.forEach(h => {
@@ -89,9 +89,9 @@ if (window.SaiyanAudio && SaiyanAudio.on) SaiyanAudio.on('change', paintSound);
 let tPrev = 0; const t0 = performance.now();
 function loop(now) {
   requestAnimationFrame(loop); if (now - tPrev < 80 || document.hidden || S.isOpen) return; tPrev = now;
-  const ctx = cc.getContext('2d'), d = C.get(P.picked ? P.selected : C.DEFAULT); ctx.clearRect(0, 0, 360, 300);
-  const f = d.anims.idle.f.map(i => d.frames[i].h), sc = Math.max(2, Math.min(5, Math.round(190 / Math.max(...f))));
-  window.SL.drawCharIdle && window.SL.drawCharIdle(ctx, d, (now - t0) / 1000, 180, 286, sc);
+  const ctx = cc.getContext('2d'), d = C.get(P.picked ? P.selected : C.DEFAULT); ctx.clearRect(0, 0, 360, 450);
+  const f = d.anims.idle.f.map(i => d.frames[i].h), sc = 400 / Math.max(...f);   // altura fixa: ~47% da tela (como na referência)
+  window.SL.drawCharIdle && window.SL.drawCharIdle(ctx, d, (now - t0) / 1000, 180, 434, sc);
 }
 
 /* liga */
