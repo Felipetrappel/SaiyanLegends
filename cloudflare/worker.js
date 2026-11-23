@@ -33,6 +33,63 @@ let STAFF = {};
 const parseStaff = raw => { try { const o = JSON.parse(raw || '{}'), r = {}; for (const [k, v] of Object.entries(o)) if (k.length >= 12 && TAGS.has(String(v).toUpperCase())) r[k] = String(v).toUpperCase(); return r; } catch (_) { return {}; } };
 const staffTag = code => { code = String(code || ''); let found = ''; for (const k of Object.keys(STAFF)) if (k.length === code.length) { let d = 0; for (let i = 0; i < k.length; i++) d |= k.charCodeAt(i) ^ code.charCodeAt(i); if (!d) found = STAFF[k]; } return found; };
 const tagOf = pid => (sessions.get(pid) || {}).tag || '';
+/* Tags dadas por comando (/tag): guardadas na conta (D1), valem em qualquer aparelho. */
+let tagsReady = null;
+const tagsInit = () => tagsReady || (tagsReady = ENV.DB.prepare('CREATE TABLE IF NOT EXISTS acct_tags (uid TEXT PRIMARY KEY, tag TEXT NOT NULL)').run().catch(e => { tagsReady = null; throw e; }));
+const loadTag = async acc => { try { if (!acc || !ENV.DB) return ''; await tagsInit(); const r = await ENV.DB.prepare('SELECT tag FROM acct_tags WHERE uid = ?1').bind(String(acc.id)).first(); return r && TAGS.has(r.tag) ? r.tag : ''; } catch (_) { return ''; } };
+const saveTag = async (uid, tag) => { await tagsInit(); if (tag) await ENV.DB.prepare('INSERT INTO acct_tags (uid, tag) VALUES (?1, ?2) ON CONFLICT(uid) DO UPDATE SET tag = ?2').bind(String(uid), tag).run(); else await ENV.DB.prepare('DELETE FROM acct_tags WHERE uid = ?1').bind(String(uid)).run(); };
+const setTagLive = (t, tag) => {   // aplica a tag num jogador conectado e avisa todo mundo
+  t.tag = tag; if (t.account) t.dbTag = tag; const h = hub.get(t.pid); if (h) { h.tag = tag; hubSend(t.pid, { push: 'hub', t: 'join', p: h }); }
+  sendTo(t.pid, { push: 'tag', tag }); const r = t.roomId && rooms.get(t.roomId); if (r) pushRoom(r);
+};
+/* ── Comandos de administração (só <DEV> e <ADM>, validados aqui no servidor) ── */
+const RANK = { DEV: 3, ADM: 2 }, CAP = 1e9;
+const sysMsg = (s, text) => sendTo(s.pid, { push: 'chat', msg: { n: 's' + Date.now() + Math.random().toString(36).slice(2, 5), name: 'Sistema', lv: 0, tag: '', text, t: Date.now() } });
+const HELP = ['/moedas <jogador> <qtd>   (negativo tira)', '/diamantes <jogador> <qtd>', '/nivel <jogador> <n|+n|-n>', '/tag <jogador> <DEV|ADM|GM|CM|YT|nenhuma>', 'Use "eu" para você mesmo.'];
+async function findTarget(name) {
+  const lc = String(name || '').toLowerCase(); if (!lc) return null;
+  for (const t of sessions.values()) if (t.name && t.name.toLowerCase() === lc && t.ws && t.ws.open) return { online: t, name: t.name, uid: t.account ? String(t.account.id) : '' };
+  if (!ENV.DB) return null;
+  const u = await ENV.DB.prepare('SELECT id, name FROM users WHERE name_lc = ?1').bind(lc).first();
+  return u ? { online: null, name: u.name, uid: String(u.id) } : null;
+}
+async function adminCmd(s, text) {
+  const [cmd0, ...a] = text.slice(1).split(/\s+/), cmd = cmd0.toLowerCase();
+  const rank = RANK[s.tag] || 0;
+  if (!rank) return sysMsg(s, 'Você não tem permissão para usar comandos.');
+  if (cmd === 'ajuda' || cmd === 'help') return HELP.forEach(l => sysMsg(s, l));
+  if (!['moedas', 'diamantes', 'nivel', 'nível', 'tag'].includes(cmd)) return sysMsg(s, 'Comando desconhecido. Use /ajuda.');
+  const who = a[0] === 'eu' || a[0] === 'me' ? s.name : a[0]; if (!who || a[1] === undefined) return sysMsg(s, 'Uso incorreto. Use /ajuda.');
+  const tg = await findTarget(who); if (!tg) return sysMsg(s, 'Jogador "' + clean(who, 16) + '" não encontrado.');
+  if (cmd === 'tag') {
+    const want = /^(nenhuma|none|remover|-)$/i.test(a[1]) ? '' : a[1].toUpperCase();
+    if (want && !TAGS.has(want)) return sysMsg(s, 'Tag inválida. Use DEV, ADM, GM, CM, YT ou nenhuma.');
+    const cur = tg.online ? tg.online.tag || '' : (tg.uid ? await loadTag({ id: tg.uid }) : '');
+    if ((RANK[want] || 0) >= rank && rank < 3) return sysMsg(s, 'Só um <DEV> pode dar a tag ' + want + '.');
+    if ((RANK[cur] || 0) >= rank && rank < 3 && tg.name !== s.name) return sysMsg(s, 'Você não pode mudar a tag de ' + tg.name + '.');
+    if (!tg.uid && !tg.online) return sysMsg(s, 'Jogador não encontrado.');
+    if (tg.uid) await saveTag(tg.uid, want);
+    if (tg.online) setTagLive(tg.online, want);
+    console.log('[admin]', s.name, s.tag, 'tag', tg.name, want || '-'); return sysMsg(s, want ? 'Tag <' + want + '> dada a ' + tg.name + '.' : 'Tag removida de ' + tg.name + '.');
+  }
+  const raw = a[1], rel = /^[+-]/.test(raw), n = Math.trunc(Number(raw)); if (!Number.isFinite(n) || Math.abs(n) > CAP) return sysMsg(s, 'Quantidade inválida.');
+  const g = { gold: 0, gems: 0 }; let lvSet = -1, lvDelta = 0;
+  if (cmd === 'moedas') g.gold = n; else if (cmd === 'diamantes') g.gems = n;
+  else if (rel) lvDelta = n; else lvSet = Math.max(0, Math.min(999, n));
+  if (tg.online) { sendTo(tg.online.pid, { push: 'grant', gold: g.gold, gems: g.gems, level: lvSet, dlevel: lvDelta }); }
+  else {   // fora do jogo: altera o progresso salvo na conta
+    if (!tg.uid || !ENV.DB) return sysMsg(s, 'Não foi possível alterar ' + tg.name + '.');
+    await dbInit(); const id = 'a:' + tg.uid, row = await ENV.DB.prepare('SELECT progress FROM players WHERE id = ?1').bind(id).first();
+    if (!row) return sysMsg(s, tg.name + ' ainda não tem progresso salvo.');
+    const p = JSON.parse(row.progress), up = k => Math.max(0, Math.min(CAP, Math.floor((+p[k] || 0) + g[k === 'gold' ? 'gold' : 'gems'])));
+    if (g.gold) p.gold = up('gold'); if (g.gems) p.gems = up('gems');
+    if (lvSet >= 0 || lvDelta) { const L = lvSet >= 0 ? lvSet : Math.max(0, Math.min(999, Math.floor(Math.sqrt((+p.xp || 0) / 100)) + lvDelta)); p.xp = 100 * L * L; p.level = L; }
+    await ENV.DB.prepare('UPDATE players SET progress = ?2, rev = rev + 1, updated = ?3 WHERE id = ?1').bind(id, JSON.stringify(p), Date.now()).run();
+  }
+  console.log('[admin]', s.name, s.tag, cmd, tg.name, raw);
+  const lbl = cmd === 'moedas' ? 'moedas' : cmd === 'diamantes' ? 'diamantes' : 'nível';
+  return sysMsg(s, 'OK: ' + lbl + ' ' + raw + ' → ' + tg.name + (tg.online ? '' : ' (offline)') + '.');
+}
 /* ── Banco de dados (Cloudflare D1): progresso do jogador. A chave secreta (40 hex) fica no aparelho; o servidor só guarda o SHA-256 dela. ── */
 let ENV = {}, dbReady = null;
 const sha = async t => [...new Uint8Array(await crypto.subtle.digest('SHA-256', enc.encode(t)))].map(b => b.toString(16).padStart(2, '0')).join('');
@@ -113,7 +170,7 @@ const OPS = {
   staff(s, m) {
     const code = String(m.code || '').slice(0, 80), tag = code ? staffTag(code) : '';
     if (code && !tag) throw E('Código inválido.');
-    s.tag = tag; const h = hub.get(s.pid); if (h) { h.tag = tag; hubSend(s.pid, { push: 'hub', t: 'join', p: h }); }
+    s.tag = tag || s.dbTag || ''; const h = hub.get(s.pid); if (h) { h.tag = tag; hubSend(s.pid, { push: 'hub', t: 'join', p: h }); }
     const r = s.roomId && rooms.get(s.roomId); if (r) pushRoom(r);
     return { tag };
   },
@@ -126,6 +183,7 @@ const OPS = {
   hubLeave(s) { hubLeave(s.pid); return {}; },
   chat(s, m) {
     const text = clean(m.text, 120).replace(/\s+/g, ' ').trim(); if (!text) throw E('Escreva uma mensagem.');
+    if (text[0] === '/') return adminCmd(s, text).then(() => ({})).catch(e => { console.error(e); sysMsg(s, 'Erro ao executar o comando.'); return {}; });
     const now = Date.now(); if (now - (s.lastChat || 0) < 700) throw E('Calma! Espere um instante para enviar de novo.'); s.lastChat = now;
     const msg = { n: ++chatSeq, name: s.acct ? s.name : (clean(m.name, 16) || s.name), lv: Math.max(0, Math.min(999, m.lv | 0)), tag: s.tag || '', text, t: now };
     chatLog.push(msg); if (chatLog.length > 30) chatLog.shift(); broadcast({ push: 'chat', msg }); return {};
@@ -181,7 +239,7 @@ function relay(s, m) { // retransmite para os OUTROS jogadores da sala (nunca pa
   for (const p of humans(r)) if (p.id !== s.pid) { const o = sessions.get(p.id); if (o && o.ws && o.ws.open) o.ws.send(out); }
 }
 
-function hello(ws, m, conn, acc) {
+function hello(ws, m, conn, acc, dbTag) {
     const pid = clean(m.pid, 40), tok = clean(m.token, 64);
     if (!/^[\w-]{8,40}$/.test(pid)) return ws.send(JSON.stringify({ id: m.id, ok: false, error: 'Identificação inválida.' }));
     let s = sessions.get(pid);
@@ -190,7 +248,7 @@ function hello(ws, m, conn, acc) {
     if (acc) { s.acct = true; s.account = acc; s.name = acc.name; if (tok !== s.token) s.token = rnd(16); } else if (s.acct) return ws.send(JSON.stringify({ id: m.id, ok: false, error: 'Identificação já em uso.' }));
     if (s.ws && s.ws !== ws && s.ws.open) { const old = s.ws; old.onclose = null; clients.delete(old); old.send(JSON.stringify({ push: 'replaced' })); old.close(4000); }   // mesma identidade em outra aba/conexão: a nova assume
     clearTimeout(s.timer); s.timer = null; s.ws = ws; conn.s = s;
-    if (m.staff !== undefined) s.tag = staffTag(m.staff);
+    s.dbTag = dbTag || ''; if (m.staff !== undefined || dbTag) s.tag = (m.staff !== undefined ? staffTag(m.staff) : '') || s.dbTag || s.tag || '';
     const r = s.roomId && rooms.get(s.roomId);
     if (s.roomId && !r) s.roomId = null;
     if (r) log(s.name, 'reconectou à sala', r.id);
@@ -201,7 +259,7 @@ function handle(ws, text, conn) {
   if (++conn.rate.n > 200) { conn.rate.drops++; if (conn.rate.drops > 400) ws.close(1008); return; }   // anti-flood (200 msgs/s)
   let m; try { m = JSON.parse(text); } catch (_) { return; } if (!m || typeof m !== 'object') return;
   if (m.op === 'hello') {
-    if (m.auth) return authCheck(ENV, m.auth).catch(() => null).then(acc => hello(ws, m, conn, acc));
+    if (m.auth) return authCheck(ENV, m.auth).catch(() => null).then(async acc => hello(ws, m, conn, acc, await loadTag(acc)));
     return hello(ws, m, conn, null);
   }
   const s = conn.s; if (!s) return ws.send(JSON.stringify({ id: m.id, ok: false, error: 'Envie hello primeiro.' }));

@@ -67,6 +67,8 @@ class RemoteRoomService extends Emitter {
     else if (m.push === 'relay') this.emit('relay', { from: m.from, data: m.data });
     else if (m.push === 'chat') this.emit('chat', m.msg);
     else if (m.push === 'online') this.emit('online', m.n);
+    else if (m.push === 'tag') { this.myTag = m.tag || ''; this.emit('status', this); }
+    else if (m.push === 'grant') this.emit('grant', m);
     else if (m.push === 'hub') this.emit('hub', m);
     else if (m.push === 'replaced') { this.dead = true; this.online = false; this.emit('replaced'); this.emit('status', this); }
   }
@@ -111,7 +113,7 @@ class AutoService extends Emitter {
     if (!this.url) { this.reason = 'Nenhum servidor configurado (SL_CONFIG.serverUrl).'; return this.emit('status'); }
     try {
       const r = new RemoteRoomService(this.url, this.ident); await r.connect();
-      r.on('rooms', l => this.emit('rooms', l)); r.on('relay', e => this.emit('relay', e)); r.on('status', () => this.emit('status')); r.on('replaced', () => this.emit('replaced')); r.on('chat', c => this.emit('chat', c)); r.on('online', n => this.emit('online', n));
+      r.on('rooms', l => this.emit('rooms', l)); r.on('relay', e => this.emit('relay', e)); r.on('status', () => this.emit('status')); r.on('replaced', () => this.emit('replaced')); r.on('chat', c => this.emit('chat', c)); r.on('grant', g => this.emit('grant', g)); r.on('online', n => this.emit('online', n));
       r.on('hub', e => this.emit('hub', e)); this.impl = r; this.reason = '';
     } catch (e) { this.reason = e.message; }
     this.emit('status');
