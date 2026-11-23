@@ -437,11 +437,11 @@ class Fighter {
       ctx.restore(); return;
     }
     this._dAt = 0;
-    const b = this.body; let fi, cs = null;
+    const b = this.body; let fi, cs = null; this._fx = null;
     if (this.state === 'cast' || this.state === 'big') { const q = this.state === 'big' ? bigSeq(this.def) : this.def.cast.seq; cs = this.castSeg() || { seg: q[q.length - 1], ts: q[q.length - 1].dur - 1e-6, i: q.length - 1 }; fi = this.castFrame(cs); }
     else if (this.state === 'attack' && this.av) { const v = this.av; fi = v.f[Math.min(Math.floor(this.t * v.fps), v.f.length - 1)]; }
     else if (this.state === 'ice') { const D = segAt(this.def.ice.seq, this.t) || { seg: this.def.ice.seq[this.def.ice.seq.length - 1], ts: 1 }, s = D.seg; fi = s.f[Math.floor(D.ts * s.fps) % s.f.length]; }
-    else if (this.state === 'dash') { const D = segAt(this.def.dash.seq, this.t) || { seg: this.def.dash.seq[this.def.dash.seq.length - 1], ts: 1 }, s = D.seg; fi = s.f[Math.floor(D.ts * s.fps) % s.f.length]; }
+    else if (this.state === 'dash') { const D = segAt(this.def.dash.seq, this.t) || { seg: this.def.dash.seq[this.def.dash.seq.length - 1], ts: 1 }, s = D.seg; fi = s.f[Math.floor(D.ts * s.fps) % s.f.length]; this._fx = s.fx ? s.fx[Math.min(s.fx.length - 1, Math.floor(D.ts * (s.fxFps || 12)))] : null; }
     else fi = frameAt(this.def, animOf(this, this.state), this.t);
     const flyMv = this.state === 'fly' && (b.flying || b.climbing) && this.def.anims.flyMove && Math.abs(b.vx) > 30; if (flyMv) fi = frameAt(this.def, 'flyMove', this.t);   // voando para o lado: quadro de voo em movimento (se o personagem tiver)
     const f = this.def.frames[fi];
@@ -450,6 +450,7 @@ class Fighter {
     const sh = this.state === 'charge' && k > .6 ? (Math.floor(this.t * 30) % 2 ? 1 : -1) : 0;                     // tremor leve quando a carga está alta
     const bl = this.ball(), behind = false;                                               // segurando: esfera atrás da cabeça/mão
     if (cs) this.castFx(ctx, img, cs, false);
+    if (this._fx != null) drawFrame(ctx, img, this.def, this._fx, b.x, b.y, this.face);   // efeito atrás do personagem (pilares da habilidade única)
     if (this.state === 'sprint') for (let g = 3; g >= 1; g--) { ctx.save(); ctx.globalAlpha = .13 * (4 - g); drawFrame(ctx, img, this.def, fi, b.x - this.dashDir * g * 9, b.y, this.face); ctx.restore(); }   // rastro do dash
     if (!this.def.bakedAura && !(this.def.bakedMeditate && this.state === 'meditate')) drawAura(ctx, img, this.def, fi, b.x + sh, b.y, this.face, k, this.t, this.state === 'meditate' ? '#4fd6ff' : (this.def.auraColor || '#c24bff'));   // personagens com aura desenhada no próprio sheet não ganham contorno extra
     if (this.form > 0 && k === 0) drawAura(ctx, img, this.def, fi, b.x, b.y, this.face, .55, this.t, '#ffd34d');                                   // transformado: contorno dourado
