@@ -64,6 +64,12 @@ S.register('options', { title: 'Configurações', sticky: true, noFocus: true, b
       const st = el('div', 'cf-cstate'), paint = () => { const s = CS.state; st.textContent = s === 'saved' ? '☁ Progresso salvo na nuvem' : s === 'saving' ? '☁ Salvando…' : s === 'error' ? '⚠ ' + (CS.error || 'Sem conexão') + ' — tentarei de novo' : '☁ Aguardando conexão com o servidor'; st.className = 'cf-cstate ' + (s || 'idle'); };
       const off = CS.onChange(paint); paint(); cleanups.push(off);
       const now = el('button', 'cf-sbtn', { type: 'button', textContent: 'SALVAR AGORA' }); now.addEventListener('click', async () => { await CS.push(); paint(); say(CS.state === 'saved' ? 'Salvo!' : 'Não foi possível salvar agora.'); });
+      if (CS.account) {   // logado: o progresso é da conta (sem código de backup)
+        const who = el('div', 'cf-cstate ok', { textContent: '👤 ' + CS.account }), out = el('button', 'cf-sbtn alt', { type: 'button', textContent: 'SAIR DA CONTA' });
+        out.addEventListener('click', () => { if (window.SLAuth) SLAuth.logout(); });
+        const r1 = el('div', 'cf-staff'); r1.append(now); const r2 = el('div', 'cf-staff'); r2.append(out);
+        body.append(row('☁', 'PROGRESSO NA NUVEM', st, r1, note('Moedas, personagens, nível e missões ficam guardados na sua conta e voltam em qualquer aparelho.')), row('👤', 'CONTA', who, r2, note('Sair leva você de volta à tela de login.'))); return;
+      }
       const code = el('input', 'cf-sin', { type: 'text', readOnly: true, value: CS.key }), cp = el('button', 'cf-sbtn', { type: 'button', textContent: 'COPIAR' });
       cp.addEventListener('click', async () => { try { await navigator.clipboard.writeText(CS.key); say('Código copiado!'); } catch (_) { code.select(); say('Selecione e copie o código.'); } });
       const inp = el('input', 'cf-sin', { type: 'text', placeholder: 'Colar código de outro aparelho', autocomplete: 'off', maxLength: 40 }), rs = el('button', 'cf-sbtn alt', { type: 'button', textContent: 'RESTAURAR' });

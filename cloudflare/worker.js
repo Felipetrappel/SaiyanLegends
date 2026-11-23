@@ -7,6 +7,7 @@
 'use strict';
 import { DurableObject } from 'cloudflare:workers';
 import { saveApi } from './save.js';
+import { handleAuth, authCheck } from './auth.js';
 
 const GRACE_MS = 20000, MAPS = ['swamp'], MAX_PLAYERS = 8, MIN_TO_START = 1;
 const MODES = { pvp: { min: 2, max: 8, start: 2 }, bots: { min: 2, max: 8, start: 2, bots: true }, '2v2': { min: 4, max: 4, start: 4, teams: true }, custom: { min: 2, max: 8, start: 1 } };
@@ -37,7 +38,8 @@ let ENV = {}, dbReady = null;
 const sha = async t => [...new Uint8Array(await crypto.subtle.digest('SHA-256', enc.encode(t)))].map(b => b.toString(16).padStart(2, '0')).join('');
 const DB = () => { if (!ENV.DB) throw E('Salvamento na nuvem indisponível.'); return ENV.DB; };
 const dbInit = () => dbReady || (dbReady = DB().prepare('CREATE TABLE IF NOT EXISTS players (id TEXT PRIMARY KEY, name TEXT, progress TEXT NOT NULL, rev INTEGER NOT NULL DEFAULT 1, updated INTEGER NOT NULL)').run().catch(e => { dbReady = null; throw e; }));
-const keyId = async m => { const k = String(m.key || ''); if (!/^[a-f0-9]{40}$/.test(k)) throw E('Código de backup inválido.'); return sha(k); };
+const keyId = async (m, s) => { if (s && s.account) return 'a:' + s.account.id; return keyId0(m); };
+const keyId0 = async m => { const k = String(m.key || ''); if (!/^[a-f0-9]{40}$/.test(k)) throw E('Código de backup inválido.'); return sha(k); };
 const sessions = new Map();   // pid → { pid, token, name, ws, roomId, timer }
 const rooms = new Map();      // id  → sala
 const clients = new Set();    // conexões abertas (para empurrar a lista de salas)
@@ -96,12 +98,12 @@ const hubX = v => Math.max(0, Math.min(20000, +v || 0));
 
 const OPS = {
   async loadProfile(s, m) {
-    await dbInit(); const id = await keyId(m);
+    await dbInit(); const id = await keyId(m, s);
     const r = await DB().prepare('SELECT progress, rev, updated FROM players WHERE id = ?1').bind(id).first();
     return r ? { exists: true, progress: JSON.parse(r.progress), rev: r.rev, updated: r.updated } : { exists: false };
   },
   async saveProfile(s, m) {
-    await dbInit(); const id = await keyId(m), now = Date.now();
+    await dbInit(); const id = await keyId(m, s), now = Date.now();
     if (now - (s.lastSave || 0) < 700) throw E('Salvando rápido demais.'); s.lastSave = now;
     const txt = m.progress && typeof m.progress === 'object' ? JSON.stringify(m.progress) : ''; if (!txt || txt.length > 40000) throw E('Dados inválidos.');
     await DB().prepare('INSERT INTO players (id, name, progress, rev, updated) VALUES (?1, ?2, ?3, 1, ?4) ON CONFLICT(id) DO UPDATE SET name = ?2, progress = ?3, rev = rev + 1, updated = ?4').bind(id, clean(m.name, 16), txt, now).run();
@@ -179,16 +181,13 @@ function relay(s, m) { // retransmite para os OUTROS jogadores da sala (nunca pa
   for (const p of humans(r)) if (p.id !== s.pid) { const o = sessions.get(p.id); if (o && o.ws && o.ws.open) o.ws.send(out); }
 }
 
-function handle(ws, text, conn) {
-  if (++conn.rate.n > 200) { conn.rate.drops++; if (conn.rate.drops > 400) ws.close(1008); return; }   // anti-flood (200 msgs/s)
-  let m; try { m = JSON.parse(text); } catch (_) { return; } if (!m || typeof m !== 'object') return;
-  if (m.op === 'hello') {
+function hello(ws, m, conn, acc) {
     const pid = clean(m.pid, 40), tok = clean(m.token, 64);
     if (!/^[\w-]{8,40}$/.test(pid)) return ws.send(JSON.stringify({ id: m.id, ok: false, error: 'Identificação inválida.' }));
     let s = sessions.get(pid);
-    if (s && s.token !== tok && !m.acct) return ws.send(JSON.stringify({ id: m.id, ok: false, error: 'Identificação já em uso.' }));
+    if (s && s.token !== tok && !acc) return ws.send(JSON.stringify({ id: m.id, ok: false, error: 'Identificação já em uso.' }));
     if (!s) { s = { pid, token: rnd(16), name: clean(m.name, 16) || 'Player', ws: null, roomId: null, timer: null }; sessions.set(pid, s); }
-    if (m.acct) { s.acct = true; s.name = clean(m.name, 16) || s.name; if (tok !== s.token) s.token = rnd(16); } else if (s.acct) return ws.send(JSON.stringify({ id: m.id, ok: false, error: 'Identificação já em uso.' }));
+    if (acc) { s.acct = true; s.account = acc; s.name = acc.name; if (tok !== s.token) s.token = rnd(16); } else if (s.acct) return ws.send(JSON.stringify({ id: m.id, ok: false, error: 'Identificação já em uso.' }));
     if (s.ws && s.ws !== ws && s.ws.open) { const old = s.ws; old.onclose = null; clients.delete(old); old.send(JSON.stringify({ push: 'replaced' })); old.close(4000); }   // mesma identidade em outra aba/conexão: a nova assume
     clearTimeout(s.timer); s.timer = null; s.ws = ws; conn.s = s;
     if (m.staff !== undefined) s.tag = staffTag(m.staff);
@@ -196,6 +195,14 @@ function handle(ws, text, conn) {
     if (s.roomId && !r) s.roomId = null;
     if (r) log(s.name, 'reconectou à sala', r.id);
     setTimeout(pushOnline, 0); return ws.send(JSON.stringify({ id: m.id, ok: true, pid, token: s.token, tag: s.tag || '', room: r ? snapshot(r) : null, rooms: listAll(), online: onlineCount(), chat: chatLog, server: { maxPlayers: MAX_PLAYERS, maps: MAPS } }));
+}
+
+function handle(ws, text, conn) {
+  if (++conn.rate.n > 200) { conn.rate.drops++; if (conn.rate.drops > 400) ws.close(1008); return; }   // anti-flood (200 msgs/s)
+  let m; try { m = JSON.parse(text); } catch (_) { return; } if (!m || typeof m !== 'object') return;
+  if (m.op === 'hello') {
+    if (m.auth) return authCheck(ENV, m.auth).catch(() => null).then(acc => hello(ws, m, conn, acc));
+    return hello(ws, m, conn, null);
   }
   const s = conn.s; if (!s) return ws.send(JSON.stringify({ id: m.id, ok: false, error: 'Envie hello primeiro.' }));
   if (m.op === 'relay') return relay(s, m);
@@ -232,6 +239,7 @@ export default {
       return env.WORLD.get(env.WORLD.idFromName('mundo')).fetch(request);
     }
     if (url.pathname === '/healthz') return Response.json(await env.WORLD.get(env.WORLD.idFromName('mundo')).stats(), { headers: { 'access-control-allow-origin': '*' } });
+    if (url.pathname.startsWith('/api/auth/')) return handleAuth(request, env, url);
     if (url.pathname.startsWith('/api/save')) return saveApi(request, env, url);
     return env.ASSETS.fetch(request);
   }

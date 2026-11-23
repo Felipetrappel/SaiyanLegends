@@ -9,6 +9,16 @@ const P = SL.Profile, C = SL.Characters, svc = SaiyanGame.service;
 if (!P || !C) return;
 const ls = { get: k => { try { return localStorage.getItem(k); } catch (_) { return null; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch (_) {} }, del: k => { try { localStorage.removeItem(k); } catch (_) {} } };
 const KEY = 'sl.cloud.key', REV = 'sl.cloud.rev', DIRTY = 'sl.cloud.dirty', BACKUP = 'sl.cloud.backup';
+/* CONTA: com login, o progresso é DA CONTA (o servidor usa o token da sessão, nunca o código). Cada aparelho lembra de quem é o progresso local ('sl.cloud.owner'):
+ *  - era de outra conta → começa um perfil novo (os dados dela estão no servidor; nada de uma conta aparece na outra);
+ *  - era sem conta (jogo antigo) → vira da conta: se a conta já tem progresso no servidor ele vale (o local vai para o backup); se não tem, o local sobe e NÃO se perde. */
+const OWNER = 'sl.cloud.owner', AU = window.SLAuth, acct = AU && AU.user, meId = acct ? 'a:' + acct.pid : '';
+let claim = false;
+if (acct) {
+  const prev = ls.get(OWNER);
+  if (prev && prev !== meId && prev.startsWith('a:')) { for (const k of ['sl.profile', REV, DIRTY, BACKUP]) ls.del(k); ls.set(OWNER, meId); location.reload(); return; }
+  if (prev !== meId) { claim = true; ls.set(REV, '0'); ls.set(OWNER, meId); }
+}
 const mk = () => { const a = new Uint8Array(20); (window.crypto && crypto.getRandomValues) ? crypto.getRandomValues(a) : a.forEach((_, i) => { a[i] = Math.random() * 256; }); return [...a].map(x => x.toString(16).padStart(2, '0')).join(''); };
 let key = ls.get(KEY); if (!/^[a-f0-9]{40}$/.test(key || '')) { key = mk(); ls.set(KEY, key); }
 for (const k of ['stats', 'upgrades']) if (!P[k]) P[k] = {};
@@ -36,7 +46,7 @@ const myName = () => (svc.ident && svc.ident.name) || (SaiyanGame.rooms && Saiya
 
 async function push() {
   if (busy || !online()) return; busy = true; setState('saving');
-  try { const r = await svc.saveProfile(key, snapshot(), myName()); setRev(r.rev); ls.del(DIRTY); setState('saved'); }
+  try { const r = await svc.saveProfile(key, snapshot(), myName()); setRev(r.rev); ls.del(DIRTY); claim = false; setState('saved'); }
   catch (e) { ls.set(DIRTY, '1'); setState('error', e.message || 'Falha ao salvar.'); }
   finally { busy = false; }
 }
@@ -46,11 +56,11 @@ async function sync(force) {   // ao abrir / ao voltar a ficar online
   if (!online() || busy) return; busy = true; setState('saving');
   try {
     const r = await svc.loadProfile(key);
-    if (r.exists && (force || r.rev > rev)) {
-      if (ls.get(DIRTY) === '1' || force) ls.set(BACKUP, JSON.stringify({ at: Date.now(), local: snapshot() }));
-      apply(r.progress); setRev(r.rev); ls.del(DIRTY); setState('saved');
+    if (r.exists && (force || claim || r.rev > rev)) {
+      if (ls.get(DIRTY) === '1' || force || claim) ls.set(BACKUP, JSON.stringify({ at: Date.now(), local: snapshot() }));
+      apply(r.progress); setRev(r.rev); ls.del(DIRTY); claim = false; setState('saved');
     } else if (!r.exists || ls.get(DIRTY) === '1') { busy = false; await push(); return; }
-    else setState('saved');
+    else { claim = false; setState('saved'); }
   } catch (e) { setState('error', e.message || 'Sem conexão.'); }
   finally { busy = false; }
 }
@@ -69,5 +79,5 @@ async function restore(code) {
   const r = await svc.loadProfile(code); if (!r.exists) throw new Error('Nenhum progresso encontrado com esse código.');
   key = code; ls.set(KEY, key); ls.set(BACKUP, JSON.stringify({ at: Date.now(), local: snapshot() })); apply(r.progress); setRev(r.rev); ls.del(DIRTY); setState('saved');
 }
-SL.CloudSave = window.SLCloud = { get key() { return key; }, get state() { return state; }, get error() { return lastErr; }, push: () => push(), sync, restore, onChange(f) { listeners.add(f); return () => listeners.delete(f); } };
+SL.CloudSave = window.SLCloud = { account: acct ? acct.name : '', get key() { return key; }, get state() { return state; }, get error() { return lastErr; }, push: () => push(), sync, restore, onChange(f) { listeners.add(f); return () => listeners.delete(f); } };
 })();

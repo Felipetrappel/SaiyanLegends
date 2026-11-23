@@ -1,38 +1,53 @@
-/* Conta do jogador: cadastro com NOME e SENHA, login, sair. Fala com /api/auth/* do servidor (server/auth.js).
- * Quando o servidor exige login (REQUIRE_LOGIN=1), as telas online (CONNECT, CREATE ROOM, CODE, ROOM LIST) pedem a conta antes.
- * A conta fica salva neste aparelho (localStorage 'sl.account'); o id do jogador passa a ser o da conta (o mesmo em qualquer aparelho). */
+/* CONTA do jogador (Cloudflare D1): cadastro, login, sessão, recuperação de senha e sair. Fala com /api/auth/* do Worker (cloudflare/auth.js).
+ *  - A sessão é um token aleatório. "Lembrar minha conta" = guardado no aparelho (localStorage, 30 dias); senão só nesta aba (sessionStorage, some ao fechar).
+ *  - A senha só viaja no momento de entrar/criar (HTTPS) e NUNCA fica guardada no aparelho.
+ *  - O id do jogador passa a ser o da conta ('a' + id), o mesmo em qualquer aparelho; o apelido é o nome da conta.
+ *  Expõe SL.Auth e window.SLAuth (SL é recriado por outros arquivos, então o global próprio é o seguro). */
 (() => {
 'use strict';
 const KEY = 'sl.account';
-const read = () => { try { const d = JSON.parse(localStorage.getItem(KEY) || 'null'); return d && d.token && d.pid ? d : null; } catch (_) { return null; } };
-/* LOGIN DESATIVADO: o jogo não pede nem usa conta. O código das contas continua aqui (e em server/auth.js) para poder ser religado: LOGIN_ATIVO = true. */
-const LOGIN_ATIVO = false;
-let acct = LOGIN_ATIVO ? read() : null, cfg = { required: false };
+const st = { l: () => localStorage, s: () => sessionStorage };
+const rd = w => { try { const d = JSON.parse(st[w]().getItem(KEY) || 'null'); return d && d.token && d.pid && d.name ? d : null; } catch (_) { return null; } };
+let acct = rd('l') || rd('s'), remembered = !!rd('l');
 
 function base() {   // mesmo servidor do WebSocket (?server=, SL_CONFIG.serverUrl ou a própria origem)
   const q = /[?&]server=([^&#]+)/.exec(location.search); let u = q ? decodeURIComponent(q[1]) : (window.SL_CONFIG && SL_CONFIG.serverUrl) || '';
   if (!u) return /^https?:$/.test(location.protocol) ? location.origin : '';
-  u = u.replace(/^ws/, 'http').replace(/\/ws\/?$/, '').replace(/\/$/, ''); return u;
+  return u.replace(/^ws/, 'http').replace(/\/ws\/?$/, '').replace(/\/$/, '');
 }
 async function api(name, body) {
-  const b = base(); if (!b) throw new Error('Nenhum servidor configurado.');
+  const b = base(); if (!b) { const e = new Error('Nenhum servidor configurado.'); e.code = 'noserver'; throw e; }
   let r; try { r = await fetch(b + '/api/auth/' + name, body === undefined ? {} : { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) }); }
-  catch (_) { throw new Error('Sem conexão com o servidor. Se ele estava dormindo, espere 1 minuto e tente de novo.'); }
+  catch (_) { const e = new Error('Sem conexão com o servidor.'); e.code = 'network'; throw e; }
   let d = {}; try { d = await r.json(); } catch (_) {}
-  if (!r.ok || d.ok === false) { const e = new Error(d.error || 'Erro ' + r.status); e.status = r.status; e.data = d; throw e; }
+  if (!r.ok || d.ok === false) { const e = new Error(d.error || 'Erro ' + r.status); e.status = r.status; e.code = d.code || 'http' + r.status; throw e; }
   return d;
 }
+const clearStore = () => { for (const w of ['l', 's']) { try { st[w]().removeItem(KEY); } catch (_) {} } };
 const Auth = {
-  get user() { return acct; }, get required() { return !!cfg.required; }, token: () => (acct ? acct.token : ''),
-  needsLogin() { return cfg.required && !acct; },
+  get user() { return acct; }, get remembered() { return remembered; }, token: () => (acct ? acct.token : ''),
+  api,
+  /* confere a sessão guardada. Sem internet: mantém a conta salva (o jogo abre); sessão vencida/inválida: apaga e pede login. */
   async init() {
-    if (!LOGIN_ATIVO) return;
-    try { cfg = await api('config'); } catch (_) { /* servidor fora do ar: o modo offline já avisa */ }
-    if (acct) { try { const m = await api('me', { token: acct.token }); acct.name = m.name; localStorage.setItem(KEY, JSON.stringify(acct)); } catch (e) { if (e.status === 401) { localStorage.removeItem(KEY); acct = null; if (!sessionStorage.getItem('sl_authfix')) { sessionStorage.setItem('sl_authfix', '1'); location.reload(); } } } }
+    if (!acct) return null;
+    try { const m = await api('me', { token: acct.token }); acct.name = m.name; return acct; }
+    catch (e) { if (e.status === 401) { clearStore(); try { sessionStorage.removeItem('sl_pid'); } catch (_) {} acct = null; return null; } return acct; }
   },
-  async finish(d) { try { localStorage.setItem(KEY, JSON.stringify({ token: d.token, pid: d.pid, name: d.name })); sessionStorage.removeItem('sl_authfix'); } catch (_) {} },
-  api, register: b => api('register', b), login: b => api('login', b),
-  async logout() { const t = Auth.token(); try { await api('logout', { token: t }); } catch (_) {} try { localStorage.removeItem(KEY); sessionStorage.removeItem('sl_pid'); } catch (_) {} location.reload(); }
+  async register(b) { return Auth._done(await api('register', b), b.remember !== false); },
+  async login(b) { return Auth._done(await api('login', b), !!b.remember); },
+  async recover(b) { return Auth._done(await api('recover', b), !!b.remember); },
+  /* guarda a sessão; o recarregamento da página (feito pela tela) faz o jogo inteiro subir já com a conta */
+  _done(d, remember) {
+    clearStore(); const rec = { token: d.token, pid: d.pid, name: d.name };
+    try { (remember ? localStorage : sessionStorage).setItem(KEY, JSON.stringify(rec)); } catch (_) {}
+    try { sessionStorage.removeItem('sl_pid'); sessionStorage.removeItem('sl_token'); sessionStorage.removeItem('sl_name'); } catch (_) {}
+    acct = rec; remembered = !!remember; return d;
+  },
+  async logout() {
+    const t = Auth.token(); try { await api('logout', { token: t }); } catch (_) {}
+    clearStore(); try { sessionStorage.removeItem('sl_pid'); sessionStorage.removeItem('sl_token'); sessionStorage.removeItem('sl_name'); } catch (_) {}
+    acct = null; location.reload();
+  }
 };
-SL.Auth = Auth; Auth.ready = Auth.init();
+SL.Auth = window.SLAuth = Auth; Auth.ready = Auth.init();
 })();
