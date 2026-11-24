@@ -316,17 +316,7 @@ class Fighter {
     if (this.form > 0 && (this.form -= dt) <= 0) this.endForm();                                        // a transformação acaba sozinha
     if (Math.abs(this.kb) > 5) { b.moveX(this.kb * dt); this.kb *= Math.pow(.001, dt); } else this.kb = 0;   // recuo (respeita a colisão)
     const dir = (inp.right ? 1 : 0) - (inp.left ? 1 : 0);
-    /* DASH: tocar a mesma seta duas vezes bem rápido (≤ .28 s) dá um impulso curto para aquele lado; para trás ele continua olhando para onde olhava. Sem custo de Ki; recarga curta. */
-    this.tap ||= { L: 0, R: 0, pL: false, pR: false, fL: 1, fR: 1 }; this.cdash = Math.max(0, (this.cdash || 0) - dt); let wantDash = 0, edge = 0; const faceBefore = this.face;
-    for (const [k, v, d] of [['L', !!inp.left, -1], ['R', !!inp.right, 1]]) {
-      this.tap[k] = Math.max(0, this.tap[k] - dt);
-      if (v && !this.tap['p' + k]) { edge = d; if (this.tap[k] > 0) { wantDash = d; this.dashFace = this.tap['f' + k]; this.tap[k] = 0; } else { this.tap[k] = .28; this.tap['f' + k] = this.face; } }
-      this.tap['p' + k] = v;
-    }
-    const guarding = (inp.guard || inp.down) && b.grounded && !b.flying && !this.busy;   // TELEPORTE: segurando a DEFESA, tocar ← ou → leva para aquele lado
-    if (guarding && edge && this.can('tp')) { this.energy -= ABIL.tp.cost; this.acd.tp = ABIL.tp.cd; this.teleport(edge, world); this.face = faceBefore; wantDash = 0; }
-    if (guarding) wantDash = 0;
-    if (wantDash && !this.busy && this.cdash <= 0) { this.dashDir = wantDash; this.face = this.dashFace; this.set('sprint'); }
+    /* Dash (toque duplo) e teleporte (defesa + seta) foram REMOVIDOS do jogo. */
     if (!this.busy) {
       if (dir) this.face = dir;
       if (p.fly) b.flying = !b.flying;                                                                      // VOAR liga/desliga; ao desligar a gravidade volta
