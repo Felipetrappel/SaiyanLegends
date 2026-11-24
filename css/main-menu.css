@@ -596,3 +596,11 @@ button.rm-card{cursor:pointer;padding:0;text-align:center}
 .csel .cs-card::after{content:"";position:absolute;left:0;right:0;bottom:0;height:74px;background:rgba(2,6,16,.55);border-top:1px solid #16315f;z-index:0}.csel .cs-cn,.csel .cs-cs{z-index:1}
 .csel .cs-dots{display:flex;gap:14px;justify-content:center;align-items:center;pointer-events:none}.csel .cs-dots i{width:13px;height:13px;border-radius:50%;background:#2a3a5e}.csel .cs-dots i.on{background:#ffe27a;box-shadow:0 0 8px #ffd040}
 .csel .cs-ord{display:flex;align-items:center;justify-content:center;font-weight:700;font-size:19px;color:#dfe7ff;letter-spacing:.02em}
+
+/* LOBBY: layout novo (banner coroa, chat à direita, HUD do jogo) */
+.lobbywrap .lb-back{left:12px;top:12px;height:44px;width:44px;padding:0;font-size:20px;z-index:6}
+.lobbywrap .lb-cnt{top:8px;padding:6px 30px 10px;border-radius:6px 6px 22px 22px;background:linear-gradient(#5a2bd6,#2a0f7a);border:3px solid #ffd45a;color:#fff;font:900 clamp(14px,2.6vh,22px) system-ui,sans-serif;display:flex;align-items:center;gap:8px;z-index:5;text-shadow:0 2px 0 #000}
+.lb-crown{width:1.4em;height:1.4em}
+.lobbywrap .lb-chat{left:auto;right:14px;top:auto;bottom:46%;width:min(300px,34vw);z-index:5}
+.lobbywrap .lb-log{max-height:110px}
+.lobbywrap .ctl{z-index:4}

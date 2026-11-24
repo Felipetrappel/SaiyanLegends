@@ -12,17 +12,22 @@ let pos = null;            // posição X do personagem no mundo (px da imagem),
 
 S.register('hub', { title: 'Lobby', sticky: true, noFocus: true, build(p) {
   p.classList.add('shopwrap', 'lobbywrap');
-  const cv = el('canvas', 'lb-cv'), back = el('button', 'lb-btn lb-back', { type: 'button', textContent: '← VOLTAR' }), sw = el('button', 'lb-btn lb-sw', { type: 'button', textContent: 'TROCAR PERSONAGEM' }), hint = el('div', 'lb-hint', { textContent: 'Toque no chão ou use as setas para andar' });
+  const cv = el('canvas', 'lb-cv'), back = el('button', 'lb-btn lb-back', { type: 'button', textContent: '✕', title: 'Sair do lobby' });
   const cnt = el('div', 'lb-cnt'), chat = el('div', 'lb-chat'), log = el('div', 'lb-log'), crow = el('div', 'lb-crow');
-  const inp = el('input', 'lb-in', { type: 'text', maxLength: 120, placeholder: 'Conversar no lobby…', autocomplete: 'off', enterKeyHint: 'send' }), go = el('button', 'lb-send', { type: 'button', textContent: '➤' }), err = el('div', 'lb-err');
+  const inp = el('input', 'lb-in', { type: 'text', maxLength: 120, placeholder: 'Digite para falar..', autocomplete: 'off', enterKeyHint: 'send' }), go = el('button', 'lb-send', { type: 'button', textContent: '➤' }), err = el('div', 'lb-err');
   crow.append(inp, go); chat.append(log, crow, err);
-  p.append(cv, back, sw, cnt, chat, hint); back.addEventListener('click', () => S.close()); sw.addEventListener('click', () => S.open('characters'));
+  p.append(cv, back, cnt, chat); back.addEventListener('click', () => S.close());
+  /* HUD novo (joystick + 6 botões em losango) — mesmo layout do jogo; no lobby não há dano: os botões só dão o efeito visual */
+  const fs = Object.create(SL.GameScene.prototype); fs.pad = {}; fs.pend = {}; fs.editing = false;
+  const hud = el('div', 'ctl'), mv = el('div', 'move jm'), acts = el('div', 'acts'); mv.append(fs.makeJoystick());
+  const dmb = c => { const b = el('button', 'cbtn ' + c + ' dm', { type: 'button', tabIndex: -1 }); b.innerHTML = `<img class="dmi" src="assets/ui/hud/${c}.png" alt="" draggable="false"><i class="cd"></i><i class="fx"></i>`; b.addEventListener('pointerdown', e => { e.preventDefault(); b.classList.add('on'); if (c === 'bt') jumpV = 520; }); ['pointerup', 'pointercancel', 'pointerleave'].forEach(n => b.addEventListener(n, () => b.classList.remove('on'))); b.addEventListener('contextmenu', e => e.preventDefault()); return b; };
+  acts.append(...['md', 'sp', 'power', 'bt', 'pk', 'atk'].map(dmb)); hud.append(mv, acts); p.append(hud); fs.initCustomize(hud, p); let jumpV = 0, jumpY = 0;
   const WW = () => (bg.width || 1774) * PANELS; if (pos == null) pos = WW() / 2; let tx = pos, face = 1, moving = false, raf = 0, last = performance.now(), t = 0; const keys = new Set();
   /* ── outros jogadores (online) ── */
   const others = new Map(), bubbles = new Map();       // id → {name, character, x, tx, f, mv}  ·  nome → {text, until}
   let joined = false, lastSent = 0, sx = -1, sf = 0, smv = 0, onlineN = 0;
   const myInfo = () => ({ x: Math.round(pos), f: face, name: (SL.Auth && SL.Auth.user && SL.Auth.user.name) || SaiyanGame.rooms.me.name || 'Jogador', character: P.picked ? P.selected : Object.keys(C.all)[0] });
-  const label = () => { cnt.textContent = svc.mode === 'online' ? '🟢 ' + (others.size + 1) + ' no lobby' : '⚪ Offline — só você aparece aqui'; };
+  const label = () => { cnt.innerHTML = '<svg viewBox="0 0 24 24" class="lb-crown"><path d="M3 18h18l1-11-5 4-5-8-5 8-5-4z" fill="#ffd45a" stroke="#7a4a00" stroke-width="1.2" stroke-linejoin="round"/></svg>'; cnt.append('Lobby · ' + (svc.mode === 'online' ? others.size + 1 : 1) + ' online'); };
   const join = () => { if (joined || svc.mode !== 'online') { label(); return; } joined = true; svc.hubJoin(myInfo()).then(list => { if (!list) { joined = false; return; } others.clear(); list.forEach(q => others.set(q.id, { ...q, tx: q.x })); label(); }).catch(() => { joined = false; }); };
   const onHub = e => {
     if (e.t === 'join') others.set(e.p.id, { ...e.p, tx: e.p.x }); else if (e.t === 'leave') others.delete(e.pid);
@@ -45,7 +50,8 @@ S.register('hub', { title: 'Lobby', sticky: true, noFocus: true, build(p) {
   addEventListener('keydown', kd); addEventListener('keyup', ku);
   function frame(now) {
     raf = requestAnimationFrame(frame); const dt = Math.min(.05, (now - last) / 1000); last = now; t += dt;
-    const k = (keys.has('ArrowRight') || keys.has('KeyD') ? 1 : 0) - (keys.has('ArrowLeft') || keys.has('KeyA') ? 1 : 0);
+    const k = (keys.has('ArrowRight') || keys.has('KeyD') || fs.pad.right ? 1 : 0) - (keys.has('ArrowLeft') || keys.has('KeyA') || fs.pad.left ? 1 : 0);
+    if (jumpV || jumpY) { jumpY = Math.max(0, jumpY + jumpV * dt); jumpV -= 1500 * dt; if (jumpY <= 0) { jumpY = 0; jumpV = 0; } }
     const SPD = 520;   // px do mundo por segundo
     if (k) { pos = Math.min(WW() - 60, Math.max(60, pos + k * SPD * dt)); tx = pos; face = k; moving = true; }
     else if (Math.abs(tx - pos) > 6) { const dir = Math.sign(tx - pos); pos += dir * Math.min(Math.abs(tx - pos), SPD * dt); face = dir; moving = true; } else moving = false;
@@ -56,15 +62,20 @@ S.register('hub', { title: 'Lobby', sticky: true, noFocus: true, build(p) {
       const px = (i * bg.width - g.cx) * g.s, pw = bg.width * g.s; if (px > g.W || px + pw < 0) continue;
       ctx.save(); ctx.translate(Math.round(px), 0); if (i % 2) { ctx.translate(pw, 0); ctx.scale(-1, 1); } ctx.drawImage(bg, 0, g.oy, Math.ceil(pw) + 1, g.dh); ctx.restore();
     }
+    const sign = (x, txt, w) => { const sxp = (x - g.cx) * g.s, fs2 = Math.round(g.dh * .032), bw = w * g.dh / 887, by = g.oy + g.dh * .60; if (sxp < -bw || sxp > g.W + bw) return;
+      ctx.save(); ctx.fillStyle = '#5a3a1a'; ctx.fillRect(sxp - 3, by, 6, g.dh * .2); ctx.fillStyle = '#c28a4a'; ctx.strokeStyle = '#3a210a'; ctx.lineWidth = 3; ctx.beginPath(); ctx.roundRect(sxp - bw / 2, by - fs2 * 2.2, bw, fs2 * 2.4, 6); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = '#2a1405'; ctx.font = `800 ${fs2}px system-ui,sans-serif`; ctx.textAlign = 'center'; ctx.fillText(txt, sxp, by - fs2 * .55, bw - 10); ctx.restore(); };
+    sign(WW() / 2 - 420, 'Aqui você não toma dano', 330); sign(WW() / 2 + 380, 'Lobby', 150);
     const sprite = (id, x, face, moving, name, me, tag) => {
       const d = C.get(C.all[id] ? id : Object.keys(C.all)[0]); if (!d || !d.img || !d.img.complete) return;
-      const sc = Math.max(1, g.H * .14 / idleH(d)), f = frameOf(d, moving ? 'run' : 'idle', t), fy = g.oy + g.dh * (me ? .8 : .78), sxp = (x - g.cx) * g.s;
+      const sc = Math.max(1, g.H * .14 / idleH(d)), f = frameOf(d, moving ? 'run' : 'idle', t), fy = g.oy + g.dh * (me ? .8 : .78) - (me ? jumpY * g.s * .6 : 0), sxp = (x - g.cx) * g.s;
       if (!f) return;
       if (sxp < -200 || sxp > g.W + 200) return;
       ctx.save(); ctx.translate(Math.round(sxp), 0); ctx.scale(face < 0 ? -1 : 1, 1);
       ctx.fillStyle = 'rgba(0,0,0,.3)'; ctx.beginPath(); ctx.ellipse(0, fy, f.w * sc * .35, 7 * (g.dh / 887) + 3, 0, 0, 7); ctx.fill();
       ctx.drawImage(d.img, f.x, f.y, f.w, f.h, Math.round(-f.ax * sc), Math.round(fy - f.ay * sc), f.w * sc, f.h * sc); ctx.restore();
-      const ny = fy - idleH(d) * sc - g.dh * .03; SLTags.drawName(ctx, tag, name, sxp, ny, { size: Math.round(g.dh * .04), color: me ? '#ffe27a' : '#fff', stroke: 4 });
+      const ny = fy - idleH(d) * sc - g.dh * .03; if (me && SL.Profile) { ctx.font = `800 ${Math.round(g.dh * .03)}px system-ui,sans-serif`; ctx.textAlign = 'center'; ctx.lineWidth = 4; ctx.strokeStyle = '#000'; ctx.fillStyle = '#fff'; ctx.strokeText('lvl. ' + SL.Profile.level, sxp, ny - g.dh * .045); ctx.fillText('lvl. ' + SL.Profile.level, sxp, ny - g.dh * .045); }
+      SLTags.drawName(ctx, tag, name, sxp, ny, { size: Math.round(g.dh * .04), color: me ? '#ffe27a' : '#fff', stroke: 4 });
       ctx.font = `bold ${Math.round(g.dh * .04)}px system-ui,sans-serif`; ctx.textAlign = 'center';
       const b = bubbles.get(name); if (b && b.until > now) {            // balão de fala
         const fs = Math.round(g.dh * .036); ctx.font = `600 ${fs}px system-ui,sans-serif`; const w = Math.min(g.W * .5, ctx.measureText(b.text).width + fs * 1.2), by = ny - fs * 2.2;
@@ -77,6 +88,6 @@ S.register('hub', { title: 'Lobby', sticky: true, noFocus: true, build(p) {
     sprite(me.character, pos, face, moving, me.name, true, svc.myTag);
   }
   raf = requestAnimationFrame(frame);
-  return () => { cancelAnimationFrame(raf); if (joined) svc.hubLeave(); svc.off('hub', onHub); svc.off('status', onStatus); svc.off('chat', onChat); ro.disconnect(); removeEventListener('keydown', kd); removeEventListener('keyup', ku); };
+  return () => { cancelAnimationFrame(raf); if (joined) svc.hubLeave(); svc.off('hub', onHub); svc.off('status', onStatus); svc.off('chat', onChat); ro.disconnect(); removeEventListener('keydown', kd); removeEventListener('keyup', ku); hud.remove(); };
 } });
 })();
