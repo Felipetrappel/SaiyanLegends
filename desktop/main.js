@@ -21,6 +21,7 @@ app.whenReady().then(async () => {
   const port = await serve();
   Menu.setApplicationMenu(null);
   const w = new BrowserWindow({ width: 1280, height: 720, minWidth: 800, minHeight: 450, backgroundColor: '#0b0220', title: 'Saiyan Legends Online', autoHideMenuBar: true, icon: path.join(__dirname, 'icon.png'), webPreferences: { preload: path.join(__dirname, 'preload.js'), contextIsolation: false, nodeIntegration: false, backgroundThrottling: false } });
+  w.webContents.setVisualZoomLevelLimits(1, 1); w.webContents.on('did-finish-load', () => w.webContents.setZoomFactor(1));
   w.setFullScreen(true);   // abre em tela cheia (F11 alterna)
   // Carrega sempre a versão mais nova direto do servidor; sem internet, cai na cópia que vem dentro do app.
   const LOCAL = 'http://127.0.0.1:' + port + '/index.html', ONLINE = 'https://saiyanlegends.saiyanlegends.workers.dev/';

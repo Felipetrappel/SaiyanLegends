@@ -2,7 +2,13 @@
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<script>/* sem zoom: pinça, toque duplo, Ctrl+roda e Ctrl +/- */
+(function(){var n=function(e){e.preventDefault()};["gesturestart","gesturechange","gestureend"].forEach(function(t){document.addEventListener(t,n,{passive:false})});
+document.addEventListener("touchmove",function(e){if(e.touches.length>1||(e.scale&&e.scale!==1))e.preventDefault()},{passive:false});
+addEventListener("wheel",function(e){if(e.ctrlKey)e.preventDefault()},{passive:false});
+addEventListener("keydown",function(e){if((e.ctrlKey||e.metaKey)&&["+","-","=","0","_"].indexOf(e.key)>-1)e.preventDefault()});})();</script>
+<style>html,body{touch-action:none;-ms-touch-action:none;-webkit-text-size-adjust:100%;text-size-adjust:100%}input,textarea,select,button{touch-action:manipulation}</style>
 <title>Saiyan Legends Online</title>
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#12002a">
