@@ -545,3 +545,18 @@ button.rm-card{cursor:pointer;padding:0;text-align:center}
 .mv2-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 12px; }
 .mv2-grid .pbtn { display: flex; flex-direction: column; align-items: center; gap: 2px; }
 .mv2-grid small { font-size: .62em; opacity: .75; font-weight: 600; }
+
+/* ===== HUD novo (losangos + joystick novo) — posições vêm do layout padrão em controls-editor.js ===== */
+.ctl .cbtn.dm{background:none;box-shadow:none;border-radius:0;opacity:var(--op,1)}
+.ctl .cbtn.dm .dmi{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;filter:drop-shadow(0 3px 3px rgba(0,0,0,.35))}
+.ctl .cbtn.dm .cd{inset:6%;border-radius:0;clip-path:polygon(50% 0,100% 50%,50% 100%,0 50%);background:conic-gradient(rgba(6,0,24,.62) calc(var(--cd,0)*360deg),transparent 0)}
+.ctl .cbtn.dm .fx{display:none}
+.ctl .cbtn.dm.rdy .dmi{filter:drop-shadow(0 0 7px rgba(255,235,150,.75)) drop-shadow(0 3px 3px rgba(0,0,0,.35))}
+.ctl .cbtn.dm.active{box-shadow:none}.ctl .cbtn.dm.active .dmi{filter:drop-shadow(0 0 10px #ffd34d) brightness(1.15)}
+.ctl .cbtn.dm.on{transform:scale(.92);filter:brightness(1.2)}
+.ctl .cbtn.dm.nope{filter:grayscale(.5) brightness(.7)}.ctl .cbtn.dm.off{filter:grayscale(.9) brightness(.55)}
+.ctl .cbtn.joy{width:var(--s);height:var(--s);background:none;box-shadow:none;border-radius:0;opacity:var(--op,1);--s:min(28vh,12.6vw)}
+.ctl .cbtn.joy img{image-rendering:auto}
+.ctl .cbtn.joy .jk{width:70%;height:70%;opacity:.95}
+.ctl.custom .cbtn.joy,.ctl.custom .cbtn.joy.on{margin:calc(var(--s)/-2) 0 0 calc(var(--s)/-2)}
+.ctl.custom .cbtn.joy{--s:min(28vh,12.6vw)}

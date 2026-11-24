@@ -3,7 +3,10 @@
  * Abre pelo botão CONTROLES do HUD da partida. Sem layout salvo, vale o layout padrão (grade 3×3 + setas). */
 (() => {
 'use strict';
-const KEY = SL.ControlType.get() === 'joystick' ? 'sl.controls.joy' : 'sl.controls', BASE_MOVE = 'clamp(54px,13vmin,96px)', BASE_ACT = 'clamp(44px,9.5vmin,76px)';
+const KEY = SL.ControlType.get() === 'joystick' ? 'sl.controls.joy' : 'sl.controls', BASE_MOVE = 'min(28vh,12.6vw)', BASE_ACT = 'min(22vh,10vw)';
+/* Layout padrão (HUD novo): centros em fração da tela e tamanho relativo (k) */
+const DEF = { v: 4, scale: 1, op: 1, b: { joy: { x: .153, y: .695, k: 1 }, l: { x: .075, y: .71, k: .6 }, r: { x: .175, y: .71, k: .6 }, guard: { x: .53, y: .88, k: .72 }, tp: { x: .452, y: .88, k: .72 },
+  pk: { x: .826, y: .608, k: 1 }, atk: { x: .938, y: .608, k: 1 }, sp: { x: .615, y: .844, k: 1 }, power: { x: .714, y: .844, k: 1 }, md: { x: .826, y: .861, k: 1 }, bt: { x: .938, y: .861, k: 1 } } };
 const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
 const el = (t, c, o) => Object.assign(document.createElement(t), c ? { className: c } : {}, o || {});
 const G = SL.GameScene.prototype;
@@ -11,24 +14,23 @@ const G = SL.GameScene.prototype;
 G.initCustomize = function (root, host) {
   this.ctlRoot = root; this.ctlHost = host; this.btns = [...root.querySelectorAll('.cbtn')]; this.editing = false; this.selId = null;
   this.btns.forEach(b => { b.dataset.id = [...b.classList].find(c => c !== 'cbtn' && c !== 'on'); this._wireEdit(b); });
-  try { const d = JSON.parse(localStorage.getItem(KEY) || 'null'); if (d && d.v === 3 && d.b) this.layout = d; } catch (e) { /* sem storage */ }
+  try { const d = JSON.parse(localStorage.getItem(KEY) || 'null'); if (d && d.v === 4 && d.b) this.layout = d; } catch (e) { /* sem storage */ }
   this.applyLayout();
 };
 G.saveLayout = function () { try { if (this.layout) localStorage.setItem(KEY, JSON.stringify(this.layout)); else localStorage.removeItem(KEY); } catch (e) {} };
 G.snapshotLayout = function () {
   const R = this.ctlHost.getBoundingClientRect(), b = {};   // medido na área inteira do jogo (a mesma que o modo personalizado ocupa)
-  this.btns.forEach(x => { const r = x.getBoundingClientRect(); b[x.dataset.id] = { x: (r.left + r.width / 2 - R.left) / R.width, y: (r.top + r.height / 2 - R.top) / R.height, k: 1 }; });
-  return { v: 3, scale: 1, op: .9, b };
+  this.btns.forEach(x => { const r = x.getBoundingClientRect(); b[x.dataset.id] = { x: (r.left + r.width / 2 - R.left) / R.width, y: (r.top + r.height / 2 - R.top) / R.height, k: (DEF.b[x.dataset.id] || { k: 1 }).k }; });
+  return { v: 4, scale: 1, op: 1, b };
 };
 G.applyLayout = function () {
-  const L = this.layout; this.ctlRoot.classList.toggle('custom', !!L);
+  const L = this.layout || DEF; this.ctlRoot.classList.add('custom');
   for (const b of this.btns) {
-    if (!L) { b.style.removeProperty('--s'); b.style.left = b.style.top = ''; continue; }
     const c = L.b[b.dataset.id]; if (!c) continue;
     const base = b.dataset.id === 'l' || b.dataset.id === 'r' || b.dataset.id === 'joy' ? BASE_MOVE : BASE_ACT;
     b.style.left = (c.x * 100) + '%'; b.style.top = (c.y * 100) + '%'; b.style.setProperty('--s', `calc(${base} * ${(c.k * L.scale).toFixed(3)})`);
   }
-  if (L) this.ctlRoot.style.setProperty('--op', L.op); else this.ctlRoot.style.removeProperty('--op');
+  this.ctlRoot.style.setProperty('--op', L.op);
 };
 /* arrastar (só no modo edição); o listener do jogo ignora toques enquanto `editing` */
 G._wireEdit = function (b) {
@@ -60,7 +62,7 @@ G.startEdit = function () {
   all.oninput = () => { this.layout.scale = all.value / 100; allV.textContent = all.value + '%'; this.applyLayout(); }; all.onchange = () => this.saveLayout();
   op.oninput = () => { this.layout.op = op.value / 100; opV.textContent = op.value + '%'; this.applyLayout(); }; op.onchange = () => this.saveLayout();
   const reset = el('button', 'pbtn', { type: 'button', textContent: 'RESTAURAR PADRÃO' }), done = el('button', 'pbtn', { type: 'button', textContent: 'CONCLUÍDO' });
-  reset.onclick = () => { this.layout = null; this.saveLayout(); this.applyLayout(); this.layout = this.snapshotLayout(); this.applyLayout(); all.value = 100; allV.textContent = '100%'; op.value = 90; opV.textContent = '90%'; size.value = 100; sizeV.textContent = '100%'; this.select(this.selId); };
+  reset.onclick = () => { this.layout = null; this.saveLayout(); this.applyLayout(); this.layout = this.snapshotLayout(); this.applyLayout(); all.value = 100; allV.textContent = '100%'; op.value = 100; opV.textContent = '100%'; size.value = 100; sizeV.textContent = '100%'; this.select(this.selId); };
   done.onclick = () => this.endEdit();
   const head = el('div', 'chead'); head.append(el('strong', '', { textContent: 'EDITAR CONTROLES' }), done);
   P.append(head, el('p', 'chint', { textContent: 'Arraste um botão para mover. Toque nele para mudar o tamanho.' }),

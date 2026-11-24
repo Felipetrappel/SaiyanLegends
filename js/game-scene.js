@@ -23,7 +23,7 @@ const ICONS = {
   right: '<path d="M38 18l34 32-34 32" fill="none" stroke="#fff3c4" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"/>'
 };
 SL.ControlType = SL.ControlType || { KEY: 'sl.ctrltype',
-  get() { try { return localStorage.getItem(this.KEY) === 'joystick' ? 'joystick' : 'arrows'; } catch (_) { return 'arrows'; } },
+  get() { try { return localStorage.getItem(this.KEY) === 'arrows' ? 'arrows' : 'joystick'; } catch (_) { return 'joystick'; } },
   set(v) { try { localStorage.setItem(this.KEY, v === 'joystick' ? 'joystick' : 'arrows'); } catch (_) {} } };
 const KEYS = { left: ['ArrowLeft', 'KeyA'], right: ['ArrowRight', 'KeyD'], up: ['ArrowUp', 'KeyW', 'Space'], down: ['ArrowDown', 'KeyS'], attack: ['KeyJ', 'KeyZ'], meditate: ['KeyM'] };
 const TAP_KEYS = { KeyF: 'fly', KeyK: 'power', KeyX: 'power', KeyE: 'power', KeyB: 'big', KeyR: 'special', KeyQ: 'barrage', KeyC: 'sun', };   // (a transformação não tem tecla nem botão: o sistema ainda não existe)   // teclado: um toque
@@ -102,7 +102,7 @@ class GameScene {
   /* Joystick: arraste a esfera; ← → andam, ↑ sobe (voar), ↓ defende/desce. Zona morta no centro; a esfera segue o dedo dentro do anel. */
   makeJoystick() {
     const b = Object.assign(document.createElement('button'), { type: 'button', className: 'cbtn joy' }); b.tabIndex = -1; b.setAttribute('aria-label', 'Joystick'); b.title = 'Joystick: arraste para andar e voar';
-    b.innerHTML = '<img src="assets/ui/joy-base.png" alt="" draggable="false"><img class="jk" src="assets/ui/joy-knob.png" alt="" draggable="false">';
+    b.innerHTML = '<img src="assets/ui/hud/joy-base.png" alt="" draggable="false"><img class="jk" src="assets/ui/hud/joy-knob.png" alt="" draggable="false">';
     const knob = b.querySelector('.jk'), P = this.pad; let id = null;
     const reset = () => { id = null; b.classList.remove('on'); P.left = P.right = P.sUp = P.sDown = false; knob.style.transform = 'translate(-50%,-50%)'; };
     const move = e => {
@@ -119,7 +119,9 @@ class GameScene {
   attachControls(host) {
     const mk = (cls, key, mode, icon, label, text, o = {}) => {
       const b = Object.assign(document.createElement('button'), { type: 'button', className: 'cbtn ' + cls }); b.tabIndex = -1; b.setAttribute('aria-label', label); b.title = label;
-      b.innerHTML = `<svg class="ic" viewBox="0 0 100 100" aria-hidden="true">${ICONS[icon] || ICONS.star}</svg>` + (text ? `<span class="lbl">${text}</span>` : '') + '<i class="cd"></i><i class="fx"></i>';
+      const dm = { sp: 1, power: 1, md: 1, bt: 1, pk: 1, atk: 1, guard: 1, tp: 1 }[cls];   // botões em losango (arte nova)
+      if (dm) { b.classList.add('dm'); b.innerHTML = `<img class="dmi" src="assets/ui/hud/${cls}.png" alt="" draggable="false"><i class="cd"></i><i class="fx"></i>`; }
+      else b.innerHTML = `<svg class="ic" viewBox="0 0 100 100" aria-hidden="true">${ICONS[icon] || ICONS.star}</svg>` + (text ? `<span class="lbl">${text}</span>` : '') + '<i class="cd"></i><i class="fx"></i>';
       b.addEventListener('pointerdown', e => { if (this.editing) return; e.preventDefault(); try { b.setPointerCapture(e.pointerId); } catch (_) {} b.classList.add('on'); this.pend[key] = true;
         if (o.dbl) { const t = performance.now(); if (t - (b._tap || -1e9) < 320) { this.pend[o.dbl] = true; b._tap = -1e9; } else b._tap = t; }   // toque duplo: liga/desliga o voo
         if (mode === 'hold') this.pad[key] = true; });   // o toque rápido também conta (dura menos que 1 quadro)
@@ -130,10 +132,12 @@ class GameScene {
     root.className = 'ctl'; move.className = 'move'; acts.className = 'acts';
     /* Controle de movimento: SETAS (padrão) ou JOYSTICK (escolhido em Opções → Controles; vale a partir da próxima partida) */
     const joy = SL.ControlType.get() === 'joystick' ? this.makeJoystick() : null; if (joy) move.classList.add('jm');
-    move.append(...(joy ? [joy] : [mk('l', 'left', 'hold', 'left', 'Esquerda', ''), mk('r', 'right', 'hold', 'right', 'Direita', '')]), mk('guard', 'guard', 'hold', 'shield', 'Defesa (segure) · segurando, toque ← ou → para se teletransportar', 'DEFESA'));
+    move.append(...(joy ? [joy] : [mk('l', 'left', 'hold', 'left', 'Esquerda', ''), mk('r', 'right', 'hold', 'right', 'Direita', '')]), mk('guard', 'guard', 'hold', 'shield', 'Defesa (segure) · segurando, toque ← ou → para se teletransportar', 'DEFESA'), mk('tp', 'tp', 'tap', 'tp', 'Dash: teletransporte para a frente (gasta Ki)', ''));
     const sp = mk('sp', 'special', 'tap', un ? un.icon : 'lock', un ? 'Habilidade única: ' + un.name.toLowerCase() : 'Habilidade única (este personagem ainda não tem)', un ? 'ÚNICA' : 'ÚNICA');
     const power = mk('power', 'big', 'tap', 'big', 'Poder grande: carrega e dispara (recarga longa)', 'GRANDE'), pk = mk('pk', 'power', 'tap', 'small', 'Poder pequeno: projétil rápido', 'PEQUENO'),
       md = mk('md', 'meditate', 'hold', 'charge', 'Carregar Ki (segure)', 'CARREGAR'), bt = mk('bt', 'jump', 'hold', 'wing', 'Voar: segure para subir, solte para cair (toque rápido = pulo)', 'VOAR'), atk = mk('atk', 'attack', 'hold', 'fist', 'Soco (toque várias vezes)', 'SOCO');
+    const dash = move.querySelector('.tp'); if (dash) dash.addEventListener('pointerdown', () => {   // DASH: simula DEFESA + toque na direção para onde o personagem olha (teleporte)
+      if (this.editing) return; const d = (this.me.face || 1) > 0 ? 'right' : 'left'; this.pad.guard = true; setTimeout(() => { this.pad[d] = true; }, 60); setTimeout(() => { this.pad[d] = false; this.pad.guard = false; }, 280); });
     if (!un) sp.classList.add('off');
     acts.append(md, sp, power, bt, pk, atk); root.append(move, acts);   // 2 linhas × 3 colunas
     const bars = document.createElement('div'); bars.className = 'bars';
