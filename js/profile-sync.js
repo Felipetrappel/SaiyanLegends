@@ -22,12 +22,12 @@ function snapshot() {
     stats: P.stats, upgrades: P.upgrades, forms: P.forms, techniques: P.techniques, settings: settings(), mp: P.mp, md: P.md };
 }
 function defaults() {   // perfil novo (igual a uma instalação nova)
-  Object.assign(P, { selected: C.DEFAULT, picked: false, unlocked: [C.DEFAULT], xp: 0, gold: SL.WELCOME_GOLD, silver: 0, gems: 0, welcomed: true, mp: {}, md: {}, stats: {}, upgrades: {}, forms: [], techniques: [] });
+  Object.assign(P, { selected: C.DEFAULT, picked: false, unlocked: [], xp: 0, gold: SL.WELCOME_GOLD, silver: 0, gems: 0, welcomed: true, mp: {}, md: {}, stats: {}, upgrades: {}, forms: [], techniques: [] });
 }
 function apply(d) {   // aplica o progresso do servidor no jogo
   applying = true;
   try {
-    P.unlocked = (Array.isArray(d.unlocked) ? d.unlocked : []).filter(id => C.all[id]); if (!P.unlocked.includes(C.DEFAULT)) P.unlocked.unshift(C.DEFAULT);
+    P.unlocked = (Array.isArray(d.unlocked) ? d.unlocked : []).filter(id => C.all[id]);
     P.selected = d.selected && P.isUnlocked(d.selected) ? d.selected : C.DEFAULT; P.picked = !!d.picked && P.isUnlocked(P.selected);
     for (const k of ['xp', 'gold', 'silver', 'gems']) P[k] = Math.max(0, Math.floor(+d[k] || 0));
     P.welcomed = true; const m = d.missions || {}; P.mp = m.mp || {}; P.md = m.md || {};

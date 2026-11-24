@@ -31,7 +31,7 @@ const snapshot = () => ({ gold: P.gold, silver: P.silver, gems: P.gems, xp: P.xp
 function apply(d) {
   applying = true;
   try {
-    P.unlocked = (Array.isArray(d.unlocked) ? d.unlocked : []).filter(id => C.all[id]); if (!P.unlocked.includes(C.DEFAULT)) P.unlocked.unshift(C.DEFAULT);
+    P.unlocked = (Array.isArray(d.unlocked) ? d.unlocked : []).filter(id => C.all[id]);
     P.selected = d.selected && P.isUnlocked(d.selected) ? d.selected : C.DEFAULT; P.picked = !!d.picked && P.isUnlocked(P.selected);
     for (const k of ['xp', 'gold', 'silver', 'gems']) P[k] = Math.max(0, Math.floor(+d[k] || 0));
     P.welcomed = true; P.mp = d.mp || {}; P.md = d.md || {}; P.stats = d.stats || {}; P.upgrades = d.upgrades || {}; P.forms = d.forms || []; P.techniques = d.techniques || [];

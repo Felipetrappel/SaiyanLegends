@@ -125,8 +125,8 @@ class RoomSystem extends Emitter {
   onRooms(fn) { return this.service.onRooms ? this.service.onRooms(fn) : () => {}; }
   /* Depois de recarregar a página: se o servidor ainda guarda o lugar deste jogador, volta para a mesma sala. */
   async resume() { const r = await (this.service.resume ? this.service.resume() : null); if (r && !this.room) await this._enter(r); return this.room; }
-  async createRoom(opts) { this._busy(); return this._enter(await this.service.createRoom(this.me, opts)); }
-  async joinRoom(id, password) { this._busy(); return this._enter(await this.service.joinRoom(id, this.me, password)); }
+  async createRoom(opts) { const P = window.SL && SL.Profile; if (P && !P.isUnlocked(this.me.character)) throw new Error('Compre e selecione um personagem na loja antes de jogar.'); this._busy(); return this._enter(await this.service.createRoom(this.me, opts)); }
+  async joinRoom(id, password) { const P = window.SL && SL.Profile; if (P && !P.isUnlocked(this.me.character)) throw new Error('Compre e selecione um personagem na loja antes de jogar.'); this._busy(); return this._enter(await this.service.joinRoom(id, this.me, password)); }
   async leaveRoom() { const r = this.room; if (!r) return; this._stop?.(); this._stop = null; this.room = null; this._loading = false; await this.service.leaveRoom(r.id, this.me.id); this.emit('room:left', r); }
   openMapSelection() { return this._do('beginMapSelection'); }
   cancelMapSelection() { return this._do('cancelMapSelection'); }
