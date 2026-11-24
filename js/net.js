@@ -88,6 +88,9 @@ class RemoteRoomService extends Emitter {
   async saveProfile(key, progress, name) { return this._req('saveProfile', { key, progress, name }); }
   async setStaff(code) { const t = (await this._req('staff', { code })).tag || ''; this.myTag = t; return t; }
   async redeem(code) { return this._req('redeem', { code }); }
+  async codeGen(o) { return this._req('codeGen', o); }
+  async codeList() { return this._req('codeList', {}); }
+  async codeDel(code) { return this._req('codeDel', { code }); }
   _op(op, extra) { return this._req(op, extra).then(r => r.room); }
   beginMapSelection() { return this._op('beginMapSelection'); }
   cancelMapSelection() { return this._op('cancelMapSelection'); }
@@ -126,6 +129,10 @@ class AutoService extends Emitter {
   async loadProfile(key) { await this.ready; if (this.mode === 'online' && this.impl.loadProfile) return this.impl.loadProfile(key); throw new Error('Sem conexão com o servidor.'); }
   async saveProfile(key, p, n) { await this.ready; if (this.mode === 'online' && this.impl.saveProfile) return this.impl.saveProfile(key, p, n); throw new Error('Sem conexão com o servidor.'); }
   async setStaff(code) { await this.ready; if (this.mode === 'online' && this.impl.setStaff) return this.impl.setStaff(code); throw new Error('Só funciona online.'); }
+  async codeGen(o) { await this.ready; if (this.mode === 'online' && this.impl.codeGen) return this.impl.codeGen(o); throw new Error('Sem conexão com o servidor.'); }
+  async codeList() { await this.ready; if (this.mode === 'online' && this.impl.codeList) return this.impl.codeList(); throw new Error('Sem conexão com o servidor.'); }
+  async codeDel(c) { await this.ready; if (this.mode === 'online' && this.impl.codeDel) return this.impl.codeDel(c); throw new Error('Sem conexão com o servidor.'); }
+  get canGenCodes() { const t = this.myTag; return t === 'DEV' || t === 'ADM'; }
   async redeem(code) { await this.ready; if (this.mode === 'online' && this.impl.redeem) return this.impl.redeem(code); throw new Error('Sem conexão com o servidor.'); }
   get myTag() { return (this.mode === 'online' && this.impl && this.impl.myTag) || ''; }
   /* lobby: só funciona online; offline você anda sozinho */

@@ -56,6 +56,9 @@ async function findTarget(name) {
   const u = await ENV.DB.prepare('SELECT id, name FROM users WHERE name_lc = ?1').bind(lc).first();
   return u ? { online: null, name: u.name, uid: String(u.id) } : null;
 }
+const needGen = s => { if (!s.account || (s.tag !== 'DEV' && s.tag !== 'ADM') || !ENV.DB) throw E('Sem permissão.'); };
+let codeTablesOk = false;
+async function ensureCodeTables() { if (codeTablesOk) return; await ENV.DB.prepare('CREATE TABLE IF NOT EXISTS code_uses (uid TEXT NOT NULL, code TEXT NOT NULL, at INTEGER NOT NULL, PRIMARY KEY (uid, code))').run(); await ENV.DB.prepare('CREATE TABLE IF NOT EXISTS codes (code TEXT PRIMARY KEY, gold INTEGER NOT NULL DEFAULT 0, gems INTEGER NOT NULL DEFAULT 0, xp INTEGER NOT NULL DEFAULT 0, max_uses INTEGER NOT NULL DEFAULT 0, used INTEGER NOT NULL DEFAULT 0, by_name TEXT, at INTEGER)').run(); codeTablesOk = true; }
 async function adminCmd(s, text) {
   const [cmd0, ...a] = text.slice(1).split(/\s+/), cmd = cmd0.toLowerCase();
   const rank = RANK[s.tag] || 0;
@@ -178,14 +181,41 @@ const OPS = {
     return { tag };
   },
   /* Sistema de códigos: cada conta resgata cada código uma única vez. Os códigos ficam no SERVIDOR (segredo CODES, JSON: {"CODIGO":{"gold":500,"gems":10,"xp":0,"until":"2027-01-01"}}). */
+  /* GERADOR DE CÓDIGOS — exclusivo DEV/ADM, validado AQUI no servidor (a tag vem da conta, nunca do cliente). */
+  async codeGen(s, m) {
+    needGen(s); await ensureCodeTables();
+    const n = k => Math.max(0, Math.min(CAP, Math.floor(Number(m[k]) || 0))), gold = n('gold'), gems = n('gems'), xp = n('xp');
+    if (!gold && !gems && !xp) throw E('Defina ao menos uma recompensa (moedas, diamantes ou XP).');
+    const max = Math.max(0, Math.min(1000000, Math.floor(Number(m.maxUses) || 0)));
+    let code = String(m.code || '').trim().toUpperCase().replace(/[^A-Z0-9_-]/g, '').slice(0, 32);
+    if (!code) { const b = crypto.getRandomValues(new Uint8Array(8)); code = [...b].map(x => 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'[x % 32]).join(''); }
+    if (code.length < 3) throw E('O código precisa ter pelo menos 3 caracteres.');
+    if (CODES[code]) throw E('Esse código já existe.');
+    const r = await ENV.DB.prepare('INSERT OR IGNORE INTO codes (code, gold, gems, xp, max_uses, used, by_name, at) VALUES (?1, ?2, ?3, ?4, ?5, 0, ?6, ?7)').bind(code, gold, gems, xp, max, s.name, Date.now()).run();
+    if (!(r.meta && r.meta.changes)) throw E('Esse código já existe.');
+    return { code, gold, gems, xp, maxUses: max };
+  },
+  async codeList(s) {
+    needGen(s); await ensureCodeTables();
+    const r = await ENV.DB.prepare('SELECT code, gold, gems, xp, max_uses, used, by_name FROM codes ORDER BY at DESC LIMIT 40').all();
+    return { codes: (r.results || []).map(c => ({ code: c.code, gold: c.gold, gems: c.gems, xp: c.xp, maxUses: c.max_uses, used: c.used, by: c.by_name })) };
+  },
+  async codeDel(s, m) {
+    needGen(s); await ensureCodeTables();
+    await ENV.DB.prepare('DELETE FROM codes WHERE code = ?1').bind(String(m.code || '').toUpperCase().slice(0, 32)).run(); return {};
+  },
   async redeem(s, m) {
     if (!s.account || !ENV.DB) throw E('Entre na sua conta para resgatar códigos.');
     const code = String(m.code || '').trim().toUpperCase().replace(/[^A-Z0-9_-]/g, '').slice(0, 32); if (!code) throw E('Digite um código.');
     const now = Date.now(); if ((s.rdT || 0) > now - 1500) throw E('Aguarde um instante.'); s.rdT = now;
-    const def = CODES[code]; if (!def || (def.until && now > Date.parse(def.until))) throw E('Código inválido ou expirado.');
-    await ENV.DB.prepare('CREATE TABLE IF NOT EXISTS code_uses (uid TEXT NOT NULL, code TEXT NOT NULL, at INTEGER NOT NULL, PRIMARY KEY (uid, code))').run();
+    await ensureCodeTables();
+    const row = await ENV.DB.prepare('SELECT gold, gems, xp, max_uses, used FROM codes WHERE code = ?1').bind(code).first();
+    const def = row ? { gold: row.gold, gems: row.gems, xp: row.xp } : CODES[code]; if (!def || (def.until && now > Date.parse(def.until))) throw E('Código inválido ou expirado.');
+    if (row && row.max_uses > 0 && row.used >= row.max_uses) throw E('Este código atingiu o limite de usos.');
     const ins = await ENV.DB.prepare('INSERT OR IGNORE INTO code_uses (uid, code, at) VALUES (?1, ?2, ?3)').bind(String(s.account.id), code, now).run();
     if (!(ins.meta && ins.meta.changes)) throw E('Você já resgatou este código.');
+    if (row) { const up = await ENV.DB.prepare('UPDATE codes SET used = used + 1 WHERE code = ?1 AND (max_uses = 0 OR used < max_uses)').bind(code).run();
+      if (!(up.meta && up.meta.changes)) { await ENV.DB.prepare('DELETE FROM code_uses WHERE uid = ?1 AND code = ?2').bind(String(s.account.id), code).run(); throw E('Este código atingiu o limite de usos.'); } }
     const g = { gold: Math.max(0, Math.min(CAP, def.gold | 0)), gems: Math.max(0, Math.min(CAP, def.gems | 0)), xp: Math.max(0, Math.min(CAP, def.xp | 0)) };
     sendTo(s.pid, { push: 'grant', gold: g.gold, gems: g.gems, xp: g.xp, src: 'Código' });
     return { reward: g };

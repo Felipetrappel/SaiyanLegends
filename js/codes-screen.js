@@ -12,6 +12,9 @@ S.register('codes', { title: 'Códigos', sticky: true, noFocus: true, build(p) {
   const inp = el('input', 'cd-in', { type: 'text', maxLength: 32, autocomplete: 'off', autocapitalize: 'characters', spellcheck: false, enterKeyHint: 'send', ariaLabel: 'Código', placeholder: 'Digite o código aqui...' }), msg = el('div', 'cd-msg');
   pos(x, [1696, 60, 125, 125]); pos(dc, [950, 272, 190, 52]); pos(send, [630, 612, 645, 150]); pos(inp, [545, 456, 1000, 118]); pos(msg, [310, 770, 1255, 60]);
   box.append(img, x, dc, inp, send, msg); p.append(box);
+  /* botão do gerador: só é criado para DEV/ADM (os demais jogadores nem têm o elemento) */
+  let gb = null; const sync = () => { const ok = window.SLCodeGen && SLCodeGen.can(); if (ok && !gb) { gb = el('button', 'cd-gen', { type: 'button', textContent: '⚙ GERADOR DE CÓDIGOS' }); gb.addEventListener('click', () => SLCodeGen.open()); p.append(gb); } else if (!ok && gb) { gb.remove(); gb = null; } };
+  sync(); const offS = svc.on && svc.on('status', sync);
   const say = (t, ok) => { msg.textContent = t; msg.className = 'cd-msg ' + (ok ? 'ok' : 'bad'); };
   let busy = false;
   const go = async () => {
@@ -26,6 +29,6 @@ S.register('codes', { title: 'Códigos', sticky: true, noFocus: true, build(p) {
   inp.addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') { e.preventDefault(); go(); } else if (e.key === 'Escape') S.close(); }); inp.addEventListener('keyup', e => e.stopPropagation());
   p.addEventListener('pointerdown', e => { if (e.target === p) S.close(); });
   setTimeout(() => { try { inp.focus(); } catch (_) {} }, 80);
-  return () => {};
+  return () => { try { offS && offS(); } catch (_) {} };
 } });
 })();
