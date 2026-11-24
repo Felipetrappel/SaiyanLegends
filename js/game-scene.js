@@ -132,12 +132,10 @@ class GameScene {
     root.className = 'ctl'; move.className = 'move'; acts.className = 'acts';
     /* Controle de movimento: SETAS (padrão) ou JOYSTICK (escolhido em Opções → Controles; vale a partir da próxima partida) */
     const joy = SL.ControlType.get() === 'joystick' ? this.makeJoystick() : null; if (joy) move.classList.add('jm');
-    move.append(...(joy ? [joy] : [mk('l', 'left', 'hold', 'left', 'Esquerda', ''), mk('r', 'right', 'hold', 'right', 'Direita', '')]), mk('guard', 'guard', 'hold', 'shield', 'Defesa (segure) · segurando, toque ← ou → para se teletransportar', 'DEFESA'), mk('tp', 'tp', 'tap', 'tp', 'Dash: teletransporte para a frente (gasta Ki)', ''));
+    move.append(...(joy ? [joy] : [mk('l', 'left', 'hold', 'left', 'Esquerda', ''), mk('r', 'right', 'hold', 'right', 'Direita', '')]));
     const sp = mk('sp', 'special', 'tap', un ? un.icon : 'lock', un ? 'Habilidade única: ' + un.name.toLowerCase() : 'Habilidade única (este personagem ainda não tem)', un ? 'ÚNICA' : 'ÚNICA');
     const power = mk('power', 'big', 'tap', 'big', 'Poder grande: carrega e dispara (recarga longa)', 'GRANDE'), pk = mk('pk', 'power', 'tap', 'small', 'Poder pequeno: projétil rápido', 'PEQUENO'),
       md = mk('md', 'meditate', 'hold', 'charge', 'Carregar Ki (segure)', 'CARREGAR'), bt = mk('bt', 'jump', 'hold', 'wing', 'Voar: segure para subir, solte para cair (toque rápido = pulo)', 'VOAR'), atk = mk('atk', 'attack', 'hold', 'fist', 'Soco (toque várias vezes)', 'SOCO');
-    const dash = move.querySelector('.tp'); if (dash) dash.addEventListener('pointerdown', () => {   // DASH: simula DEFESA + toque na direção para onde o personagem olha (teleporte)
-      if (this.editing) return; const d = (this.me.face || 1) > 0 ? 'right' : 'left'; this.pad.guard = true; setTimeout(() => { this.pad[d] = true; }, 60); setTimeout(() => { this.pad[d] = false; this.pad.guard = false; }, 280); });
     if (!un) sp.classList.add('off');
     acts.append(md, sp, power, bt, pk, atk); root.append(move, acts);   // 2 linhas × 3 colunas
     const bars = document.createElement('div'); bars.className = 'bars';
@@ -184,7 +182,7 @@ class GameScene {
     set(U.sp, !!m.unique && m.ready('burst'), m.unique ? m.cdFrac('unique') : 0, m.state === 'burst' || m.state === 'dash' || m.state === 'ice');          // HABILIDADE ÚNICA
     set(U.md, m.energy < (m.maxEn || C.energy) || m.state === 'meditate', 0, m.state === 'meditate');         // CARREGAR KI
     set(U.bt, true, 0, !!m.body.flying);                                                                      // PULAR / VOAR
-    set(U.atk, true, 0, m.state === 'attack'); set(U.guard, true, 0, m.state === 'shield');
+    set(U.atk, true, 0, m.state === 'attack'); if (U.guard) set(U.guard, true, 0, m.state === 'shield');
   }
   layer(c) {
     if (this.dbg[c]) return this.dbg[c];
