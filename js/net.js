@@ -87,6 +87,7 @@ class RemoteRoomService extends Emitter {
   async loadProfile(key) { return this._req('loadProfile', { key }); }
   async saveProfile(key, progress, name) { return this._req('saveProfile', { key, progress, name }); }
   async setStaff(code) { const t = (await this._req('staff', { code })).tag || ''; this.myTag = t; return t; }
+  async redeem(code) { return this._req('redeem', { code }); }
   _op(op, extra) { return this._req(op, extra).then(r => r.room); }
   beginMapSelection() { return this._op('beginMapSelection'); }
   cancelMapSelection() { return this._op('cancelMapSelection'); }
@@ -125,6 +126,7 @@ class AutoService extends Emitter {
   async loadProfile(key) { await this.ready; if (this.mode === 'online' && this.impl.loadProfile) return this.impl.loadProfile(key); throw new Error('Sem conexão com o servidor.'); }
   async saveProfile(key, p, n) { await this.ready; if (this.mode === 'online' && this.impl.saveProfile) return this.impl.saveProfile(key, p, n); throw new Error('Sem conexão com o servidor.'); }
   async setStaff(code) { await this.ready; if (this.mode === 'online' && this.impl.setStaff) return this.impl.setStaff(code); throw new Error('Só funciona online.'); }
+  async redeem(code) { await this.ready; if (this.mode === 'online' && this.impl.redeem) return this.impl.redeem(code); throw new Error('Sem conexão com o servidor.'); }
   get myTag() { return (this.mode === 'online' && this.impl && this.impl.myTag) || ''; }
   /* lobby: só funciona online; offline você anda sozinho */
   async hubJoin(info) { await this.ready; return this.mode === 'online' && this.impl.hubJoin ? this.impl.hubJoin(info) : null; }

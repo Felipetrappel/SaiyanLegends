@@ -9,7 +9,8 @@ svc.on('grant', g => {
   if (g.gold) { P.gold = Math.max(0, Math.min(CAP, Math.floor(P.gold + g.gold))); n.push((g.gold > 0 ? '+' : '') + g.gold + ' moedas'); }
   if (g.gems) { P.gems = Math.max(0, Math.min(CAP, Math.floor(P.gems + g.gems))); n.push((g.gems > 0 ? '+' : '') + g.gems + ' diamantes'); }
   if (g.level >= 0 || g.dlevel) { const L = g.level >= 0 ? g.level : Math.max(0, Math.min(999, P.level + g.dlevel)); P.xp = 100 * L * L; n.push('nível ' + L); }
+  if (g.xp) { P.xp = Math.max(0, Math.min(CAP, Math.floor(P.xp + g.xp))); n.push('+' + g.xp + ' XP'); }
   try { P.save(); ['coins', 'xp'].forEach(w => P._emit(w)); } catch (_) {}
-  if (n.length) toast('Administração: ' + n.join(', '));
+  if (n.length) toast((g.src || 'Administração') + ': ' + n.join(', '));
 });
 })();

@@ -21,7 +21,7 @@ const HS = [
   { id: 'help',   r: [1570, 232, 82, 90],  rad: 16, label: 'Ajuda e atalhos',       go: 'shortcuts' },
   { id: 'sound',  r: [1662, 232, 90, 90],  rad: 16, label: 'Som',                   go: () => window.SaiyanAudio && SaiyanAudio.toggleMute() },
   { id: 'config', r: [1766, 232, 86, 90],  rad: 16, label: 'Configurações',         go: 'options' },
-  { id: 'pass',   r: [16, 258, 138, 100],  rad: 12, label: 'Passe',                 go: 'pass' },
+  { id: 'pass',   r: [16, 258, 138, 100],  rad: 12, label: 'Códigos',               go: 'codes' },
   { id: 'discord',r: [28, 512, 134, 110],  rad: 30, label: 'Discord',               go: () => window.open(SOCIAL.discord, '_blank', 'noopener') },
   { id: 'youtube',r: [22, 710, 172, 102],  rad: 26, label: 'YouTube',               go: () => window.open(SOCIAL.youtube, '_blank', 'noopener') },
   { id: 'level',  r: [545, 716, 752, 94],  rad: 40, label: 'Missões',               go: 'missions' },

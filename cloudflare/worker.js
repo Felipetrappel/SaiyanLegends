@@ -30,6 +30,9 @@ function wrap(sock) {
 /* Tags da equipe: o SERVIDOR decide quem tem tag. Segredo STAFF_CODES (JSON: {"codigo-secreto":"DEV", ...}) definido na Cloudflare. */
 const TAGS = new Set(['DEV', 'ADM', 'GM', 'CM', 'YT']);
 let STAFF = {};
+const DEFAULT_CODES = { SAIYAN: { gold: 500, gems: 10 }, FELIPEDZN: { gold: 1000, gems: 20 } };
+let CODES = DEFAULT_CODES;
+const parseCodes = raw => { try { const o = JSON.parse(raw || ''), r = {}; for (const [k, v] of Object.entries(o)) if (v && typeof v === 'object') r[String(k).toUpperCase()] = v; return r; } catch (e) { return DEFAULT_CODES; } };
 const parseStaff = raw => { try { const o = JSON.parse(raw || '{}'), r = {}; for (const [k, v] of Object.entries(o)) if (k.length >= 12 && TAGS.has(String(v).toUpperCase())) r[k] = String(v).toUpperCase(); return r; } catch (_) { return {}; } };
 const staffTag = code => { code = String(code || ''); let found = ''; for (const k of Object.keys(STAFF)) if (k.length === code.length) { let d = 0; for (let i = 0; i < k.length; i++) d |= k.charCodeAt(i) ^ code.charCodeAt(i); if (!d) found = STAFF[k]; } return found; };
 const tagOf = pid => (sessions.get(pid) || {}).tag || '';
@@ -174,6 +177,19 @@ const OPS = {
     const r = s.roomId && rooms.get(s.roomId); if (r) pushRoom(r);
     return { tag };
   },
+  /* Sistema de códigos: cada conta resgata cada código uma única vez. Os códigos ficam no SERVIDOR (segredo CODES, JSON: {"CODIGO":{"gold":500,"gems":10,"xp":0,"until":"2027-01-01"}}). */
+  async redeem(s, m) {
+    if (!s.account || !ENV.DB) throw E('Entre na sua conta para resgatar códigos.');
+    const code = String(m.code || '').trim().toUpperCase().replace(/[^A-Z0-9_-]/g, '').slice(0, 32); if (!code) throw E('Digite um código.');
+    const now = Date.now(); if ((s.rdT || 0) > now - 1500) throw E('Aguarde um instante.'); s.rdT = now;
+    const def = CODES[code]; if (!def || (def.until && now > Date.parse(def.until))) throw E('Código inválido ou expirado.');
+    await ENV.DB.prepare('CREATE TABLE IF NOT EXISTS code_uses (uid TEXT NOT NULL, code TEXT NOT NULL, at INTEGER NOT NULL, PRIMARY KEY (uid, code))').run();
+    const ins = await ENV.DB.prepare('INSERT OR IGNORE INTO code_uses (uid, code, at) VALUES (?1, ?2, ?3)').bind(String(s.account.id), code, now).run();
+    if (!(ins.meta && ins.meta.changes)) throw E('Você já resgatou este código.');
+    const g = { gold: Math.max(0, Math.min(CAP, def.gold | 0)), gems: Math.max(0, Math.min(CAP, def.gems | 0)), xp: Math.max(0, Math.min(CAP, def.xp | 0)) };
+    sendTo(s.pid, { push: 'grant', gold: g.gold, gems: g.gems, xp: g.xp, src: 'Código' });
+    return { reward: g };
+  },
   hubJoin(s, m) {
     if (!hub.has(s.pid) && hub.size >= HUB_MAX) throw E('Lobby cheio.');
     const p = { id: s.pid, name: (s.acct ? s.name : clean(m.name, 16)) || s.name || 'Jogador', character: clean(m.character, 24) || 'street', x: hubX(m.x), f: m.f < 0 ? -1 : 1, mv: 0, tag: s.tag || '' };
@@ -280,7 +296,7 @@ function accept(sock) {
   ws.onclose = () => { clearInterval(tick); clients.delete(ws); const s = conn.s; if (s && s.ws === ws) { s.ws = null; hubLeave(s.pid); disconnected(s); } setTimeout(pushOnline, 0); };
 }
 export class World extends DurableObject {
-  constructor(ctx, env) { super(ctx, env); ENV = env; STAFF = parseStaff(env.STAFF_CODES); }
+  constructor(ctx, env) { super(ctx, env); ENV = env; STAFF = parseStaff(env.STAFF_CODES); CODES = env.CODES ? parseCodes(env.CODES) : DEFAULT_CODES; }
   async fetch(request) {
     const pair = new WebSocketPair(), [client, server] = Object.values(pair);
     accept(server);
