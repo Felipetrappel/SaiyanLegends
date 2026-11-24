@@ -8,7 +8,7 @@ const M = SaiyanMenu, P = SL.Profile, G = SaiyanGame, S = M.screens, C = SL.Char
 const el = (t, c = '', p = {}) => Object.assign(document.createElement(t), { className: c, ...p });
 const fmt = n => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
 const A = { w: 1220, h: 813 }, PER = 5;
-const QUOTE = { street: 'Quem sobrevive às ruas vence qualquer luta.', felipedzn: 'A espada que corta o destino.' };
+const QUOTE = { street: 'Quem sobrevive às ruas vence qualquer luta.', felipedzn: 'A espada que corta o destino.', samulord: 'Da escuridão nasce a luz dourada.' };
 const ROWS = [['⚔️', 'Ataque', 'power', '#ff3b3b'], ['🔥', 'Ki', 'energy', '#ff9a2e'], ['🛡️', 'Defesa', 'defense', '#2aa0ff'], ['👟', 'Velocidade', 'speed', '#3ddc4a']];
 const ORDERS = [['Padrão', ids => ids], ['Nome', ids => ids.slice().sort((a, b) => String(C.get(a).name || a).localeCompare(String(C.get(b).name || b)))], ['Poder', ids => ids.slice().sort((a, b) => ((C.get(b).stats || {}).power || 0) - ((C.get(a).stats || {}).power || 0))]];
 const idleH = d => Math.max(...d.anims.idle.f.map(i => d.frames[i].h));

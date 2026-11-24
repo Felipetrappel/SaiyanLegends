@@ -325,7 +325,7 @@ class Fighter {
       else if (p.big && !this.hasBig && this.can('sun')) { this.energy -= ABIL.sun.cost; this.set('sun'); }                                // personagem sem etapas de carga: usa a esfera solar
       else if (p.transform && this.form) { this.endForm(); this.acd.transform = ABIL.transform.cd; }      // Z de novo: volta ao normal
       else if (p.transform && this.can('transform')) { this.energy -= ABIL.transform.cost; this.set('transform'); }
-      else if (p.special && this.can('burst')) { this.energy -= this.cost('burst'); this.set(this.def.ice ? 'ice' : this.def.dash ? 'dash' : 'burst'); this.dashHit = new Set(); this.aoeHit = new Set(); this.aoeFx = false; }   // personagens com def.dash usam o movimento especial no lugar da onda de impacto
+      else if (p.special && this.can('burst')) { this.energy -= this.cost('burst'); this.set(this.def.ice ? 'ice' : this.def.dash ? 'dash' : 'burst'); this.dashHit = new Set(); this.aoeHit = new Set(); this.beamHit = {}; this.aoeFx = false; }   // personagens com def.dash usam o movimento especial no lugar da onda de impacto
       else if (p.barrage && this.can('barrage')) { this.energy -= ABIL.barrage.cost; this.set('barrage'); this.shots = 0; }
       else if (p.sun && this.can('sun')) { this.energy -= ABIL.sun.cost; this.set('sun'); }
       else if (inp.meditate && b.grounded && !b.flying && this.energy < this.maxEn) this.set('meditate');
@@ -378,6 +378,10 @@ class Fighter {
         b.vy = 0; const R = cs.seg.aoe, c = this.chest();
         if (!this.aoeFx) { this.aoeFx = true; (world.effects ||= []).push(new Ring(this.def, b.x, c.y, 10, R, .3, this.def.ringColor || '#ff4fa8')); }
         for (const f of world.fighters) if (f !== this && !f.dead && !this.aoeHit.has(f) && Math.abs(f.body.x - b.x) <= R && Math.abs(f.body.y - b.y) <= 50) { this.aoeHit.add(f); f.hurt(D.aoeDmg * this.dmgMul, f.body.x >= b.x ? 1 : -1, D.aoeKb || D.kb, this); }
+      }
+      else if (cs.seg.beam) {                                                                                     // raio: acerta uma vez cada oponente à frente, dentro do alcance
+        b.vy = 0; const B = cs.seg.beam, hs = (this.beamHit ||= {})[cs.i] ||= new Set();
+        for (const f of world.fighters) if (f !== this && !f.dead && !hs.has(f)) { const dx = (f.body.x - b.x) * this.face; if (dx >= -8 && dx <= B.reach && Math.abs(f.body.y - b.y) <= 60) { hs.add(f); f.hurt(B.dmg * this.dmgMul, this.face, B.kb, this); } }
       }
       else if (cs.seg.move) {
         b.vy = 0; b.moveX(this.face * D.speed * dt); const r = this.rect();

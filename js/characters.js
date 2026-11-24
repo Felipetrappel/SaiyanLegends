@@ -2,13 +2,16 @@
    desbloqueado e selecionado. Para um novo personagem: registre-o em Characters.all (com defaultUnlocked e price). */
 (() => {
 'use strict';
-const S = SL.STREET, FZ = SL.FELIPEDZN, pending = {};
+const S = SL.STREET, FZ = SL.FELIPEDZN, SM = SL.SAMULORD, pending = {};
 const all = {};
 if (S) all.street = { ...S, price: 0, defaultUnlocked: false, stats: { power: 7.0, defense: 7.0, energy: 7.0, speed: 7.0, k: 7.0 }, unique: { name: 'ONDA DE IMPACTO', icon: 'shock' },   // HABILIDADE ÚNICA do personagem (botão da tela): nome e ícone; a ação é def.dash (se houver) ou a onda de impacto
    img: Object.assign(new Image(), { src: S.sheet }) };   // pré-carrega o sheet (para trocar o preço/bloqueio, edite price e defaultUnlocked)
 /* FelipeDzn: ESPADA = habilidade única (def.dash); HADOU 99 = poder grande (def.big). Atributos 0–10 (k = Ki). */
 if (FZ) all.felipedzn = { ...FZ, price: 1200, defaultUnlocked: false, unique: { name: 'ESPADA', icon: 'sword' }, ringColor: '#ff4fa8', auraColor: '#ff4fd8', bigPal: 'pink',
    img: Object.assign(new Image(), { src: FZ.sheet }) };
+/* SAMULORD: ULTIMATE = habilidade única; fundo escuro/dourado; aura já desenhada no sheet (bakedAura). */
+if (SM) all.samulord = { ...SM, price: 1500, defaultUnlocked: false, unique: { name: 'ULTIMATE', icon: 'shock' }, ringColor: '#ffd23a', auraColor: '#ffd23a', bigPal: 'ice', bakedAura: true,
+   img: Object.assign(new Image(), { src: SM.sheet }) };
 const DEFAULT = Object.keys(all)[0];   // personagem padrão = o primeiro disponível
 const KEY = 'sl.profile';
 const WELCOME_GOLD = 1500;   // moedas amarelas de um perfil NOVO (dadas uma única vez: o perfil guarda 'welcomed')
