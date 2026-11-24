@@ -27,7 +27,7 @@ function draw(ctx, d, t, cx, feetY, scale, sil) {
 
 S.register('characters', { title: 'Personagem', sticky: true, noFocus: true, build(p) {
   p.classList.add('shopwrap', 'csel');
-  const eL = el('div', 'cs-edge l'), eR = el('div', 'cs-edge r'), st = el('div', 'cs-stage'); p.append(eL, eR, st);
+  const wide = el('div', 'cs-wide'), st = el('div', 'cs-stage'); p.append(wide, st);
   const box = (cls, r, parent = st) => { const n = el('div', cls); n.style.cssText = `left:${r[0]}px;top:${r[1]}px;width:${r[2]}px;height:${r[3]}px`; parent.append(n); return n; };
   const hs = (r, label, fn) => { const b = box('cs-hs', r); b.tabIndex = 0; b.setAttribute('role', 'button'); b.setAttribute('aria-label', label); b.addEventListener('click', fn); b.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fn(); } }); return b; };
 
@@ -89,9 +89,9 @@ S.register('characters', { title: 'Personagem', sticky: true, noFocus: true, bui
 
   function loop(now) { if (!alive) return; raf = requestAnimationFrame(loop); if (document.hidden) return;
     const id = list[sel], d = C.get(id || C.DEFAULT), ctx = cv.getContext('2d'); ctx.clearRect(0, 0, 420, 340);
-    draw(ctx, d, (now - t0) / 1000, 210, 332, 232 / idleH(d), !id); }
+    draw(ctx, d, Math.max(0, performance.now() - t0) / 1000, 210, 332, 232 / idleH(d), !id); }
   const fit = () => { const W = p.clientWidth, H = p.clientHeight; if (!W || !H) return; const k = Math.min(W / A.w, H / A.h), l = (W - A.w * k) / 2, t = (H - A.h * k) / 2;
-    st.style.transform = `translate(${l}px,${t}px) scale(${k})`; eL.style.width = Math.ceil(l) + 2 + 'px'; eR.style.width = Math.ceil(l) + 2 + 'px'; };
+    st.style.transform = `translate(${l}px,${t}px) scale(${k})`; wide.style.cssText = `left:${l - 520 * k}px;top:${t}px;width:${2260 * k}px;height:${A.h * k}px`; };
   const ro = new ResizeObserver(fit); ro.observe(p); fit();
   const off = P.on(() => refresh()), key = e => { if (e.key === 'Escape') S.close(); else if (e.key === 'ArrowLeft') move(-1); else if (e.key === 'ArrowRight') move(1); }; addEventListener('keydown', key);
   C.all && Object.values(C.all).forEach(d => d.img && !d.img.complete && d.img.addEventListener('load', () => 0));

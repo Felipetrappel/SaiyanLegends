@@ -528,7 +528,7 @@ button.rm-card{cursor:pointer;padding:0;text-align:center}
 .mv2 { position: absolute; inset: 0; overflow: hidden; background: #0b2a8a; }
 .mv2-fill { position: absolute; inset: -4%; width: 108%; height: 108%; object-fit: cover; filter: blur(14px) brightness(.8); pointer-events: none; }
 .mv2-stage { position: absolute; }
-.mv2-art { position: absolute; inset: 0; width: 100%; height: 100%; display: block; user-select: none; -webkit-user-drag: none; }
+.mv2-art { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: fill; display: block; user-select: none; -webkit-user-drag: none; }
 .mv2-hs { position: absolute; padding: 0; border: 0; background: transparent; cursor: pointer; -webkit-tap-highlight-color: transparent; transition: background .12s, box-shadow .12s, transform .1s; }
 .mv2-hs:hover, .mv2-hs:focus-visible { background: rgba(255,255,255,.16); box-shadow: 0 0 0 2px rgba(255,255,255,.55), 0 0 18px rgba(120,200,255,.8); }
 .mv2-hs:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
@@ -563,8 +563,8 @@ button.rm-card{cursor:pointer;padding:0;text-align:center}
 
 /* ===== Seleção de personagens (nova) ===== */
 .panel.csel{background:#050b18!important}
-.csel .cs-edge{position:absolute;top:0;bottom:0;background-size:100% 100%}.csel .cs-edge.l{left:0;background-image:url(../assets/ui/chars-edge-l.png)}.csel .cs-edge.r{right:0;background-image:url(../assets/ui/chars-edge-r.png)}
-.csel .cs-stage{position:absolute;left:0;top:0;width:1220px;height:813px;transform-origin:0 0;background:url(../assets/ui/chars-bg.jpg) 0 0/100% 100% no-repeat;font-family:"Oswald","Roboto Condensed","sans-serif-condensed","Arial Narrow",system-ui,sans-serif;color:#fff;text-align:left;user-select:none}
+.csel .cs-wide{position:absolute;background:url(../assets/ui/chars-wide.jpg) 0 0/100% 100% no-repeat}
+.csel .cs-stage{position:absolute;left:0;top:0;width:1220px;height:813px;transform-origin:0 0;font-family:"Oswald","Roboto Condensed","sans-serif-condensed","Arial Narrow",system-ui,sans-serif;color:#fff;text-align:left;user-select:none}
 .csel .cs-stage>*{position:absolute}
 .csel .cs-hs{cursor:pointer;border-radius:10px;-webkit-tap-highlight-color:transparent;outline:0;transition:background .12s,box-shadow .12s}
 .csel .cs-hs:hover,.csel .cs-hs:focus-visible{background:rgba(255,255,255,.14);box-shadow:0 0 0 2px rgba(255,255,255,.5),0 0 14px rgba(120,200,255,.7)}.csel .cs-hs:active{background:rgba(0,0,0,.25)}

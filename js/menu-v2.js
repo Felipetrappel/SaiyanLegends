@@ -31,7 +31,7 @@ const HS = [
 
 const root = el('div', 'mv2'), fill = el('img', 'mv2-fill', { src: ART.src, alt: '', draggable: false }), stage = el('div', 'mv2-stage');
 const art = el('img', 'mv2-art', { src: ART.src, alt: '', draggable: false });
-stage.append(art); root.append(fill, stage);
+stage.append(art); root.append(stage);
 const pos = (n, r) => { n.style.left = (r[0] / ART.w * 100) + '%'; n.style.top = (r[1] / ART.h * 100) + '%'; n.style.width = (r[2] / ART.w * 100) + '%'; n.style.height = (r[3] / ART.h * 100) + '%'; };
 
 /* textos vivos */
@@ -70,9 +70,11 @@ S.register('shortcuts', { title: 'Atalhos', build(p) {
 /* tamanho: a arte inteira cabe na tela (sem cortar); o resto é preenchido com a própria arte desfocada */
 function layout() {
   const app = root.parentElement; if (!app) return; const W = app.clientWidth, H = app.clientHeight; if (!W || !H) return;
-  const k = Math.min(W / ART.w, H / ART.h), w = ART.w * k, h = ART.h * k, s = stage.style;
-  s.width = w + 'px'; s.height = h + 'px'; s.left = (W - w) / 2 + 'px'; s.top = (H - h) / 2 + 'px'; root.style.setProperty('--k', k);
+  /* tela cheia: a arte preenche a tela inteira (sem barras, sem desfoque). Os textos e o personagem usam escala uniforme para não ficarem esticados. */
+  const kx = W / ART.w, ky = H / ART.h, k = Math.min(kx, ky), s = stage.style;
+  s.width = W + 'px'; s.height = H + 'px'; s.left = '0px'; s.top = '0px'; root.style.setProperty('--k', k);
   HS.forEach(x => { x.el.style.borderRadius = (x.rad * k) + 'px'; });
+  const cs = cc.style; cs.width = 360 * k + 'px'; cs.height = 450 * k + 'px'; cs.left = (936 / ART.w * W - 180 * k) + 'px'; cs.top = (664 / ART.h * H - 434 * k) + 'px';
 }
 
 /* valores */
