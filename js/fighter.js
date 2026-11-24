@@ -401,7 +401,7 @@ class Fighter {
       if (!this.fired && this.t >= CFG.power.fireAt) { this.fired = true; const h = this.hand(frameAt(this.def, 'energy', this.t)); this.launch(world, new Beam(this, h.x, h.y, this.face), { t: 'beam', x: h.x, y: h.y }); } // solta da mão estendida // 4) projétil
       if (this.t >= CFG.power.dur) { this.pcd = CFG.power.cd; this.set('idle'); }
     }
-    const free = !this.busy, shield = free && (inp.down || inp.guard) && b.grounded && !b.flying, mv = free && !shield;
+    const free = !this.busy, shield = false /* sistema de defesa removido */, mv = free;
     b.step(dt, { left: mv && inp.left, right: mv && inp.right, jump: mv && inp.up && !b.flying, climb: mv && inp.up && !b.flying, up: mv && inp.up, down: mv && inp.down });
     this.separate(world);                                                                                   // um lutador não atravessa o outro (jogadores, bots e boneco)
     if (!this.busy) {                                                                                       // animação conforme o estado atual
