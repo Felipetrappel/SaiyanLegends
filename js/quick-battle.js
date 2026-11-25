@@ -1,4 +1,4 @@
-/* Portal do Lobby → sala de batalha direta: entra numa sala aberta (se houver) ou cria uma nova e abre a sala de espera. */
+/* Portal do Lobby → sala de batalha direta: cria uma sala com bot e inicia a luta na hora, sem tela de sala. */
 (() => {
 'use strict';
 const S = SaiyanMenu.screens; let busy = false;
@@ -8,12 +8,12 @@ window.SLQuickBattle = { async go() {
     const G = SaiyanGame, rooms = G.rooms, svc = G.service;
     if (rooms.room) { S.open('lobby'); return; }
     if (svc.mode === 'offline' && svc.url && svc.reconnect) { try { await svc.reconnect(); } catch (e) {} }
-    let list = []; try { list = await rooms.listRooms(); } catch (e) {}
-    const open = list.filter(r => !r.full && !r.locked && (r.state === 'WAITING' || r.state === 'READY')).sort((a, b) => b.players - a.players)[0];
-    if (open) { try { await rooms.joinRoom(open.id); S.open('lobby'); return; } catch (e) { /* sala encheu/sumiu: cria outra */ } }
     const map = SL.MAPS[0] && SL.MAPS[0].id;
-    await rooms.createRoom({ mode: 'pvp', maxPlayers: 2, map, name: '' });
-    S.open('lobby');
+    await rooms.createRoom({ mode: 'bots', maxPlayers: 2, map, name: '' });   // sala própria com bot: a luta começa na hora
+    await rooms.startGame();
+    await new Promise((ok, no) => { const done = () => { clearTimeout(tm); rooms.off('room:update', on); }, tm = setTimeout(() => { done(); no(new Error('A batalha demorou para carregar.')); }, 20000),
+      on = r => { if (r && r.state === 'IN_GAME') { done(); ok(); } }; rooms.on('room:update', on); on(rooms.room); });
+    S.open('game'); return;
   } finally { busy = false; }
 } };
 })();
