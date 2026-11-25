@@ -111,9 +111,9 @@ class Body {
   step(dt, inp = {}) {
     if (this.hit) this.hit.age++;
     this.depenetrate();
-    this.vx = ((inp.right ? 1 : 0) - (inp.left ? 1 : 0)) * this.speed;
+    this.vx = ((inp.right ? 1 : 0) - (inp.left ? 1 : 0)) * this.speed * (this.flying ? .55 : 1);   // voando: bem mais devagar que correndo
     this.grounded = !this.free(this.x, this.y + 1);
-    if (this.flying) this.vy = ((inp.down ? 1 : 0) - (inp.up ? 1 : 0)) * this.flySpeed;   // voo: sem gravidade, sobe/desce com input
+    if (this.flying) this.vy = ((inp.down ? 1 : 0) - (inp.up ? 1 : 0)) * this.flySpeed * .7;   // voo: sem gravidade, sobe/desce com input
     else {
       if (inp.jump && this.grounded) { this.vy = -this.jumpV; this.grounded = false; }
       /* SEGURAR pular/↑ no ar: sobe (empuxo maior que a gravidade, até climbV); SOLTAR: perde a subida na hora e começa a cair */
