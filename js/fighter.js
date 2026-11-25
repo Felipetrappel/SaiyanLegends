@@ -263,7 +263,8 @@ class Fighter {
     if (guarded && A.guardhit) { if (this.state === 'shield') this.set('guardhit'); }
     else if (!guarded && A.hurt && (!this.busy || this.state === 'hurt')) this.set(dmg >= 20 && A.hurtH ? 'hurtH' : 'hurt');
   }
-  launch(world, proj, d) { world.projectiles.push(proj); if (world.net && !this.remote) world.net.proj(this, { ...d, face: this.face }); }
+  recoil(force) { if (this.remote || this.dead) return; const r = -this.face * force; if (Math.abs(r) > Math.abs(this.kb) || Math.sign(r) !== Math.sign(this.kb)) this.kb = r; }   // RECOIL: empurra o próprio lutador para trás (respeita a colisão)
+  launch(world, proj, d) { const k = (proj.cfg && proj.cfg.kb) || (proj.o && proj.o.kb) || (proj.I && proj.I.kb) || 120; this.recoil(Math.min(240, 50 + k * .5)); if (this.me && world) world.kick = Math.max(world.kick || 0, .012); world.projectiles.push(proj); if (world.net && !this.remote) world.net.proj(this, { ...d, face: this.face }); }
   /* Multiplayer: estado enviado ao servidor (jogador local ou bot do host) e aplicado nas réplicas dos outros clientes. */
   netState() {
     const b = this.body, r = Math.round;
@@ -337,7 +338,7 @@ class Fighter {
       if (this.t >= a.dur) { this.cd = a.cd; this.set('idle'); }
       else if (this.t >= a.from && this.t <= a.to) {
         const x0 = b.x + this.face * (b.w / 2 - 2), l = this.face > 0 ? x0 : x0 - a.reach, box = { l, r: l + a.reach, t: b.y - (a.vt || 36), b: b.y - (a.vb === undefined ? 6 : a.vb) }; this.dbg = box;
-        for (const f of world.fighters) if (f !== this && !f.dead && !this.hits.has(f) && overlap(box, f.rect())) { this.hits.add(f); f.hurt(a.dmg * this.dmgMul, this.face, a.kb, this); }
+        for (const f of world.fighters) if (f !== this && !f.dead && !this.hits.has(f) && overlap(box, f.rect())) { this.hits.add(f); f.hurt(a.dmg * this.dmgMul, this.face, a.kb, this); this.recoil(60); }
       }
     } else if (this.state === 'charge') { if (this.t >= CFG.charge.dur) this.set('energy'); }                 // 2) segura/carrega na mão → 3) ENERGY ATTACK (varre o braço e solta)
     else if (this.state === 'cast') {                                                                            // STREET: o projétil só nasce na etapa 'fire'
