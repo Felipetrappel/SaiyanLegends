@@ -223,7 +223,7 @@ class GameScene {
     ctx.restore();
     if (this.debug) {
       const k = this.dpr, under = this.mask.at(Math.floor(b.x), Math.floor(b.y)), h = b.hit;
-      ctx.font = `${13 * k}px monospace`; ctx.textAlign = 'left'; ctx.fillStyle = '#fff'; ctx.strokeStyle = '#000'; ctx.lineWidth = 3 * k;
+      ctx.font = `${13 * k}px Upheaval,monospace`; ctx.textAlign = 'left'; ctx.fillStyle = '#fff'; ctx.strokeStyle = '#000'; ctx.lineWidth = 3 * k;
       [`estado: ${this.me.state}  hp ${this.me.hp | 0}  en ${this.me.energy | 0}`, `x ${b.x.toFixed(1)}  y ${b.y.toFixed(1)}  vx ${b.vx | 0}  vy ${b.vy | 0}`, `chão: ${b.grounded ? 'sim' : 'não'}   sob os pés: ${CNAME[under]}`,
        `último contato: ${h ? CNAME[h.c] + ' em ' + h.x + ',' + h.y : '-'}`, 'DEBUG  [F3/G] liga/desliga · [1][2][3] camadas']
         .forEach((t, i) => { ctx.strokeText(t, 12 * k, (150 + i * 16) * k); ctx.fillText(t, 12 * k, (150 + i * 16) * k); });

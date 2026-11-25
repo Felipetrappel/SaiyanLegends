@@ -1,3 +1,6 @@
+@font-face{font-family:'Upheaval';src:url('../assets/fonts/upheavtt.ttf') format('truetype');font-display:block}
+*,*::before,*::after{font-family:'Upheaval',system-ui,sans-serif!important;font-synthesis:none;-webkit-font-smoothing:none;font-smooth:never}
+b,strong,h1,h2,h3,th{font-weight:400}
 :root{--gold:#e8b830;--ink:#12052b;--glow:216,150,255}
 *{box-sizing:border-box}
 html,body{height:100%;margin:0;overflow:hidden;background:var(--ink);color:#f6e9ff;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}

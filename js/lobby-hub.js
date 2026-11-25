@@ -67,13 +67,13 @@ S.register('hub', { title: 'Lobby', sticky: true, noFocus: true, build(p) {
     }
     const sign = (x, txt, w) => { const sxp = (x - g.cx) * g.s, fs2 = Math.round(g.dh * .032), bw = w * g.dh / 887, by = g.oy + g.dh * .60; if (sxp < -bw || sxp > g.W + bw) return;
       ctx.save(); ctx.fillStyle = '#5a3a1a'; ctx.fillRect(sxp - 3, by, 6, g.dh * .2); ctx.fillStyle = '#c28a4a'; ctx.strokeStyle = '#3a210a'; ctx.lineWidth = 3; ctx.beginPath(); ctx.roundRect(sxp - bw / 2, by - fs2 * 2.2, bw, fs2 * 2.4, 6); ctx.fill(); ctx.stroke();
-      ctx.fillStyle = '#2a1405'; ctx.font = `800 ${fs2}px system-ui,sans-serif`; ctx.textAlign = 'center'; ctx.fillText(txt, sxp, by - fs2 * .55, bw - 10); ctx.restore(); };
+      ctx.fillStyle = '#2a1405'; ctx.font = `800 ${Math.round(fs2 * .72)}px Upheaval,system-ui,sans-serif`; ctx.textAlign = 'center'; ctx.fillText(txt, sxp, by - fs2 * .55, bw - 10); ctx.restore(); };
     sign(WW() / 2 - 420, 'Aqui você não toma dano', 330); sign(WW() / 2 + 380, 'Lobby', 150);
     { const px = PORTAL(), sxp = (px - g.cx) * g.s, gy = g.oy + g.dh * .84, ph = g.dh * .46, pw = ph * (pimg.width || 816) / (pimg.height || 974);
       if (pimg.complete && pimg.width && sxp > -pw && sxp < g.W + pw) {
         const pu = .5 + .5 * Math.sin(t * 3); ctx.save(); ctx.fillStyle = 'rgba(0,0,0,.35)'; ctx.beginPath(); ctx.ellipse(sxp, gy - 4, pw * .42, 9, 0, 0, 7); ctx.fill();
         ctx.shadowColor = '#b46cff'; ctx.shadowBlur = 14 + pu * 22; ctx.drawImage(pimg, Math.round(sxp - pw / 2), Math.round(gy - ph), pw, ph); ctx.shadowBlur = 0;
-        const fz = Math.round(g.dh * .034); ctx.font = `800 ${fz}px system-ui,sans-serif`; ctx.textAlign = 'center'; ctx.lineWidth = 4; ctx.strokeStyle = '#000'; ctx.fillStyle = '#ffe27a'; ctx.strokeText('BATALHA', sxp, gy - ph - fz * .3); ctx.fillText('BATALHA', sxp, gy - ph - fz * .3); ctx.restore();
+        const fz = Math.round(g.dh * .034); ctx.font = `800 ${fz}px Upheaval,system-ui,sans-serif`; ctx.textAlign = 'center'; ctx.lineWidth = 4; ctx.strokeStyle = '#000'; ctx.fillStyle = '#ffe27a'; ctx.strokeText('BATALHA', sxp, gy - ph - fz * .3); ctx.fillText('BATALHA', sxp, gy - ph - fz * .3); ctx.restore();
       }
       const near = Math.abs(pos - px) < 55 && !jumpY; if (near && !inPortal) { inPortal = true; err.textContent = ''; SLQuickBattle.go().catch(e => { err.textContent = e.message || 'Não foi possível entrar na batalha.'; }); } else if (!near && Math.abs(pos - px) > 110) inPortal = false; }
     const sprite = (id, x, face, moving, name, me, tag, vip) => {
@@ -84,11 +84,11 @@ S.register('hub', { title: 'Lobby', sticky: true, noFocus: true, build(p) {
       ctx.save(); ctx.translate(Math.round(sxp), 0); ctx.scale(face < 0 ? -1 : 1, 1);
       ctx.fillStyle = 'rgba(0,0,0,.3)'; ctx.beginPath(); ctx.ellipse(0, fy, f.w * sc * .35, 7 * (g.dh / 887) + 3, 0, 0, 7); ctx.fill();
       ctx.drawImage(d.img, f.x, f.y, f.w, f.h, Math.round(-f.ax * sc), Math.round(fy - f.ay * sc), f.w * sc, f.h * sc); ctx.restore();
-      const ny = fy - idleH(d) * sc - g.dh * .03; if (me && SL.Profile) { ctx.font = `800 ${Math.round(g.dh * .03)}px system-ui,sans-serif`; ctx.textAlign = 'center'; ctx.lineWidth = 4; ctx.strokeStyle = '#000'; ctx.fillStyle = '#fff'; ctx.strokeText('lvl. ' + SL.Profile.level, sxp, ny - g.dh * .045); ctx.fillText('lvl. ' + SL.Profile.level, sxp, ny - g.dh * .045); }
+      const ny = fy - idleH(d) * sc - g.dh * .03; if (me && SL.Profile) { ctx.font = `800 ${Math.round(g.dh * .03)}px Upheaval,system-ui,sans-serif`; ctx.textAlign = 'center'; ctx.lineWidth = 4; ctx.strokeStyle = '#000'; ctx.fillStyle = '#fff'; ctx.strokeText('lvl. ' + SL.Profile.level, sxp, ny - g.dh * .045); ctx.fillText('lvl. ' + SL.Profile.level, sxp, ny - g.dh * .045); }
       SLTags.drawName(ctx, tag, name, sxp, ny, { size: Math.round(g.dh * .04), color: me ? '#ffe27a' : '#fff', stroke: 4, vip: me ? ((window.SLVip && SLVip.mine()) || '') : (vip || '') });
-      ctx.font = `bold ${Math.round(g.dh * .04)}px system-ui,sans-serif`; ctx.textAlign = 'center';
+      ctx.font = `bold ${Math.round(g.dh * .04)}px Upheaval,system-ui,sans-serif`; ctx.textAlign = 'center';
       const b = bubbles.get(name); if (b && b.until > now) {            // balão de fala
-        const fs = Math.round(g.dh * .036); ctx.font = `600 ${fs}px system-ui,sans-serif`; const w = Math.min(g.W * .5, ctx.measureText(b.text).width + fs * 1.2), by = ny - fs * 2.2;
+        const fs = Math.round(g.dh * .036); ctx.font = `600 ${fs}px Upheaval,system-ui,sans-serif`; const w = Math.min(g.W * .5, ctx.measureText(b.text).width + fs * 1.2), by = ny - fs * 2.2;
         ctx.fillStyle = '#fff'; ctx.strokeStyle = '#2a0a66'; ctx.lineWidth = 3; ctx.beginPath(); ctx.roundRect(sxp - w / 2, by - fs, w, fs * 1.9, fs * .5); ctx.fill(); ctx.stroke();
         ctx.fillStyle = '#1a0a3a'; ctx.fillText(b.text, sxp, by + fs * .3, w - fs * .6);
       }
