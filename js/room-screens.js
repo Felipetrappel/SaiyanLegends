@@ -159,8 +159,8 @@ function stageScreen(p, loaded) {
   const outside = e => { if (menu.classList.contains('open') && !menu.contains(e.target) && e.target !== gear) closeMenu(); }; document.addEventListener('pointerdown', outside, true);
   const upd = r => { if (r.state !== 'IN_GAME') return S.open('lobby'); scene.syncRoster(r.players); endBtn.style.display = rooms.isHost ? '' : 'none'; who.textContent = rooms.room.name + ' · Jogadores ' + r.players.length + '/' + r.maxPlayers; plist.textContent = r.players.map(x => (x.name || '?') + (x.id === r.hostId ? ' ★' : '') + (x.bot ? ' (bot)' : '')).join(' · '); };   // host pode mudar (criador saiu)
   const closed = () => S.close(), data = e => scene.onNet(e.from, e.data);
-  rooms.on('room:update', upd); rooms.on('room:closed', closed); rooms.on('net:data', data); upd(rooms.room);
-  return () => { scene.destroy(); rooms.off('room:update', upd); rooms.off('room:closed', closed); rooms.off('net:data', data); document.removeEventListener('pointerdown', outside, true); };
+  rooms.on('room:update', upd); rooms.on('room:closed', closed); rooms.on('net:data', data); upd(rooms.room); const offChat = window.SLMatchChat ? SLMatchChat.mount(p) : null;
+  return () => { if (offChat) offChat(); scene.destroy(); rooms.off('room:update', upd); rooms.off('room:closed', closed); rooms.off('net:data', data); document.removeEventListener('pointerdown', outside, true); };
 }
 
 S.register('game', { sticky: true, noFocus: true, build(p) {

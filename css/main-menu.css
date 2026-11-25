@@ -644,3 +644,15 @@ button.rm-card{cursor:pointer;padding:0;text-align:center}
 .sl-vip{color:#ffd23a;font-weight:900;margin-right:4px;text-shadow:0 1px 0 #000,0 0 3px #000}
 .screen:has(.vipwrap){background:rgba(0,0,0,.25)!important;backdrop-filter:none!important}
 .panel.shopwrap.vipwrap{background:none!important}
+/* chat da partida */
+.mc-box{position:absolute;left:14px;top:158px;width:min(320px,38vw);z-index:6;display:flex;flex-direction:column;gap:4px;pointer-events:auto}
+.mc-box.off{display:none}
+.mc-log{max-height:120px;overflow:hidden;display:flex;flex-direction:column;justify-content:flex-end;gap:2px;padding:2px 4px;background:transparent;font:700 14px system-ui,sans-serif;color:#fff;text-shadow:0 1px 2px #000,0 0 4px #000;pointer-events:none}
+.mc-msg b{color:#ffe27a}.mc-msg .sl-tag{height:1.1em;vertical-align:-.2em;margin-right:3px}
+.mc-row{display:flex;gap:5px}
+.mc-in{flex:1;min-width:0;height:34px;padding:0 10px;border-radius:8px;border:1px solid #ffffff55;background:transparent;color:#fff;font:600 14px system-ui,sans-serif;outline:none;text-shadow:0 1px 2px #000}
+.mc-in::placeholder{color:#ffffffaa}.mc-in:focus{border-color:#f3c744;background:#0006}
+.mc-send{width:38px;height:34px;border-radius:8px;border:1px solid #ffffff55;background:transparent;color:#fff;font-size:16px}
+.mc-err{font:600 12px system-ui,sans-serif;color:#ff9a9a;text-shadow:0 1px 2px #000}
+.mc-tg{position:absolute;top:10px;right:64px;z-index:7;width:44px;height:44px;border-radius:10px;border:2px solid #f3c744;background:#12052acc;font-size:20px;line-height:1;padding:0}
+.mc-tg.off{opacity:.6}
