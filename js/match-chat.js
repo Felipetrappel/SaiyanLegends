@@ -13,11 +13,13 @@ window.SLMatchChat = { mount(p) {
   const apply = h => { box.classList.toggle('off', h); tg.classList.toggle('off', h); };
   let hidden = rd(); apply(hidden); tg.addEventListener('click', e => { e.currentTarget.blur(); hidden = !hidden; wr(hidden); apply(hidden); if (hidden) inp.blur(); });
   const draw = () => { log.replaceChildren(...(SL.Social ? SL.Social.log : []).slice(-6).map(m => { const r = el('div', 'mc-msg'); const tc = window.SLTags && SLTags.chip(m.tag); if (tc) r.append(tc); const v = window.SLTags && SLTags.vipChip(m.vip); if (v) r.append(v); r.append(SLTags.vipName(el('b', '', { textContent: (m.name || '?') + ': ' }), m.vip), document.createTextNode(m.text)); return r; })); log.scrollTop = log.scrollHeight; };
-  const send = async () => { const t = inp.value.replace(/\s+/g, ' ').trim(); if (!t) return; err.textContent = ''; try { await SL.Social.send(t); inp.value = ''; } catch (e) { err.textContent = e.message || 'Não foi possível enviar.'; } };
+  const send = async () => { const t = inp.value.replace(/\s+/g, ' ').trim(); if (!t) return; err.textContent = ''; try { await SL.Social.send(t); inp.value = ''; inp.blur(); } catch (e) { err.textContent = e.message || 'Não foi possível enviar.'; } };
   inp.addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') { e.preventDefault(); send(); } else if (e.key === 'Escape') inp.blur(); });
   inp.addEventListener('keyup', e => e.stopPropagation()); inp.addEventListener('pointerdown', e => e.stopPropagation()); go.addEventListener('click', send);
   box.addEventListener('pointerdown', e => e.stopPropagation());
+  const onEnter = e => { if (e.key === 'Enter' && !e.repeat && !hidden && !/INPUT|SELECT|TEXTAREA/.test(e.target.tagName)) { e.preventDefault(); inp.focus(); } };   // PC: Enter abre o chat
+  addEventListener('keydown', onEnter);
   svc.on('chat', draw); draw();
-  return () => { svc.off('chat', draw); box.remove(); tg.remove(); };
+  return () => { removeEventListener('keydown', onEnter); svc.off('chat', draw); box.remove(); tg.remove(); };
 } };
 })();

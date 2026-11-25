@@ -40,7 +40,8 @@ class GameScene {
     this.me = this.fighters.find(f => f.me) || this.fighters[0];
     this.K = new Set(); this.pad = {}; this.pend = {}; this.ui = null;
     this.onKey = e => this.key(e, true); this.onKeyUp = e => this.key(e, false);
-    addEventListener('keydown', this.onKey); addEventListener('keyup', this.onKeyUp);
+    this.clearKeys = () => { this.K.clear(); this.pend = {}; };   // janela perdeu o foco / campo de texto ganhou foco: solta todas as teclas (evita tecla "presa")
+    addEventListener('keydown', this.onKey); addEventListener('keyup', this.onKeyUp); addEventListener('blur', this.clearKeys); addEventListener('focusin', e => { if (/INPUT|SELECT|TEXTAREA/.test(e.target.tagName)) this.clearKeys(); });
     this.ro = new ResizeObserver(() => this.resize()); this.ro.observe(canvas); this.resize();
     window.SaiyanGameScene = this;
     this.last = performance.now(); this.acc = 0; this.running = true; this.raf = requestAnimationFrame(t => this.frame(t));
@@ -79,6 +80,7 @@ class GameScene {
   }
   toggleDebug() { this.debug = !this.debug; }
   key(e, down) {
+    if (!down) this.K.delete(e.code);   // soltar a tecla sempre vale, mesmo com o foco num campo de texto
     if (/INPUT|SELECT|TEXTAREA/.test(e.target.tagName)) return;
     if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Space', 'KeyA', 'KeyD', 'KeyW', 'KeyS', 'KeyJ', 'KeyZ', 'KeyK', 'KeyX', 'KeyE', 'KeyF', 'KeyB', 'KeyR', 'KeyQ', 'KeyC', 'KeyL', 'KeyM', 'F3', 'Backquote', 'KeyG'].includes(e.code)) e.preventDefault();
     if (down && !e.repeat) {
@@ -226,7 +228,7 @@ class GameScene {
         .forEach((t, i) => { ctx.strokeText(t, 12 * k, (150 + i * 16) * k); ctx.fillText(t, 12 * k, (150 + i * 16) * k); });
     }
   }
-  destroy() { this.running = false; cancelAnimationFrame(this.raf); removeEventListener('keydown', this.onKey); removeEventListener('keyup', this.onKeyUp); this.ro.disconnect(); if (window.SaiyanGameScene === this) window.SaiyanGameScene = null; }
+  destroy() { this.running = false; cancelAnimationFrame(this.raf); removeEventListener('keydown', this.onKey); removeEventListener('keyup', this.onKeyUp); removeEventListener('blur', this.clearKeys); this.ro.disconnect(); if (window.SaiyanGameScene === this) window.SaiyanGameScene = null; }
 }
 SL.GameScene = GameScene;
 })();
