@@ -21,7 +21,7 @@ S.register('hub', { title: 'Lobby', sticky: true, noFocus: true, build(p) {
   const fs = Object.create(SL.GameScene.prototype); fs.pad = {}; fs.pend = {}; fs.editing = false;
   const hud = el('div', 'ctl'), mv = el('div', 'move jm'), acts = el('div', 'acts'); mv.append(fs.makeJoystick());
   const dmb = c => { const b = el('button', 'cbtn ' + c + ' dm', { type: 'button', tabIndex: -1 }); b.innerHTML = `<img class="dmi" src="assets/ui/hud/${c}.png" alt="" draggable="false"><i class="cd"></i><i class="fx"></i>`; b.addEventListener('pointerdown', e => { e.preventDefault(); b.classList.add('on'); if (c === 'bt') jumpV = 520; }); ['pointerup', 'pointercancel', 'pointerleave'].forEach(n => b.addEventListener(n, () => b.classList.remove('on'))); b.addEventListener('contextmenu', e => e.preventDefault()); return b; };
-  acts.append(...['md', 'sp', 'power', 'bt', 'pk', 'atk'].map(dmb)); hud.append(mv, acts); p.append(hud); fs.initCustomize(hud, p); let jumpV = 0, jumpY = 0;
+  acts.append(...['md', 'sp', 'power', 'bt', 'pk', 'atk'].map(dmb)); hud.append(mv, acts); p.append(hud); fs.initCustomize(hud, p); let jumpV = 0, jumpY = 0, inPortal = false; const PORTAL = () => WW() / 2 + 700;
   const WW = () => (bg.width || 1774) * PANELS; if (pos == null) pos = WW() / 2; let tx = pos, face = 1, moving = false, raf = 0, last = performance.now(), t = 0; const keys = new Set();
   /* ── outros jogadores (online) ── */
   const others = new Map(), bubbles = new Map();       // id → {name, character, x, tx, f, mv}  ·  nome → {text, until}
@@ -44,7 +44,7 @@ S.register('hub', { title: 'Lobby', sticky: true, noFocus: true, build(p) {
   const fit = () => { const r = p.getBoundingClientRect(), d = Math.min(devicePixelRatio || 1, 2); cv.width = Math.max(2, Math.round(r.width * d)); cv.height = Math.max(2, Math.round(r.height * d)); };
   const ro = new ResizeObserver(fit); ro.observe(p); fit();
   const geo = () => { const W = cv.width, H = cv.height, s = Math.max(H / bg.height, W / (bg.width * PANELS)), dh = bg.height * s, vw = W / s, cx = Math.min(Math.max(pos - vw / 2, 0), Math.max(0, WW() - vw)); return { W, H, s, dh, vw, cx, oy: H - dh }; };
-  const pt = e => { const r = cv.getBoundingClientRect(), g = geo(); tx = Math.min(WW() - 60, Math.max(60, g.cx + (e.clientX - r.left) / r.width * g.vw)); };
+  const pt = e => { if (Math.abs(((e.clientX - cv.getBoundingClientRect().left) / cv.getBoundingClientRect().width * geo().vw + geo().cx) - PORTAL()) < 130) { tx = PORTAL(); return; } const r = cv.getBoundingClientRect(), g = geo(); tx = Math.min(WW() - 60, Math.max(60, g.cx + (e.clientX - r.left) / r.width * g.vw)); };
   cv.addEventListener('pointerdown', pt);
   const kd = e => { if (e.target && e.target.tagName === 'INPUT') return; if (['ArrowLeft', 'ArrowRight', 'KeyA', 'KeyD'].includes(e.code)) { keys.add(e.code); e.preventDefault(); } else if (e.key === 'Escape') S.close(); }, ku = e => keys.delete(e.code);
   addEventListener('keydown', kd); addEventListener('keyup', ku);
@@ -66,6 +66,16 @@ S.register('hub', { title: 'Lobby', sticky: true, noFocus: true, build(p) {
       ctx.save(); ctx.fillStyle = '#5a3a1a'; ctx.fillRect(sxp - 3, by, 6, g.dh * .2); ctx.fillStyle = '#c28a4a'; ctx.strokeStyle = '#3a210a'; ctx.lineWidth = 3; ctx.beginPath(); ctx.roundRect(sxp - bw / 2, by - fs2 * 2.2, bw, fs2 * 2.4, 6); ctx.fill(); ctx.stroke();
       ctx.fillStyle = '#2a1405'; ctx.font = `800 ${fs2}px system-ui,sans-serif`; ctx.textAlign = 'center'; ctx.fillText(txt, sxp, by - fs2 * .55, bw - 10); ctx.restore(); };
     sign(WW() / 2 - 420, 'Aqui você não toma dano', 330); sign(WW() / 2 + 380, 'Lobby', 150);
+    { const px = PORTAL(), sxp = (px - g.cx) * g.s, gy = g.oy + g.dh * .8, ph = g.dh * .36, pw = ph * .55;
+      if (sxp > -pw && sxp < g.W + pw) {
+        const cy = gy - ph / 2, pu = .5 + .5 * Math.sin(t * 3); ctx.save();
+        const gl = ctx.createRadialGradient(sxp, cy, pw * .1, sxp, cy, pw * 1.3); gl.addColorStop(0, 'rgba(160,90,255,.55)'); gl.addColorStop(1, 'rgba(160,90,255,0)'); ctx.fillStyle = gl; ctx.fillRect(sxp - pw * 1.4, cy - ph, pw * 2.8, ph * 2);
+        ctx.fillStyle = '#12062e'; ctx.beginPath(); ctx.ellipse(sxp, cy, pw / 2, ph / 2, 0, 0, 7); ctx.fill();
+        for (let i = 0; i < 4; i++) { ctx.strokeStyle = `rgba(${120 + i * 30},${80 + i * 40},255,${.9 - i * .15})`; ctx.lineWidth = 3; ctx.beginPath(); ctx.ellipse(sxp, cy, pw / 2 * (1 - i * .18), ph / 2 * (1 - i * .18), 0, t * (i % 2 ? -2 : 2), t * (i % 2 ? -2 : 2) + 4.2); ctx.stroke(); }
+        ctx.strokeStyle = '#ffd45a'; ctx.lineWidth = 5; ctx.shadowColor = '#b46cff'; ctx.shadowBlur = 12 + pu * 10; ctx.beginPath(); ctx.ellipse(sxp, cy, pw / 2 + 4, ph / 2 + 4, 0, 0, 7); ctx.stroke(); ctx.shadowBlur = 0;
+        const fz = Math.round(g.dh * .034); ctx.font = `800 ${fz}px system-ui,sans-serif`; ctx.textAlign = 'center'; ctx.lineWidth = 4; ctx.strokeStyle = '#000'; ctx.fillStyle = '#ffe27a'; ctx.strokeText('PORTAL · BATALHA', sxp, cy - ph / 2 - fz * .6); ctx.fillText('PORTAL · BATALHA', sxp, cy - ph / 2 - fz * .6); ctx.restore();
+      }
+      const near = Math.abs(pos - px) < 55 && !jumpY; if (near && !inPortal) { inPortal = true; S.open('play'); } else if (!near && Math.abs(pos - px) > 110) inPortal = false; }
     const sprite = (id, x, face, moving, name, me, tag, vip) => {
       const d = C.get(C.all[id] ? id : Object.keys(C.all)[0]); if (!d || !d.img || !d.img.complete) return;
       const sc = Math.max(1, g.H * .14 / idleH(d)), f = frameOf(d, moving ? 'run' : 'idle', t), fy = g.oy + g.dh * (me ? .8 : .78) - (me ? jumpY * g.s * .6 : 0), sxp = (x - g.cx) * g.s;

@@ -18,15 +18,14 @@ const HS = [
   { id: 'pcoin',  r: [1088, 30, 86, 72],   rad: 18, label: 'Mais moedas',           go: 'store' },
   { id: 'pgem',   r: [1672, 30, 92, 72],   rad: 18, label: 'Mais diamantes',        go: 'store' },
   { id: 'exit',   r: [1636, 138, 220, 84], rad: 34, label: 'Sair',                  go: () => M.exit() },
-  { id: 'help',   r: [1570, 232, 82, 90],  rad: 16, label: 'Ajuda e atalhos',       go: 'shortcuts' },
   { id: 'sound',  r: [1662, 232, 90, 90],  rad: 16, label: 'Som',                   go: () => window.SaiyanAudio && SaiyanAudio.toggleMute() },
   { id: 'config', r: [1766, 232, 86, 90],  rad: 16, label: 'Configurações',         go: 'options' },
   { id: 'pass',   r: [16, 258, 138, 100],  rad: 12, label: 'Códigos',               go: 'codes' },
   { id: 'discord',r: [28, 512, 134, 110],  rad: 30, label: 'Discord',               go: () => window.open(SOCIAL.discord, '_blank', 'noopener') },
   { id: 'youtube',r: [22, 710, 172, 102],  rad: 26, label: 'YouTube',               go: () => window.open(SOCIAL.youtube, '_blank', 'noopener') },
-  { id: 'level',  r: [545, 716, 752, 94],  rad: 40, label: 'Missões',               go: 'missions' },
+  { id: 'level',  r: [545, 716, 752, 94],  rad: 40, label: 'Nível' },
   { id: 'chars',  r: [1338, 448, 522, 134],rad: 30, label: 'Personagens',           go: 'characters' },
-  { id: 'play',   r: [1326, 598, 536, 208],rad: 40, label: 'Play',                  go: 'play' }
+  { id: 'play',   r: [1326, 598, 536, 208],rad: 40, label: 'Play',                  go: 'hub' }
 ];
 
 const root = el('div', 'mv2'), fill = el('img', 'mv2-fill', { src: ART.src, alt: '', draggable: false }), stage = el('div', 'mv2-stage');
@@ -50,7 +49,7 @@ const paintSound = () => { const m = window.SaiyanAudio && SaiyanAudio.state && 
 const cc = el('canvas', 'mv2-char'); cc.width = 360; cc.height = 450; pos(cc, [756, 230, 360, 450]); stage.append(cc);
 
 /* botões */
-HS.forEach(h => {
+HS.filter(h => h.go).forEach(h => {
   const b = el('button', 'mv2-hs', { type: 'button' }); b.dataset.id = h.id; b.setAttribute('aria-label', h.label); pos(b, h.r); b.style.setProperty('--rad', (h.rad / h.r[3] * 100 * (h.r[3] / h.r[2])).toFixed(1) + '%');
   b.style.borderRadius = h.rad / ART.w * 100 + 'vmax';   // ajustado em layout()
   b.addEventListener('click', () => { if (typeof h.go === 'function') h.go(); else S.open(h.go, b); });
@@ -58,14 +57,6 @@ HS.forEach(h => {
 });
 cc.addEventListener('click', () => S.open('hub', cc)); cc.title = 'Lobby';
 
-/* atalhos (tudo o que o menu antigo tinha e não ganhou botão na arte nova) */
-S.register('shortcuts', { title: 'Atalhos', build(p) {
-  p.append(el('h2', '', { textContent: 'ATALHOS' }), el('p', '', { textContent: 'Tudo do jogo em um só lugar.' }));
-  const grid = el('div', 'mv2-grid');
-  [['LOBBY', 'Entre na cidade e converse', 'hub'], ['LOJA', 'Compre e evolua', 'store'], ['MISSÕES', 'Ganhe diamantes', 'missions'], ['RANKING', 'Classificação', 'rankings'], ['EVENTOS', 'Eventos especiais', 'events'], ['PASSE', 'Recompensas por nível', 'pass']]
-    .forEach(([t, s, id]) => { const b = S.btn(t, () => S.open(id), false); b.append(el('small', '', { textContent: s })); grid.append(b); });
-  p.append(grid); const row = el('div', 'row'); row.append(S.btn('Voltar', () => S.close(), true)); p.append(row);
-} });
 
 /* tamanho: a arte inteira cabe na tela (sem cortar); o resto é preenchido com a própria arte desfocada */
 function layout() {
@@ -73,7 +64,7 @@ function layout() {
   /* tela cheia: a arte preenche a tela inteira (sem barras, sem desfoque). Os textos e o personagem usam escala uniforme para não ficarem esticados. */
   const kx = W / ART.w, ky = H / ART.h, k = Math.min(kx, ky), s = stage.style;
   s.width = W + 'px'; s.height = H + 'px'; s.left = '0px'; s.top = '0px'; root.style.setProperty('--k', k);
-  HS.forEach(x => { x.el.style.borderRadius = (x.rad * k) + 'px'; });
+  HS.forEach(x => { if (x.el) x.el.style.borderRadius = (x.rad * k) + 'px'; });
   const cs = cc.style; cs.width = 360 * k + 'px'; cs.height = 450 * k + 'px'; cs.left = (936 / ART.w * W - 180 * k) + 'px'; cs.top = (664 / ART.h * H - 434 * k) + 'px';
 }
 
