@@ -58,7 +58,7 @@ class CollisionMask {
 /* Corpo com collider retangular (x = centro, y = pés). Colisão por eixo, pixel a pixel (sem túnel). */
 class Body {
   constructor(mask, x, y, o = {}) {
-    Object.assign(this, { mask, x, y, w: 20, h: 38, vx: 0, vy: 0, speed: 240, jumpV: 700, g: 2000, maxFall: 1200, stepUp: 6, flying: false, flySpeed: 170, climbV: 420, climbA: 3600, climbing: false, ceil: -40, grounded: false, hit: null, pushed: null }, o);
+    Object.assign(this, { mask, x, y, w: 20, h: 38, vx: 0, vy: 0, speed: 240, jumpV: 600, g: 2000, maxFall: 1200, stepUp: 6, flying: false, flySpeed: 170, climbV: 290, climbA: 3000, climbing: false, ceil: -40, grounded: false, hit: null, pushed: null }, o);
   }
   /* true se o retângulo inteiro do corpo (não só um ponto) cabe em (x, y). */
   free(x = this.x, y = this.y) {
