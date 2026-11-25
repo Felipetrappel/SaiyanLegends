@@ -16,7 +16,10 @@ S.register('hub', { title: 'Lobby', sticky: true, noFocus: true, build(p) {
   const cnt = el('div', 'lb-cnt'), chat = el('div', 'lb-chat'), log = el('div', 'lb-log'), crow = el('div', 'lb-crow');
   const inp = el('input', 'lb-in', { type: 'text', maxLength: 120, placeholder: 'Digite para falar..', autocomplete: 'off', enterKeyHint: 'send' }), go = el('button', 'lb-send', { type: 'button', textContent: '➤' }), err = el('div', 'lb-err');
   crow.append(inp, go); chat.append(log, crow, err);
-  p.append(cv, back, cnt, chat); back.addEventListener('click', () => S.close());
+  const tg = el('button', 'mc-tg lb-tg', { type: 'button', title: 'Mostrar/ocultar chat', 'aria-label': 'Mostrar ou ocultar o chat', textContent: '💬' }); let chHid = false; try { chHid = localStorage.getItem('sl_matchchat_hidden') === '1'; } catch (e) {}
+  const applyCh = () => { chat.classList.toggle('off', chHid); tg.classList.toggle('off', chHid); }; applyCh();
+  tg.addEventListener('click', e => { e.currentTarget.blur(); chHid = !chHid; try { localStorage.setItem('sl_matchchat_hidden', chHid ? '1' : '0'); } catch (x) {} applyCh(); if (chHid) inp.blur(); });
+  p.append(cv, back, cnt, chat, tg); back.addEventListener('click', () => S.close());
   /* HUD novo (joystick + 6 botões em losango) — mesmo layout do jogo; no lobby não há dano: os botões só dão o efeito visual */
   const fs = Object.create(SL.GameScene.prototype); fs.pad = {}; fs.pend = {}; fs.editing = false;
   const hud = el('div', 'ctl'), mv = el('div', 'move jm'), acts = el('div', 'acts'); mv.append(fs.makeJoystick());

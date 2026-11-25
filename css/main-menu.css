@@ -656,3 +656,12 @@ button.rm-card{cursor:pointer;padding:0;text-align:center}
 .mc-err{font:600 12px system-ui,sans-serif;color:#ff9a9a;text-shadow:0 1px 2px #000}
 .mc-tg{position:absolute;top:10px;right:64px;z-index:7;width:44px;height:44px;border-radius:10px;border:2px solid #f3c744;background:#12052acc;font-size:20px;line-height:1;padding:0}
 .mc-tg.off{opacity:.6}
+/* chat do lobby: transparente + ocultável */
+.lobbywrap .lb-chat.off{display:none}
+.lobbywrap .lb-log{background:transparent;text-shadow:0 1px 2px #000,0 0 4px #000;pointer-events:none}
+.lobbywrap .lb-in{background:transparent;border:1px solid #ffffff55;text-shadow:0 1px 2px #000}
+.lobbywrap .lb-in::placeholder{color:#ffffffaa}.lobbywrap .lb-in:focus{border-color:#f3c744;background:#0006}
+.lobbywrap .lb-send{background:transparent;border:1px solid #ffffff55}
+.lobbywrap .lb-tg{right:14px;top:10px}
+.lobbywrap .lb-in{background:#0003;color:#fff}.lobbywrap .lb-in::placeholder{color:#fff;text-shadow:0 1px 3px #000,0 0 5px #000}
+.lobbywrap .lb-send{background:#0003;text-shadow:0 1px 3px #000}
