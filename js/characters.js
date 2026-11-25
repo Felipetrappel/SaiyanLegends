@@ -1,11 +1,8 @@
-/* Personagens jogáveis + perfil do jogador (selecionado / desbloqueados). Hoje só existe o STREET, que já vem
-   desbloqueado e selecionado. Para um novo personagem: registre-o em Characters.all (com defaultUnlocked e price). */
+/* Personagens jogáveis + perfil do jogador (selecionado / desbloqueados). Todos começam bloqueados (compra com ouro). Para um novo personagem: registre-o em Characters.all (com defaultUnlocked e price). */
 (() => {
 'use strict';
-const S = SL.STREET, FZ = SL.FELIPEDZN, SM = SL.SAMULORD, pending = {};
+const FZ = SL.FELIPEDZN, SM = SL.SAMULORD, pending = {};
 const all = {};
-if (S) all.street = { ...S, price: 0, defaultUnlocked: false, stats: { power: 7.0, defense: 7.0, energy: 7.0, speed: 7.0, k: 7.0 }, unique: { name: 'ONDA DE IMPACTO', icon: 'shock' },   // HABILIDADE ÚNICA do personagem (botão da tela): nome e ícone; a ação é def.dash (se houver) ou a onda de impacto
-   img: Object.assign(new Image(), { src: S.sheet }) };   // pré-carrega o sheet (para trocar o preço/bloqueio, edite price e defaultUnlocked)
 /* FelipeDzn: ESPADA = habilidade única (def.dash); HADOU 99 = poder grande (def.big). Atributos 0–10 (k = Ki). */
 if (FZ) all.felipedzn = { ...FZ, price: 1200, defaultUnlocked: false, unique: { name: 'ESPADA', icon: 'sword' }, ringColor: '#ff4fa8', auraColor: '#ff4fd8', bigPal: 'pink',
    img: Object.assign(new Image(), { src: FZ.sheet }) };
@@ -37,6 +34,8 @@ const Profile = {
   /* compra com moedas amarelas (ouro): confere o saldo, gasta, libera o personagem e salva. Retorna 'ok' | 'owned' | 'poor' | 'none' */
   buy(id) { const c = all[id]; if (!c) return 'none'; if (this.isUnlocked(id)) return 'owned'; if (this.gold < c.price) return 'poor'; this.gold -= c.price; this.unlocked.push(id); this.save(); this._emit('coins'); this._emit('buy'); return 'ok'; },
   isUnlocked(id) { return !!all[id] && (all[id].defaultUnlocked || this.unlocked.includes(id)); },
+  /* rede de segurança: quem não tem nenhum personagem e não tem ouro para o mais barato ganha o mais barato (senão ficaria sem poder jogar) */
+  ensureStarter() { if (this.unlocked.some(id => all[id])) return; const ids = Object.keys(all).sort((a, b) => all[a].price - all[b].price); if (ids.length && this.gold < all[ids[0]].price) { this.unlocked.push(ids[0]); this.save(); } },
   select(id) { if (!this.isUnlocked(id)) return false; this.selected = id; this.picked = true; this.save(); this._emit('select'); return true; },
   save() { try { localStorage.setItem(KEY, JSON.stringify({ selected: this.selected, picked: this.picked, unlocked: this.unlocked, welcomed: this.welcomed, xp: this.xp, gold: this.gold, silver: this.silver, gems: this.gems, mp: this.mp, md: this.md })); } catch (e) {} },
   load() {
@@ -51,7 +50,7 @@ const Profile = {
     } catch (e) { if (!this.welcomed) { this.gold = WELCOME_GOLD; this.welcomed = true; this.save(); } }
   }
 };
-Profile.load();
+Profile.load(); Profile.ensureStarter();
 const get = id => all[id] || pending[id] || all[DEFAULT];
 const playable = id => !!(all[id] || pending[id]);
 /* Retrato (frame 0 do sheet) como elemento DOM, pixel art sem suavização. */

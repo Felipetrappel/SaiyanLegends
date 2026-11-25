@@ -29,7 +29,7 @@ function apply(d) {   // aplica o progresso do servidor no jogo
   try {
     P.unlocked = (Array.isArray(d.unlocked) ? d.unlocked : []).filter(id => C.all[id]);
     P.selected = d.selected && P.isUnlocked(d.selected) ? d.selected : C.DEFAULT; P.picked = !!d.picked && P.isUnlocked(P.selected);
-    for (const k of ['xp', 'gold', 'silver', 'gems']) P[k] = Math.max(0, Math.floor(+d[k] || 0));
+    for (const k of ['xp', 'gold', 'silver', 'gems']) P[k] = Math.max(0, Math.floor(+d[k] || 0));  P.ensureStarter();
     P.welcomed = true; const m = d.missions || {}; P.mp = m.mp || {}; P.md = m.md || {};
     P.stats = d.stats || {}; P.upgrades = d.upgrades || {}; P.forms = d.forms || []; P.techniques = d.techniques || [];
     const a = d.settings && d.settings.audio; if (a) { ls.set('sl.audio', JSON.stringify({ volume: a.volume, muted: a.muted })); try { window.SaiyanAudio && SaiyanAudio.setVolume(a.volume); window.SaiyanAudio && SaiyanAudio.setMuted(a.muted); } catch (_) {} }

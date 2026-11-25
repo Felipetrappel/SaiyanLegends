@@ -145,7 +145,7 @@ const need = (s, host) => {
 };
 const inState = (r, ...ok) => { if (!ok.includes(r.state)) throw E('Ação indisponível agora (estado ' + r.state + ').'); };
 const newId = () => { let id; do id = String(100000 + (crypto.getRandomValues(new Uint32Array(1))[0] % 900000)); while (rooms.has(id)); return id; };
-const mkPlayer = (s, p) => ({ id: s.pid, name: (s.acct ? s.name : clean(p && p.name, 16)) || s.name || 'Player', bot: false, character: clean(p && p.character, 24) || 'street' });
+const mkPlayer = (s, p) => ({ id: s.pid, name: (s.acct ? s.name : clean(p && p.name, 16)) || s.name || 'Player', bot: false, character: clean(p && p.character, 24) || 'felipedzn' });
 
 /* ── Chat global: um canal para todos os jogadores conectados (histórico curto só em memória; some quando o servidor reinicia) ── */
 const chatLog = []; let chatSeq = 0;
@@ -222,7 +222,7 @@ const OPS = {
   },
   hubJoin(s, m) {
     if (!hub.has(s.pid) && hub.size >= HUB_MAX) throw E('Lobby cheio.');
-    const p = { id: s.pid, name: (s.acct ? s.name : clean(m.name, 16)) || s.name || 'Jogador', character: clean(m.character, 24) || 'street', x: hubX(m.x), f: m.f < 0 ? -1 : 1, mv: 0, tag: s.tag || '' };
+    const p = { id: s.pid, name: (s.acct ? s.name : clean(m.name, 16)) || s.name || 'Jogador', character: clean(m.character, 24) || 'felipedzn', x: hubX(m.x), f: m.f < 0 ? -1 : 1, mv: 0, tag: s.tag || '' };
     hub.set(s.pid, p); hubSend(s.pid, { push: 'hub', t: 'join', p }); return { players: [...hub.values()].filter(q => q.id !== s.pid) };
   },
   hubMove(s, m) { const p = hub.get(s.pid); if (!p) return {}; p.x = hubX(m.x); p.f = m.f < 0 ? -1 : 1; p.mv = m.mv ? 1 : 0; hubSend(s.pid, { push: 'hub', t: 'move', pid: s.pid, x: p.x, f: p.f, mv: p.mv }); return {}; },
@@ -246,7 +246,7 @@ const OPS = {
     s.name = p.name;
     const r = { id, name: clean(m.name, 24) || ('Sala de ' + p.name), hostId: s.pid, maxPlayers: max, players: [p], map, state: map ? 'READY' : 'WAITING', loaded: [], created: Date.now(), mode, minPlayers: md ? md.start : MIN_TO_START };
     
-    if (md && md.bots) while (r.players.length < max) r.players.push({ id: 'bot' + rnd(4), name: 'Bot' + r.players.length, bot: true, character: 'street' });
+    if (md && md.bots) while (r.players.length < max) r.players.push({ id: 'bot' + rnd(4), name: 'Bot' + r.players.length, bot: true, character: 'felipedzn' });
     if (pw) { const salt = rnd(8); r.pw = { salt, hash: await pwHash(pw, salt) }; }
     rooms.set(id, r); s.roomId = id; log('sala', id, '"' + r.name + '" criada por', p.name, mode ? '[' + mode + ']' : '', r.pw ? '(com senha)' : ''); pushRoom(r); return { room: snapshot(r) };
   },
@@ -273,7 +273,7 @@ const OPS = {
   resetRoom(s) { const r = need(s, true); inState(r, 'FINISHED'); r.state = r.map ? 'READY' : 'WAITING'; r.loaded = []; pushRoom(r); return { room: snapshot(r) }; },
   addBot(s) {
     const r = need(s, true); inState(r, 'WAITING', 'READY', 'MAP_SELECTION'); if (r.players.length >= r.maxPlayers) throw E('Sala cheia.');
-    r.players.push({ id: 'bot' + rnd(4), name: 'Bot' + r.players.length, bot: true, character: 'street' }); pushRoom(r); return { room: snapshot(r) };
+    r.players.push({ id: 'bot' + rnd(4), name: 'Bot' + r.players.length, bot: true, character: 'felipedzn' }); pushRoom(r); return { room: snapshot(r) };
   },
   setCharacter(s, m) { const r = need(s); const p = r.players.find(x => x.id === s.pid); if (p) { p.character = clean(m.character, 24) || p.character; pushRoom(r); } return { room: snapshot(r) }; },
   ping: () => ({ t: Date.now() })
