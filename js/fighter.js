@@ -335,7 +335,7 @@ class Fighter {
     }
     const a = this.av ? { ...CFG.attack, dur: this.av.dur, from: this.av.from_, to: this.av.to, reach: this.av.reach, dmg: this.av.dmg, kb: this.av.kb, vt: this.av.vt, vb: this.av.vb } : CFG.attack;
     if (this.state === 'attack') {
-      if (this.t >= a.dur) { this.cd = a.cd; this.set('idle'); }
+      if (this.t >= Math.min(a.dur, a.to + .06)) { this.cd = .04; this.set('idle'); }   // recuperação curta: o próximo comando entra logo após o golpe
       else if (this.t >= a.from && this.t <= a.to) {
         const x0 = b.x + this.face * (b.w / 2 - 2), l = this.face > 0 ? x0 : x0 - a.reach, box = { l, r: l + a.reach, t: b.y - (a.vt || 36), b: b.y - (a.vb === undefined ? 6 : a.vb) }; this.dbg = box;
         for (const f of world.fighters) if (f !== this && !f.dead && !this.hits.has(f) && overlap(box, f.rect())) { this.hits.add(f); f.hurt(a.dmg * this.dmgMul, this.face, a.kb, this); this.recoil(60); }
@@ -407,7 +407,7 @@ class Fighter {
       if (!this.fired && this.t >= CFG.power.fireAt) { this.fired = true; const h = this.hand(frameAt(this.def, 'energy', this.t)); this.launch(world, new Beam(this, h.x, h.y, this.face), { t: 'beam', x: h.x, y: h.y }); } // solta da mão estendida // 4) projétil
       if (this.t >= CFG.power.dur) { this.pcd = CFG.power.cd; this.set('idle'); }
     }
-    const free = !this.busy, shield = false /* sistema de defesa removido */, mv = free;
+    const free = !this.busy, shield = false /* sistema de defesa removido */, mv = free || this.state === 'attack';   // pode se mover enquanto soca
     b.step(dt, { left: mv && inp.left, right: mv && inp.right, jump: mv && inp.up && !b.flying, climb: mv && inp.up && !b.flying, up: mv && inp.up, down: mv && inp.down });
     this.separate(world);                                                                                   // um lutador não atravessa o outro (jogadores, bots e boneco)
     if (!this.busy) {                                                                                       // animação conforme o estado atual

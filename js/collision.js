@@ -58,7 +58,7 @@ class CollisionMask {
 /* Corpo com collider retangular (x = centro, y = pés). Colisão por eixo, pixel a pixel (sem túnel). */
 class Body {
   constructor(mask, x, y, o = {}) {
-    Object.assign(this, { mask, x, y, w: 20, h: 38, vx: 0, vy: 0, speed: 240, jumpV: 600, g: 2000, maxFall: 1200, stepUp: 6, flying: false, flySpeed: 170, climbV: 290, climbA: 3000, climbing: false, ceil: -40, grounded: false, hit: null, pushed: null }, o);
+    Object.assign(this, { mask, x, y, w: 20, h: 38, vx: 0, vy: 0, speed: 240, jumpV: 540, g: 2000, maxFall: 1200, stepUp: 6, flying: false, flySpeed: 170, climbV: 190, climbA: 2600, climbing: false, ceil: -40, grounded: false, hit: null, pushed: null }, o);
   }
   /* true se o retângulo inteiro do corpo (não só um ponto) cabe em (x, y). */
   free(x = this.x, y = this.y) {
@@ -111,9 +111,12 @@ class Body {
   step(dt, inp = {}) {
     if (this.hit) this.hit.age++;
     this.depenetrate();
-    this.vx = ((inp.right ? 1 : 0) - (inp.left ? 1 : 0)) * this.speed * (this.flying ? .55 : 1);   // voando: bem mais devagar que correndo
     this.grounded = !this.free(this.x, this.y + 1);
-    if (this.flying) this.vy = ((inp.down ? 1 : 0) - (inp.up ? 1 : 0)) * this.flySpeed * .7;   // voo: sem gravidade, sobe/desce com input
+    /* aceleração: no chão responde na hora; no ar e voando é mais suave (movimento natural, sem arrancada brusca) */
+    const ease = (v, to, a) => v < to ? Math.min(to, v + a * dt) : Math.max(to, v - a * dt);
+    const tvx = ((inp.right ? 1 : 0) - (inp.left ? 1 : 0)) * this.speed * (this.flying ? .42 : this.grounded ? 1 : .85);
+    this.vx = ease(this.vx, tvx, this.flying ? 1500 : this.grounded ? 6000 : 2600);
+    if (this.flying) this.vy = ease(this.vy, ((inp.down ? 1 : 0) - (inp.up ? 1 : 0)) * this.flySpeed * .5, 1500);   // voo: sem gravidade, sobe/desce suave
     else {
       if (inp.jump && this.grounded) { this.vy = -this.jumpV; this.grounded = false; }
       /* SEGURAR pular/↑ no ar: sobe (empuxo maior que a gravidade, até climbV); SOLTAR: perde a subida na hora e começa a cair */

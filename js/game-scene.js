@@ -92,9 +92,9 @@ class GameScene {
   input() { // teclado + botões na tela; ações de um toque (voar/poder) chegam como "pressed"
     const P = this.pad, N = this.pend, inp = { left: this.held('left') || P.left, right: this.held('right') || P.right, up: this.held('up') || P.jump || N.jump || !!P.sUp, down: this.held('down') || !!P.sDown, guard: !!P.guard, meditate: this.held('meditate') || !!P.meditate,
       pressed: { attack: this.held('attack') || P.attack || N.attack, fly: N.fly, power: N.power, big: N.big, special: N.special, barrage: N.barrage, sun: N.sun } };
-    /* buffer de entrada: um toque de poder/ação dado enquanto o personagem ainda está ocupado (ex.: no fim de um soco) não se perde: vale por ~0,4 s */
+    /* buffer de entrada: um toque de poder/ação dado enquanto o personagem ainda está ocupado (ex.: no fim de um soco) não se perde: vale por ~0,12 s */
     const me = this.me, B = this.buf || (this.buf = {});
-    for (const k in inp.pressed) { if (inp.pressed[k]) B[k] = me && me.busy ? 24 : 0; else if (B[k] > 0) { if (me && !me.busy) { inp.pressed[k] = true; B[k] = 0; } else B[k]--; } }
+    for (const k in inp.pressed) { if (inp.pressed[k]) B[k] = me && me.busy ? 7 : 0; else if (B[k] > 0) { if (me && !me.busy) { inp.pressed[k] = true; B[k] = 0; } else B[k]--; } }
     this.pend = {}; if (this.editing) { inp.left = inp.right = inp.up = inp.guard = inp.meditate = false; for (const k in inp.pressed) inp.pressed[k] = false; } return inp;
   }
   /* Controles na tela (botões desenhados em SVG, roxo/dourado). Direita: HABILIDADE ÚNICA · PODER GRANDE · CARREGAR KI / PULAR-VOAR · PODER PEQUENO · SOCO.
