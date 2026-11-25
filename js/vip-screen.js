@@ -1,4 +1,4 @@
-/* PACOTE VIP — aberto pelo ícone da coroa (menu principal). A arte (assets/ui/vip.jpg) traz o painel; por cima ficam os botões VIVOS e o tempo restante real.
+/* PACOTE VIP — aberto pelo ícone da coroa (menu principal). A arte (assets/ui/vip.png) traz o painel; por cima ficam os botões VIVOS e o tempo restante real.
  * Compra: 2 diamantes → +7 dias de VIP (soma se já for VIP). "Editar cor do nome" só abre para VIPs. */
 (() => {
 'use strict';
@@ -8,7 +8,7 @@ const pos = (n, r) => { n.style.left = r[0] / W * 100 + '%'; n.style.top = r[1] 
 const COLORS = ['#ffd23a', '#ff5a5a', '#ff9f43', '#7dff6a', '#35e0c8', '#4db8ff', '#b07dff', '#ff7ad9', '#ffffff'];
 S.register('vip', { title: 'Pacote VIP', sticky: true, noFocus: true, build(p) {
   p.classList.add('shopwrap', 'vipwrap');
-  const box = el('div', 'vp-box'), img = el('img', 'vp-art', { src: 'assets/ui/vip.jpg', alt: '', draggable: false });
+  const box = el('div', 'vp-box'), img = el('img', 'vp-art', { src: 'assets/ui/vip.png', alt: '', draggable: false });
   const x = el('button', 'vp-hs', { type: 'button', ariaLabel: 'Fechar' }), buy = el('button', 'vp-hs', { type: 'button', ariaLabel: 'Comprar' }), ed = el('button', 'vp-hs', { type: 'button', ariaLabel: 'Editar cor do nome' });
   const dur = el('div', 'vp-dur'), l1 = el('b', '', { textContent: 'Duração de VIP' }), l2 = el('span', ''); dur.append(l1, l2);
   const msg = el('div', 'vp-msg');
