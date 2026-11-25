@@ -4,7 +4,7 @@
 'use strict';
 const M = SaiyanMenu, S = M.screens, P = SL.Profile, C = SL.Characters, svc = SaiyanGame.service;
 const el = (t, c = '', p = {}) => Object.assign(document.createElement(t), { className: c, ...p });
-const bg = new Image(); bg.src = 'assets/ui/lobby-city.png';
+const bg = new Image(); bg.src = 'assets/ui/lobby-city.png'; const pimg = new Image(); pimg.src = 'assets/ui/portal.png';
 const frameOf = (def, anim, t) => { const a = (def.anims && def.anims[anim]) || def.anims.idle; return def.frames[a.f[Math.floor(t * (a.fps || 8)) % a.f.length]]; };
 const idleH = d => { try { return Math.max(...d.anims.idle.f.map(i => d.frames[i].h)); } catch (e) { return 60; } };
 const PANELS = 3;          // mundo = 3 painéis lado a lado: cenário · cenário espelhado · cenário (as emendas ficam contínuas)
@@ -66,14 +66,11 @@ S.register('hub', { title: 'Lobby', sticky: true, noFocus: true, build(p) {
       ctx.save(); ctx.fillStyle = '#5a3a1a'; ctx.fillRect(sxp - 3, by, 6, g.dh * .2); ctx.fillStyle = '#c28a4a'; ctx.strokeStyle = '#3a210a'; ctx.lineWidth = 3; ctx.beginPath(); ctx.roundRect(sxp - bw / 2, by - fs2 * 2.2, bw, fs2 * 2.4, 6); ctx.fill(); ctx.stroke();
       ctx.fillStyle = '#2a1405'; ctx.font = `800 ${fs2}px system-ui,sans-serif`; ctx.textAlign = 'center'; ctx.fillText(txt, sxp, by - fs2 * .55, bw - 10); ctx.restore(); };
     sign(WW() / 2 - 420, 'Aqui você não toma dano', 330); sign(WW() / 2 + 380, 'Lobby', 150);
-    { const px = PORTAL(), sxp = (px - g.cx) * g.s, gy = g.oy + g.dh * .8, ph = g.dh * .36, pw = ph * .55;
-      if (sxp > -pw && sxp < g.W + pw) {
-        const cy = gy - ph / 2, pu = .5 + .5 * Math.sin(t * 3); ctx.save();
-        const gl = ctx.createRadialGradient(sxp, cy, pw * .1, sxp, cy, pw * 1.3); gl.addColorStop(0, 'rgba(160,90,255,.55)'); gl.addColorStop(1, 'rgba(160,90,255,0)'); ctx.fillStyle = gl; ctx.fillRect(sxp - pw * 1.4, cy - ph, pw * 2.8, ph * 2);
-        ctx.fillStyle = '#12062e'; ctx.beginPath(); ctx.ellipse(sxp, cy, pw / 2, ph / 2, 0, 0, 7); ctx.fill();
-        for (let i = 0; i < 4; i++) { ctx.strokeStyle = `rgba(${120 + i * 30},${80 + i * 40},255,${.9 - i * .15})`; ctx.lineWidth = 3; ctx.beginPath(); ctx.ellipse(sxp, cy, pw / 2 * (1 - i * .18), ph / 2 * (1 - i * .18), 0, t * (i % 2 ? -2 : 2), t * (i % 2 ? -2 : 2) + 4.2); ctx.stroke(); }
-        ctx.strokeStyle = '#ffd45a'; ctx.lineWidth = 5; ctx.shadowColor = '#b46cff'; ctx.shadowBlur = 12 + pu * 10; ctx.beginPath(); ctx.ellipse(sxp, cy, pw / 2 + 4, ph / 2 + 4, 0, 0, 7); ctx.stroke(); ctx.shadowBlur = 0;
-        const fz = Math.round(g.dh * .034); ctx.font = `800 ${fz}px system-ui,sans-serif`; ctx.textAlign = 'center'; ctx.lineWidth = 4; ctx.strokeStyle = '#000'; ctx.fillStyle = '#ffe27a'; ctx.strokeText('PORTAL · BATALHA', sxp, cy - ph / 2 - fz * .6); ctx.fillText('PORTAL · BATALHA', sxp, cy - ph / 2 - fz * .6); ctx.restore();
+    { const px = PORTAL(), sxp = (px - g.cx) * g.s, gy = g.oy + g.dh * .84, ph = g.dh * .46, pw = ph * (pimg.width || 816) / (pimg.height || 974);
+      if (pimg.complete && pimg.width && sxp > -pw && sxp < g.W + pw) {
+        const pu = .5 + .5 * Math.sin(t * 3); ctx.save(); ctx.fillStyle = 'rgba(0,0,0,.35)'; ctx.beginPath(); ctx.ellipse(sxp, gy - 4, pw * .42, 9, 0, 0, 7); ctx.fill();
+        ctx.shadowColor = '#b46cff'; ctx.shadowBlur = 14 + pu * 22; ctx.drawImage(pimg, Math.round(sxp - pw / 2), Math.round(gy - ph), pw, ph); ctx.shadowBlur = 0;
+        const fz = Math.round(g.dh * .034); ctx.font = `800 ${fz}px system-ui,sans-serif`; ctx.textAlign = 'center'; ctx.lineWidth = 4; ctx.strokeStyle = '#000'; ctx.fillStyle = '#ffe27a'; ctx.strokeText('BATALHA', sxp, gy - ph - fz * .3); ctx.fillText('BATALHA', sxp, gy - ph - fz * .3); ctx.restore();
       }
       const near = Math.abs(pos - px) < 55 && !jumpY; if (near && !inPortal) { inPortal = true; S.open('play'); } else if (!near && Math.abs(pos - px) > 110) inPortal = false; }
     const sprite = (id, x, face, moving, name, me, tag, vip) => {
