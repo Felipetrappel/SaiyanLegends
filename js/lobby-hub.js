@@ -72,7 +72,7 @@ S.register('hub', { title: 'Lobby', sticky: true, noFocus: true, build(p) {
         ctx.shadowColor = '#b46cff'; ctx.shadowBlur = 14 + pu * 22; ctx.drawImage(pimg, Math.round(sxp - pw / 2), Math.round(gy - ph), pw, ph); ctx.shadowBlur = 0;
         const fz = Math.round(g.dh * .034); ctx.font = `800 ${fz}px system-ui,sans-serif`; ctx.textAlign = 'center'; ctx.lineWidth = 4; ctx.strokeStyle = '#000'; ctx.fillStyle = '#ffe27a'; ctx.strokeText('BATALHA', sxp, gy - ph - fz * .3); ctx.fillText('BATALHA', sxp, gy - ph - fz * .3); ctx.restore();
       }
-      const near = Math.abs(pos - px) < 55 && !jumpY; if (near && !inPortal) { inPortal = true; S.open('play'); } else if (!near && Math.abs(pos - px) > 110) inPortal = false; }
+      const near = Math.abs(pos - px) < 55 && !jumpY; if (near && !inPortal) { inPortal = true; err.textContent = ''; SLQuickBattle.go().catch(e => { err.textContent = e.message || 'Não foi possível entrar na batalha.'; }); } else if (!near && Math.abs(pos - px) > 110) inPortal = false; }
     const sprite = (id, x, face, moving, name, me, tag, vip) => {
       const d = C.get(C.all[id] ? id : Object.keys(C.all)[0]); if (!d || !d.img || !d.img.complete) return;
       const sc = Math.max(1, g.H * .14 / idleH(d)), f = frameOf(d, moving ? 'run' : 'idle', t), fy = g.oy + g.dh * (me ? .8 : .78) - (me ? jumpY * g.s * .6 : 0), sxp = (x - g.cx) * g.s;

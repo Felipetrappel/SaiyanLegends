@@ -97,14 +97,6 @@ send.addEventListener('click', composer);
 photo.dataset.a = 'l'; cc.dataset.a = 'c'; msgs.dataset.a = 'l'; chat.dataset.a = 'l';
 M.hud.append(photo, cc, msgs, chat); paintChat(); paint(); M.layout();
 
-/* ── tela JOGAR: abre as telas de salas que já existem ── */
-S.register('play', { title: 'Jogar', build(p) {
-  p.classList.add('wide'); p.append(el('h2', '', { textContent: 'JOGAR' }), el('p', '', { textContent: 'Entre na batalha: conecte-se, crie uma sala, escolha uma da lista ou use um código.' }));
-  const g = el('div', 'playgrid');
-  [['CONECTAR', 'connect'], ['CRIAR SALA', 'createRoom'], ['LISTA DE SALAS', 'roomList'], ['ENTRAR COM CÓDIGO', 'code']].forEach(([l, id]) => g.append(S.btn(l, () => S.open(id))));
-  const r = el('div', 'row'); r.append(S.btn('Voltar', () => S.close(), true)); p.append(g, r);
-} });
-
 /* ── tela PERSONAGEM: ver os personagens e selecionar ── */
 S.register('characters', { title: 'Personagem', build(p) {
   p.classList.add('wide'); const msg = el('div', 'msg'), grid = el('div', 'chargrid');
