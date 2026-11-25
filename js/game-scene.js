@@ -159,7 +159,8 @@ class GameScene {
     if (!this.running) return;
     this.acc = Math.min(this.acc + (t - this.last) / 1000, .1); this.last = t;
     while (this.acc >= 1 / 60) { this.acc -= 1 / 60; this.step(); }
-    this.draw(); this.updateUI(); this.raf = requestAnimationFrame(t2 => this.frame(t2));
+    const P = window.SLPerf; if (!P || P.due(t)) { this.draw(); this.updateUI(); if (P) P.tick(t); }
+    this.raf = requestAnimationFrame(t2 => this.frame(t2));
   }
   step() {
     const inp = this.input(), dt = 1 / 60, w = this.world;

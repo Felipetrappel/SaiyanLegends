@@ -57,7 +57,14 @@ S.register('options', { title: 'Configurações', sticky: true, noFocus: true, b
     },
     video() {
       const ck = check('Tela cheia', fsGet, fsSet, !(window.SLFullscreen));
+      const P = window.SLPerf, rep = () => body.querySelectorAll('.cf-ck').forEach(b => b.repaint && b.repaint());
       body.append(row('🖥', 'EXIBIÇÃO', el('div', 'cf-checks one')), note('A imagem sempre se ajusta à tela do aparelho, sem cortar nem desfocar. Não há opções de qualidade gráfica.')); body.querySelector('.cf-checks').append(ck);
+      if (P) {
+        const fpsC = check('Mostrar FPS na tela', () => P.showFps, v => P.setShowFps(v)), limC = check('Limitar taxa de quadros', () => P.limitOn, v => { P.setLimitOn(v); rep(); }), opts = el('div', 'cf-checks');
+        P.LIMITS.forEach(n => { const b = check(n + ' FPS', () => P.limitOn && P.max === n, () => { P.setMax(n); P.setLimitOn(true); rep(); }); opts.append(b); });
+        const g = el('div', 'cf-checks one'); g.append(fpsC, limC);
+        body.append(row('📈', 'TAXA DE QUADROS', g, opts, note('Desligado, o jogo roda na velocidade máxima da tela. Limitar economiza bateria; a lógica da luta continua a 60 por segundo.')));
+      }
     },
     nuvem() {
       const CS = window.SLCloud; if (!CS) { body.append(note('Salvamento na nuvem indisponível.')); return; }
