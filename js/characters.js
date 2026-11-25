@@ -1,11 +1,8 @@
 /* Personagens jogáveis + perfil do jogador (selecionado / desbloqueados). Todos começam bloqueados (compra com ouro). Para um novo personagem: registre-o em Characters.all (com defaultUnlocked e price). */
 (() => {
 'use strict';
-const S = SL.STREET, FZ = SL.FELIPEDZN, SM = SL.SAMULORD, pending = {};
+const FZ = SL.FELIPEDZN, SM = SL.SAMULORD, pending = {};
 const all = {};
-/* STREET: ONDA DE IMPACTO = habilidade única (def.dash); ESFERA VERDE = poder grande. Aura já desenhada no sheet (bakedAura). */
-if (S) all.street = { ...S, price: 500, defaultUnlocked: false, unique: { name: 'ONDA DE IMPACTO', icon: 'shock' }, ringColor: '#4dff7a', auraColor: '#4dff7a', bigPal: 'ice', bakedAura: true,
-   img: Object.assign(new Image(), { src: S.sheet }) };
 /* FelipeDzn: ESPADA = habilidade única (def.dash); HADOU 99 = poder grande (def.big). Atributos 0–10 (k = Ki). */
 if (FZ) all.felipedzn = { ...FZ, price: 1200, defaultUnlocked: false, unique: { name: 'ESPADA', icon: 'sword' }, ringColor: '#ff4fa8', auraColor: '#ff4fd8', bigPal: 'pink',
    img: Object.assign(new Image(), { src: FZ.sheet }) };
