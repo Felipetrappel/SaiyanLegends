@@ -43,7 +43,7 @@ class RemoteRoomService extends Emitter {
   _reconnect() { clearTimeout(this._rt); this._rt = setTimeout(() => this._open(null, null), Math.min(5000, 500 * 2 ** this.retry++)); }
   async _hello() {
     const r = await this._req('hello', { pid: this.ident.pid, token: this.ident.token, name: this.ident.name, auth: (window.SLAuth || SL.Auth) ? (window.SLAuth || SL.Auth).token() : '', staff: (() => { try { return localStorage.getItem('sl.staff') || ''; } catch (_) { return ''; } })() }, true);
-    this.myTag = r.tag || ''; this.ident.token = r.token; this.ident.save('token', r.token); this.online = true; this.lastMsg = Date.now();
+    this.myTag = r.tag || ''; this.myVip = r.vip || null; this.ident.token = r.token; this.ident.save('token', r.token); this.online = true; this.lastMsg = Date.now();
     clearInterval(this._ka); this._ka = setInterval(() => { // keepalive: sem resposta por 25s = conexão morta → reconecta
       if (!this.online) return; if (Date.now() - this.lastMsg > 25000) { try { this.ws.close(); } catch (_) {} return; } this._raw({ op: 'ping' }); }, 8000);
     if (r.room) { this.current = r.room.id; this.resumed = this.resumed || r.room; this.emit('room:' + r.room.id, r.room); }
@@ -67,6 +67,7 @@ class RemoteRoomService extends Emitter {
     else if (m.push === 'relay') this.emit('relay', { from: m.from, data: m.data });
     else if (m.push === 'chat') this.emit('chat', m.msg);
     else if (m.push === 'online') this.emit('online', m.n);
+    else if (m.push === 'vip') { this.myVip = m.vip || null; this.emit('vip', this.myVip); this.emit('status', this); }
     else if (m.push === 'tag') { this.myTag = m.tag || ''; this.emit('status', this); }
     else if (m.push === 'grant') this.emit('grant', m);
     else if (m.push === 'hub') this.emit('hub', m);
@@ -88,6 +89,9 @@ class RemoteRoomService extends Emitter {
   async saveProfile(key, progress, name) { return this._req('saveProfile', { key, progress, name }); }
   async setStaff(code) { const t = (await this._req('staff', { code })).tag || ''; this.myTag = t; return t; }
   async redeem(code) { return this._req('redeem', { code }); }
+  async vipInfo() { const v = await this._req('vipInfo', {}); this.myVip = v; return v; }
+  async vipBuy() { const v = await this._req('vipBuy', {}); this.myVip = v; return v; }
+  async vipColor(color) { const v = await this._req('vipColor', { color }); this.myVip = v; return v; }
   async codeGen(o) { return this._req('codeGen', o); }
   async codeList() { return this._req('codeList', {}); }
   async codeDel(code) { return this._req('codeDel', { code }); }
@@ -132,6 +136,10 @@ class AutoService extends Emitter {
   async codeGen(o) { await this.ready; if (this.mode === 'online' && this.impl.codeGen) return this.impl.codeGen(o); throw new Error('Sem conexão com o servidor.'); }
   async codeList() { await this.ready; if (this.mode === 'online' && this.impl.codeList) return this.impl.codeList(); throw new Error('Sem conexão com o servidor.'); }
   async codeDel(c) { await this.ready; if (this.mode === 'online' && this.impl.codeDel) return this.impl.codeDel(c); throw new Error('Sem conexão com o servidor.'); }
+  async vipInfo() { await this.ready; if (this.mode === 'online' && this.impl.vipInfo) return this.impl.vipInfo(); throw new Error('Sem conexão com o servidor.'); }
+  async vipBuy() { await this.ready; if (this.mode === 'online' && this.impl.vipBuy) return this.impl.vipBuy(); throw new Error('Sem conexão com o servidor.'); }
+  async vipColor(c) { await this.ready; if (this.mode === 'online' && this.impl.vipColor) return this.impl.vipColor(c); throw new Error('Sem conexão com o servidor.'); }
+  get myVipInfo() { return this.impl && this.impl.myVip || null; }
   get canGenCodes() { const t = this.myTag; return t === 'DEV' || t === 'ADM'; }
   async redeem(code) { await this.ready; if (this.mode === 'online' && this.impl.redeem) return this.impl.redeem(code); throw new Error('Sem conexão com o servidor.'); }
   get myTag() { return (this.mode === 'online' && this.impl && this.impl.myTag) || ''; }

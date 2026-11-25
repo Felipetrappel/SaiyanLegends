@@ -257,7 +257,8 @@ class Fighter {
     dmg /= this.defMul || 1; const guarded = this.state === 'shield' && dir === -this.face; if (guarded) dmg *= 1 - CFG.shieldReduce;
     this.hp = Math.max(0, this.hp - dmg); this.flash = .25; if (window.SaiyanSFX && !guarded) SaiyanSFX.play('hit'); if (this.world) { const W = this.world, big = Math.min(1, dmg / 30); W.shake = Math.max(W.shake || 0, (guarded ? 2 : 3 + 7 * big) * (this.me || (by && by.me) ? 1 : .5)); W.kick = Math.max(W.kick || 0, (guarded ? .005 : .015 + .04 * big)); } this.kb = dir * kb * (guarded ? .3 : 1);
     if (this.world) this.world.fx.push({ x: this.body.x, y: this.body.y - 52, txt: String(Math.round(dmg)), t: 0 });
-    if (this.hp <= 0) { this.dead = true; this.rt = CFG.respawn; this.endForm(); this.set('idle'); return; }
+    if (this.hp <= 0) { this.dead = true; this.rt = (this.me && window.SLVip && SLVip.active()) ? .2 : CFG.respawn;   // VIP: sem tempo de espera
+    this.endForm(); this.set('idle'); return; }
     const A = this.def.anims;                                                                          // reações com quadros próprios (prioridade: ataque em andamento > reação)
     if (guarded && A.guardhit) { if (this.state === 'shield') this.set('guardhit'); }
     else if (!guarded && A.hurt && (!this.busy || this.state === 'hurt')) this.set(dmg >= 20 && A.hurtH ? 'hurtH' : 'hurt');
@@ -456,11 +457,11 @@ class Fighter {
     if (this.state === 'big' && !this.fired) { const tot = bigSeq(this.def).reduce((a, q) => a + q.dur, 0) - bigSeq(this.def).slice(-1)[0].dur, u = Math.min(1, this.t / tot), h = this.hand(fi) || this.chest(); drawOrb(ctx, h.x, h.y - 4, 2 + 9 * u, this.t, PAL[this.def.bigPal] || PAL.pink); }   // esfera crescendo na mão enquanto carrega
     if (bl && !behind) drawOrb(ctx, bl.x + sh, bl.y, bl.r, this.t);
     if (this.state === 'sun' && !this.fired && !this.def.bakedAura) { const c = this.chest(); drawOrb(ctx, c.x + this.face * 4, c.y, 2 + 8 * Math.min(1, this.t / .6), this.t, PAL.yellow); }   // esfera solar crescendo na mão                                                 // lançando: esfera à frente do braço
-    if (this.me) { if (window.SLTags && this.player.name) { const top = b.y - f.ay - 6; ctx.textAlign = 'center'; SLTags.drawName(ctx, this.player.tag || (window.SL && SL.Net && SL.Net.myTag) || '', this.player.name, b.x, top - 3, { size: 8, color: '#ffe27a', stroke: 2 }); } }   // nome + TAG também no próprio jogador
+    if (this.me) { if (window.SLTags && this.player.name) { const top = b.y - f.ay - 6; ctx.textAlign = 'center'; SLTags.drawName(ctx, this.player.tag || (window.SL && SL.Net && SL.Net.myTag) || '', this.player.name, b.x, top - 3, { size: 8, color: '#ffe27a', stroke: 2, vip: (window.SLVip && SLVip.mine()) || this.player.vip || '' }); } }   // nome + TAG também no próprio jogador
     if (!this.me) {
       const top = b.y - f.ay - 6, w = 28; ctx.fillStyle = '#10042a'; ctx.fillRect(b.x - w / 2 - 1, top - 1, w + 2, 5);
       ctx.fillStyle = '#e0304f'; ctx.fillRect(b.x - w / 2, top, w * Math.max(0, this.hp / CFG.hp), 3);
-      ctx.font = '8px system-ui'; ctx.textAlign = 'center'; if (window.SLTags && this.player.tag) SLTags.drawName(ctx, this.player.tag, this.player.name, b.x, top - 3, { size: 8, color: '#fff' }); else { ctx.fillStyle = '#fff'; ctx.fillText(this.player.name, b.x, top - 3); }
+      ctx.font = '8px system-ui'; ctx.textAlign = 'center'; if (window.SLTags && (this.player.tag || this.player.vip)) SLTags.drawName(ctx, this.player.tag, this.player.name, b.x, top - 3, { size: 8, color: '#fff', vip: this.player.vip || '' }); else { ctx.fillStyle = '#fff'; ctx.fillText(this.player.name, b.x, top - 3); }
     }
   }
 }

@@ -16,7 +16,7 @@ const note = () => ls.forEach(f => f());
 svc.on('chat', m => { if (!m || seen.has(m.n)) return; seen.add(m.n); log.push(m); if (log.length > 60) log.shift(); note(); });
 svc.on('online', n => { online = n == null ? 0 : n; note(); });
 svc.on('status', () => { if (svc.mode !== 'online') { online = 0; note(); } });
-const rowOf = m => { const r = el('div', 'hc-row'); r.append(el('span', 'hc-lv', { textContent: Math.max(0, m.lv | 0) }), ...[window.SLTags && SLTags.chip(m.tag)].filter(Boolean), el('b', 'hc-nm', { textContent: String(m.name || 'Jogador').slice(0, 16) }), el('span', 'hc-tx', { textContent: String(m.text || '').slice(0, 120) })); return r; };
+const rowOf = m => { const r = el('div', 'hc-row'); r.append(el('span', 'hc-lv', { textContent: Math.max(0, m.lv | 0) }), ...[window.SLTags && SLTags.chip(m.tag), window.SLTags && SLTags.vipChip(m.vip)].filter(Boolean), SLTags.vipName(el('b', 'hc-nm', { textContent: String(m.name || 'Jogador').slice(0, 16) }), m.vip), el('span', 'hc-tx', { textContent: String(m.text || '').slice(0, 120) })); return r; };
 window.SL.Social = { log, send: t => svc.sendChat(t, P.level, myName()), get online() { return online; }, summary };
 
 S.register('chat', { title: 'Chat global', build(p) {

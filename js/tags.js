@@ -17,10 +17,15 @@ function drawName(ctx, tag, name, x, y, o = {}) {
   const d = get(tag), fs = o.size || 12, pad = Math.round(fs * .35); ctx.save(); ctx.textBaseline = 'alphabetic'; ctx.font = `bold ${fs}px system-ui,sans-serif`;
   const nw = ctx.measureText(name).width, im = d && IMG[String(tag).toUpperCase()], ok = im && im.complete && im.naturalWidth; let tw = 0, bh = 0, bw = 0;
   if (d) { if (ok) { bh = Math.round(fs * 1.7); bw = Math.round(bh * im.naturalWidth / im.naturalHeight); tw = bw + pad; } else { ctx.font = `800 ${Math.round(fs * .8)}px system-ui,sans-serif`; tw = ctx.measureText(d.label).width + pad * 2 + 4; } }
-  let sx = x - (nw + tw) / 2; ctx.textAlign = 'left';
+  const vw = o.vip ? (ctx.font = `800 ${Math.round(fs * .85)}px system-ui,sans-serif`, ctx.measureText('<VIP>').width + pad * 1.5) : 0; ctx.font = `bold ${fs}px system-ui,sans-serif`;
+  let sx = x - (nw + tw + vw) / 2; ctx.textAlign = 'left';
   if (d && ok) { ctx.imageSmoothingEnabled = true; ctx.drawImage(im, sx, y - bh * .78, bw, bh); sx += tw; }
   else if (d) { const h = Math.round(fs * 1.05); ctx.fillStyle = d.bg; ctx.strokeStyle = d.bd; ctx.lineWidth = Math.max(1, fs / 10); ctx.beginPath(); (ctx.roundRect || ctx.rect).call(ctx, sx, y - h + 2, tw - 4, h, 3); ctx.fill(); ctx.stroke(); ctx.fillStyle = d.fg; ctx.font = `800 ${Math.round(fs * .8)}px system-ui,sans-serif`; ctx.fillText(d.label, sx + pad, y - 1); sx += tw; }
-  ctx.font = `bold ${fs}px system-ui,sans-serif`; ctx.lineWidth = o.stroke || 0; if (o.stroke) { ctx.strokeStyle = '#000b'; ctx.strokeText(name, sx, y); } ctx.fillStyle = o.color || '#fff'; ctx.fillText(name, sx, y); ctx.restore(); return nw + tw;
+  if (o.vip) { ctx.font = `800 ${Math.round(fs * .85)}px system-ui,sans-serif`; ctx.lineWidth = Math.max(2, o.stroke || 0, fs / 5); ctx.strokeStyle = '#000b'; ctx.strokeText('<VIP>', sx, y); ctx.fillStyle = '#ffd23a'; ctx.fillText('<VIP>', sx, y); sx += vw; }
+  ctx.font = `bold ${fs}px system-ui,sans-serif`; ctx.lineWidth = o.stroke || 0; if (o.stroke) { ctx.strokeStyle = '#000b'; ctx.strokeText(name, sx, y); } ctx.fillStyle = o.vip || o.color || '#fff'; ctx.fillText(name, sx, y); ctx.restore(); return nw + tw + vw;
 }
-window.SLTags = { TAGS: T, get, chip, drawName };
+/* <VIP> dourado ao lado do nome (null se não for VIP) + aplica a cor do nome no elemento dado */
+const vipChip = v => { if (!v) return null; const s = document.createElement('span'); s.className = 'sl-vip'; s.textContent = '<VIP>'; return s; };
+const vipName = (el, v) => { if (v) el.style.color = v; return el; };
+window.SLTags = { TAGS: T, get, chip, drawName, vipChip, vipName };
 })();

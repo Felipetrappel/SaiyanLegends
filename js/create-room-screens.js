@@ -199,7 +199,7 @@ S.register('lobby', { sticky: true, build(p, mgr) {
     const row = el('div', 'rm-slots');
     for (let i = 0; i < r.maxPlayers; i++) {
       const pl = r.players[i], s = el('div', 'rm-slot' + (pl ? ' full' : '') + (pl && pl.id === r.hostId ? ' host' : '') + (pl && pl.id === rooms().me.id ? ' me' : ''));
-      if (pl) { s.innerHTML = (pl.id === r.hostId ? '<i class="rm-crown" title="Anfitrião">★</i>' : '') + svg(pl.bot ? 'bots' : 'user', 'rm-slot-ico'); const nm = el('div', 'rm-slot-n'); const _tc = window.SLTags && SLTags.chip(pl.tag); if (_tc) nm.append(_tc); nm.append(document.createTextNode(pl.name + (pl.bot ? ' (bot)' : ''))); const tg = el('div', 'rm-slot-tag', { textContent: pl.id === r.hostId ? 'ANFITRIÃO' : pl.id === rooms().me.id ? 'VOCÊ' : pl.bot ? 'BOT' : 'JOGADOR' }); s.append(nm, tg); }
+      if (pl) { s.innerHTML = (pl.id === r.hostId ? '<i class="rm-crown" title="Anfitrião">★</i>' : '') + svg(pl.bot ? 'bots' : 'user', 'rm-slot-ico'); const nm = el('div', 'rm-slot-n'); const _tc = window.SLTags && SLTags.chip(pl.tag); if (_tc) nm.append(_tc); { const vch = window.SLTags && SLTags.vipChip(pl.vip); if (vch) nm.append(vch); } const nt = document.createElement('span'); nt.textContent = pl.name + (pl.bot ? ' (bot)' : ''); if (pl.vip) nt.style.color = pl.vip; nm.append(nt); const tg = el('div', 'rm-slot-tag', { textContent: pl.id === r.hostId ? 'ANFITRIÃO' : pl.id === rooms().me.id ? 'VOCÊ' : pl.bot ? 'BOT' : 'JOGADOR' }); s.append(nm, tg); }
       else { s.innerHTML = svg('user', 'rm-slot-ico') + '<div class="rm-slot-n">VAGA</div>'; }
       row.append(s);
     }

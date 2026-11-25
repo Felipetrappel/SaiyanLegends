@@ -142,7 +142,7 @@ class GameScene {
     const P = SL.Profile;   // HUD com a moldura de arte (assets/ui/hud-frame.png): retrato no círculo, nome, barras de HP (vermelha), EN (azul) e XP do nível (dourada)
     bars.innerHTML = '<img class="gh-art" src="assets/ui/hud-frame.png" alt="" draggable="false"><canvas class="gh-pt" width="148" height="148"></canvas><div class="gh-nm"></div>' +
       '<div class="gh-bar gh-hp"><i></i></div><div class="gh-bar gh-en"><i></i></div><div class="gh-bar gh-xp"><i></i></div>';
-    { const nmEl = bars.querySelector('.gh-nm'); nmEl.textContent = ''; const tc = window.SLTags && SLTags.chip(this.me.player.tag); if (tc) nmEl.append(tc); nmEl.append(document.createTextNode((this.me.player.name || '') + ' · Nv.' + P.level)); }
+    { const nmEl = bars.querySelector('.gh-nm'); nmEl.textContent = ''; const tc = window.SLTags && SLTags.chip(this.me.player.tag); if (tc) nmEl.append(tc); const vc = window.SLVip && SLVip.mine(), vch = vc && SLTags.vipChip(vc); if (vch) nmEl.append(vch); const nn = document.createElement('span'); nn.textContent = (this.me.player.name || '') + ' · Nv.' + P.level; if (vc) nn.style.color = vc; nmEl.append(nn); }
     bars.querySelector('.gh-xp i').style.width = (100 - P.levelProgress * 100) + '%';
     { const c = SL.Characters.get(this.me.player.character), cv = bars.querySelector('.gh-pt'), x = cv.getContext('2d'), r = c.portrait, draw = () => { x.imageSmoothingEnabled = false; x.clearRect(0, 0, 148, 148); const k = Math.max(148 / r.w, 148 / r.h); x.drawImage(c.img, r.x, r.y, r.w, r.h, (148 - r.w * k) / 2, (148 - r.h * k) / 2, r.w * k, r.h * k); }; c.img.complete ? draw() : c.img.addEventListener('load', draw); }
     host.append(bars, root);
@@ -167,7 +167,7 @@ class GameScene {
     for (const f of this.fighters) {   // recompensa: derrotar um oponente (bot ou jogador) que você acertou por último rende XP e moedas de ouro
       if (f === this.me || f.dummy) continue;
       if (!f.dead) f._paid = false;
-      else if (!f._paid && f.lastBy === this.me && performance.now() - f.lastByT < 10000 && SL.Profile) { f._paid = true; SL.Profile.addXp(25); SL.Profile.addCoins('gold', 10); w.fx.push({ x: this.me.body.x, y: this.me.body.y - 70, txt: '+25 XP  +10 ouro', t: 0 }); const md = SL.Profile.progress('kill', 1); if (md) w.fx.push({ x: this.me.body.x, y: this.me.body.y - 92, txt: 'MISSÃO: +' + md.gems + ' diamantes', t: 0 }); }
+      else if (!f._paid && f.lastBy === this.me && performance.now() - f.lastByT < 10000 && SL.Profile) { f._paid = true; const vx = window.SLVip ? SLVip.xpMul() : 1, vg = window.SLVip ? SLVip.goldMul() : 1, xpG = Math.round(25 * vx), goG = Math.round(10 * vg); SL.Profile.addXp(xpG); SL.Profile.addCoins('gold', goG); w.fx.push({ x: this.me.body.x, y: this.me.body.y - 70, txt: '+' + xpG + ' XP  +' + goG + ' ouro' + (vx > 1 ? '  (VIP)' : ''), t: 0 }); const md = SL.Profile.progress('kill', 1); if (md) w.fx.push({ x: this.me.body.x, y: this.me.body.y - 92, txt: 'MISSÃO: +' + md.gems + ' diamantes', t: 0 }); }
     }
     if (this.me.body.flying && !this.me.dead && SL.Profile) { this.flyT = (this.flyT || 0) + dt; if (this.flyT >= 1) { this.flyT -= 1; const md = SL.Profile.progress('fly', 1); if (md) w.fx.push({ x: this.me.body.x, y: this.me.body.y - 92, txt: 'MISSÃO: +' + md.gems + ' diamantes', t: 0 }); } }   // missão: voar
     w.fx.forEach(x => { x.t += dt; }); w.fx = w.fx.filter(x => x.t < .8);

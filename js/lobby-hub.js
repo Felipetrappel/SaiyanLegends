@@ -35,7 +35,7 @@ S.register('hub', { title: 'Lobby', sticky: true, noFocus: true, build(p) {
     label();
   };
   const onStatus = () => { if (svc.mode !== 'online') { joined = false; others.clear(); } join(); label(); };
-  const drawLog = () => { log.replaceChildren(...(SL.Social ? SL.Social.log : []).slice(-6).map(m => { const r = el('div', 'lb-msg'); const tc = window.SLTags && SLTags.chip(m.tag); if (tc) r.append(tc); r.append(el('b', '', { textContent: (m.name || '?') + ': ' }), document.createTextNode(m.text)); return r; })); log.scrollTop = log.scrollHeight; };
+  const drawLog = () => { log.replaceChildren(...(SL.Social ? SL.Social.log : []).slice(-6).map(m => { const r = el('div', 'lb-msg'); const tc = window.SLTags && SLTags.chip(m.tag); if (tc) r.append(tc); const vch = window.SLTags && SLTags.vipChip(m.vip); if (vch) r.append(vch); r.append(SLTags.vipName(el('b', '', { textContent: (m.name || '?') + ': ' }), m.vip), document.createTextNode(m.text)); return r; })); log.scrollTop = log.scrollHeight; };
   const onChat = m => { drawLog(); if (m && m.name) bubbles.set(m.name, { text: String(m.text).slice(0, 60), until: performance.now() + 5000 }); };
   const send = async () => { const t = inp.value.replace(/\s+/g, ' ').trim(); if (!t) return; err.textContent = ''; try { await SL.Social.send(t); inp.value = ''; } catch (e) { err.textContent = e.message || 'Não foi possível enviar.'; } };
   inp.addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') { e.preventDefault(); send(); } else if (e.key === 'Escape') inp.blur(); }); inp.addEventListener('keyup', e => e.stopPropagation());
@@ -66,7 +66,7 @@ S.register('hub', { title: 'Lobby', sticky: true, noFocus: true, build(p) {
       ctx.save(); ctx.fillStyle = '#5a3a1a'; ctx.fillRect(sxp - 3, by, 6, g.dh * .2); ctx.fillStyle = '#c28a4a'; ctx.strokeStyle = '#3a210a'; ctx.lineWidth = 3; ctx.beginPath(); ctx.roundRect(sxp - bw / 2, by - fs2 * 2.2, bw, fs2 * 2.4, 6); ctx.fill(); ctx.stroke();
       ctx.fillStyle = '#2a1405'; ctx.font = `800 ${fs2}px system-ui,sans-serif`; ctx.textAlign = 'center'; ctx.fillText(txt, sxp, by - fs2 * .55, bw - 10); ctx.restore(); };
     sign(WW() / 2 - 420, 'Aqui você não toma dano', 330); sign(WW() / 2 + 380, 'Lobby', 150);
-    const sprite = (id, x, face, moving, name, me, tag) => {
+    const sprite = (id, x, face, moving, name, me, tag, vip) => {
       const d = C.get(C.all[id] ? id : Object.keys(C.all)[0]); if (!d || !d.img || !d.img.complete) return;
       const sc = Math.max(1, g.H * .14 / idleH(d)), f = frameOf(d, moving ? 'run' : 'idle', t), fy = g.oy + g.dh * (me ? .8 : .78) - (me ? jumpY * g.s * .6 : 0), sxp = (x - g.cx) * g.s;
       if (!f) return;
@@ -75,7 +75,7 @@ S.register('hub', { title: 'Lobby', sticky: true, noFocus: true, build(p) {
       ctx.fillStyle = 'rgba(0,0,0,.3)'; ctx.beginPath(); ctx.ellipse(0, fy, f.w * sc * .35, 7 * (g.dh / 887) + 3, 0, 0, 7); ctx.fill();
       ctx.drawImage(d.img, f.x, f.y, f.w, f.h, Math.round(-f.ax * sc), Math.round(fy - f.ay * sc), f.w * sc, f.h * sc); ctx.restore();
       const ny = fy - idleH(d) * sc - g.dh * .03; if (me && SL.Profile) { ctx.font = `800 ${Math.round(g.dh * .03)}px system-ui,sans-serif`; ctx.textAlign = 'center'; ctx.lineWidth = 4; ctx.strokeStyle = '#000'; ctx.fillStyle = '#fff'; ctx.strokeText('lvl. ' + SL.Profile.level, sxp, ny - g.dh * .045); ctx.fillText('lvl. ' + SL.Profile.level, sxp, ny - g.dh * .045); }
-      SLTags.drawName(ctx, tag, name, sxp, ny, { size: Math.round(g.dh * .04), color: me ? '#ffe27a' : '#fff', stroke: 4 });
+      SLTags.drawName(ctx, tag, name, sxp, ny, { size: Math.round(g.dh * .04), color: me ? '#ffe27a' : '#fff', stroke: 4, vip: me ? ((window.SLVip && SLVip.mine()) || '') : (vip || '') });
       ctx.font = `bold ${Math.round(g.dh * .04)}px system-ui,sans-serif`; ctx.textAlign = 'center';
       const b = bubbles.get(name); if (b && b.until > now) {            // balão de fala
         const fs = Math.round(g.dh * .036); ctx.font = `600 ${fs}px system-ui,sans-serif`; const w = Math.min(g.W * .5, ctx.measureText(b.text).width + fs * 1.2), by = ny - fs * 2.2;
@@ -84,7 +84,7 @@ S.register('hub', { title: 'Lobby', sticky: true, noFocus: true, build(p) {
       }
     };
     const me = myInfo();
-    for (const q of others.values()) sprite(q.character, q.x, q.f, q.mv2, q.name || 'Jogador', false, q.tag);
+    for (const q of others.values()) sprite(q.character, q.x, q.f, q.mv2, q.name || 'Jogador', false, q.tag, q.vip);
     sprite(me.character, pos, face, moving, me.name, true, svc.myTag);
   }
   raf = requestAnimationFrame(frame);

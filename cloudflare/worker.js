@@ -36,6 +36,18 @@ const parseCodes = raw => { try { const o = JSON.parse(raw || ''), r = {}; for (
 const parseStaff = raw => { try { const o = JSON.parse(raw || '{}'), r = {}; for (const [k, v] of Object.entries(o)) if (k.length >= 12 && TAGS.has(String(v).toUpperCase())) r[k] = String(v).toUpperCase(); return r; } catch (_) { return {}; } };
 const staffTag = code => { code = String(code || ''); let found = ''; for (const k of Object.keys(STAFF)) if (k.length === code.length) { let d = 0; for (let i = 0; i < k.length; i++) d |= k.charCodeAt(i) ^ code.charCodeAt(i); if (!d) found = STAFF[k]; } return found; };
 const tagOf = pid => (sessions.get(pid) || {}).tag || '';
+/* ── VIP: 7 dias por compra (2 diamantes); guardado na conta (D1). vipOf = cor do nome se o VIP está ativo, senão ''. ── */
+const VIP_MS = 7 * 86400000, VIP_COLOR = '#ffd23a';
+const vipActive = s => !!(s && s.vipUntil && s.vipUntil > Date.now());
+const vipOf = pid => { const s = sessions.get(pid); return vipActive(s) ? (s.vipColor || VIP_COLOR) : ''; };
+const vipPub = s => ({ until: vipActive(s) ? s.vipUntil : 0, color: (s && s.vipColor) || VIP_COLOR, now: Date.now() });
+let vipReady = null;
+const vipInit = () => vipReady || (vipReady = ENV.DB.prepare('CREATE TABLE IF NOT EXISTS acct_vip (uid TEXT PRIMARY KEY, until INTEGER NOT NULL DEFAULT 0, color TEXT)').run().catch(e => { vipReady = null; throw e; }));
+const loadVip = async acc => { try { if (!acc || !ENV.DB) return null; await vipInit(); return await ENV.DB.prepare('SELECT until, color FROM acct_vip WHERE uid = ?1').bind(String(acc.id)).first(); } catch (e) { return null; } };
+const vipLive = t => {   // avisa o dono e todo mundo (lobby/sala) sobre o VIP dele
+  const h = hub.get(t.pid); if (h) { h.vip = vipOf(t.pid); hubSend(t.pid, { push: 'hub', t: 'join', p: h }); }
+  sendTo(t.pid, { push: 'vip', vip: vipPub(t) }); const r = t.roomId && rooms.get(t.roomId); if (r) pushRoom(r);
+};
 /* Tags dadas por comando (/tag): guardadas na conta (D1), valem em qualquer aparelho. */
 let tagsReady = null;
 const tagsInit = () => tagsReady || (tagsReady = ENV.DB.prepare('CREATE TABLE IF NOT EXISTS acct_tags (uid TEXT PRIMARY KEY, tag TEXT NOT NULL)').run().catch(e => { tagsReady = null; throw e; }));
@@ -110,7 +122,7 @@ const clients = new Set();    // conexões abertas (para empurrar a lista de sal
 const clean = (s, n) => String(s == null ? '' : s).replace(/[\u0000-\u001f\u007f<>]/g, '').trim().slice(0, n);
 const humans = r => r.players.filter(p => !p.bot);
 const snapshot = r => ({ id: r.id, name: r.name, hostId: r.hostId, maxPlayers: r.maxPlayers, map: r.map, state: r.state, loaded: r.loaded.slice(), mode: r.mode || null, locked: !!r.pw, minPlayers: r.minPlayers || MIN_TO_START,
-  players: r.players.map(p => ({ id: p.id, name: p.name, bot: p.bot, character: p.character, tag: p.bot ? '' : tagOf(p.id) })) });
+  players: r.players.map(p => ({ id: p.id, name: p.name, bot: p.bot, character: p.character, tag: p.bot ? '' : tagOf(p.id), vip: p.bot ? '' : vipOf(p.id) })) });
 const summary = r => ({ id: r.id, name: r.name, host: (r.players.find(p => p.id === r.hostId) || {}).name || '?', players: r.players.length, max: r.maxPlayers, map: r.map, state: r.state, mode: r.mode || null, locked: !!r.pw, full: r.players.length >= r.maxPlayers && !(r.mode && MODES[r.mode].bots && r.players.some(p => p.bot)) });
 const listAll = () => [...rooms.values()].filter(r => humans(r).length).map(summary).sort((a, b) => a.id.localeCompare(b.id));
 
@@ -182,6 +194,21 @@ const OPS = {
   },
   /* Sistema de códigos: cada conta resgata cada código uma única vez. Os códigos ficam no SERVIDOR (segredo CODES, JSON: {"CODIGO":{"gold":500,"gems":10,"xp":0,"until":"2027-01-01"}}). */
   /* GERADOR DE CÓDIGOS — exclusivo DEV/ADM, validado AQUI no servidor (a tag vem da conta, nunca do cliente). */
+  /* VIP */
+  async vipInfo(s) { return vipPub(s); },
+  async vipBuy(s) {   // o preço (2 diamantes) é cobrado no app; aqui só se registra a duração (soma 7 dias se já for VIP)
+    if (!s.account || !ENV.DB) throw E('Entre na sua conta para comprar o VIP.');
+    await vipInit(); const now = Date.now(); if ((s.vbT || 0) > now - 2000) throw E('Aguarde um instante.'); s.vbT = now;
+    const base = vipActive(s) ? s.vipUntil : now; s.vipUntil = Math.min(base + VIP_MS, now + 30 * 86400000);
+    await ENV.DB.prepare('INSERT INTO acct_vip (uid, until, color) VALUES (?1, ?2, ?3) ON CONFLICT(uid) DO UPDATE SET until = ?2').bind(String(s.account.id), s.vipUntil, s.vipColor || null).run();
+    vipLive(s); return vipPub(s);
+  },
+  async vipColor(s, m) {
+    if (!vipActive(s)) throw E('Só VIPs podem editar a cor do nome.');
+    const c = String(m.color || '').trim(); if (!/^#[0-9a-fA-F]{6}$/.test(c)) throw E('Cor inválida.');
+    s.vipColor = c.toLowerCase(); await vipInit();
+    await ENV.DB.prepare('UPDATE acct_vip SET color = ?2 WHERE uid = ?1').bind(String(s.account.id), s.vipColor).run(); vipLive(s); return vipPub(s);
+  },
   async codeGen(s, m) {
     needGen(s); await ensureCodeTables();
     const n = k => Math.max(0, Math.min(CAP, Math.floor(Number(m[k]) || 0))), gold = n('gold'), gems = n('gems'), xp = n('xp');
@@ -222,7 +249,7 @@ const OPS = {
   },
   hubJoin(s, m) {
     if (!hub.has(s.pid) && hub.size >= HUB_MAX) throw E('Lobby cheio.');
-    const p = { id: s.pid, name: (s.acct ? s.name : clean(m.name, 16)) || s.name || 'Jogador', character: clean(m.character, 24) || 'felipedzn', x: hubX(m.x), f: m.f < 0 ? -1 : 1, mv: 0, tag: s.tag || '' };
+    const p = { id: s.pid, name: (s.acct ? s.name : clean(m.name, 16)) || s.name || 'Jogador', character: clean(m.character, 24) || 'felipedzn', x: hubX(m.x), f: m.f < 0 ? -1 : 1, mv: 0, tag: s.tag || '', vip: vipOf(s.pid) };
     hub.set(s.pid, p); hubSend(s.pid, { push: 'hub', t: 'join', p }); return { players: [...hub.values()].filter(q => q.id !== s.pid) };
   },
   hubMove(s, m) { const p = hub.get(s.pid); if (!p) return {}; p.x = hubX(m.x); p.f = m.f < 0 ? -1 : 1; p.mv = m.mv ? 1 : 0; hubSend(s.pid, { push: 'hub', t: 'move', pid: s.pid, x: p.x, f: p.f, mv: p.mv }); return {}; },
@@ -231,7 +258,7 @@ const OPS = {
     const text = clean(m.text, 120).replace(/\s+/g, ' ').trim(); if (!text) throw E('Escreva uma mensagem.');
     if (text[0] === '/') return adminCmd(s, text).then(() => ({})).catch(e => { console.error(e); sysMsg(s, 'Erro ao executar o comando.'); return {}; });
     const now = Date.now(); if (now - (s.lastChat || 0) < 700) throw E('Calma! Espere um instante para enviar de novo.'); s.lastChat = now;
-    const msg = { n: ++chatSeq, name: s.acct ? s.name : (clean(m.name, 16) || s.name), lv: Math.max(0, Math.min(999, m.lv | 0)), tag: s.tag || '', text, t: now };
+    const msg = { n: ++chatSeq, name: s.acct ? s.name : (clean(m.name, 16) || s.name), lv: Math.max(0, Math.min(999, m.lv | 0)), tag: s.tag || '', vip: vipOf(s.pid), text, t: now };
     chatLog.push(msg); if (chatLog.length > 30) chatLog.shift(); broadcast({ push: 'chat', msg }); return {};
   },
   list: () => ({ rooms: listAll() }),
@@ -285,7 +312,7 @@ function relay(s, m) { // retransmite para os OUTROS jogadores da sala (nunca pa
   for (const p of humans(r)) if (p.id !== s.pid) { const o = sessions.get(p.id); if (o && o.ws && o.ws.open) o.ws.send(out); }
 }
 
-function hello(ws, m, conn, acc, dbTag) {
+function hello(ws, m, conn, acc, dbTag, vp) {
     const pid = clean(m.pid, 40), tok = clean(m.token, 64);
     if (!/^[\w-]{8,40}$/.test(pid)) return ws.send(JSON.stringify({ id: m.id, ok: false, error: 'Identificação inválida.' }));
     let s = sessions.get(pid);
@@ -294,18 +321,19 @@ function hello(ws, m, conn, acc, dbTag) {
     if (acc) { s.acct = true; s.account = acc; s.name = acc.name; if (tok !== s.token) s.token = rnd(16); } else if (s.acct) return ws.send(JSON.stringify({ id: m.id, ok: false, error: 'Identificação já em uso.' }));
     if (s.ws && s.ws !== ws && s.ws.open) { const old = s.ws; old.onclose = null; clients.delete(old); old.send(JSON.stringify({ push: 'replaced' })); old.close(4000); }   // mesma identidade em outra aba/conexão: a nova assume
     clearTimeout(s.timer); s.timer = null; s.ws = ws; conn.s = s;
+    if (acc) { s.vipUntil = vp ? vp.until : 0; s.vipColor = (vp && vp.color) || ''; }
     s.dbTag = dbTag || ''; if (m.staff !== undefined || dbTag) s.tag = (m.staff !== undefined ? staffTag(m.staff) : '') || s.dbTag || s.tag || '';
     const r = s.roomId && rooms.get(s.roomId);
     if (s.roomId && !r) s.roomId = null;
     if (r) log(s.name, 'reconectou à sala', r.id);
-    setTimeout(pushOnline, 0); return ws.send(JSON.stringify({ id: m.id, ok: true, pid, token: s.token, tag: s.tag || '', room: r ? snapshot(r) : null, rooms: listAll(), online: onlineCount(), chat: chatLog, server: { maxPlayers: MAX_PLAYERS, maps: MAPS } }));
+    setTimeout(pushOnline, 0); return ws.send(JSON.stringify({ id: m.id, ok: true, pid, token: s.token, tag: s.tag || '', vip: vipPub(s), room: r ? snapshot(r) : null, rooms: listAll(), online: onlineCount(), chat: chatLog, server: { maxPlayers: MAX_PLAYERS, maps: MAPS } }));
 }
 
 function handle(ws, text, conn) {
   if (++conn.rate.n > 200) { conn.rate.drops++; if (conn.rate.drops > 400) ws.close(1008); return; }   // anti-flood (200 msgs/s)
   let m; try { m = JSON.parse(text); } catch (_) { return; } if (!m || typeof m !== 'object') return;
   if (m.op === 'hello') {
-    if (m.auth) return authCheck(ENV, m.auth).catch(() => null).then(async acc => hello(ws, m, conn, acc, await loadTag(acc)));
+    if (m.auth) return authCheck(ENV, m.auth).catch(() => null).then(async acc => hello(ws, m, conn, acc, await loadTag(acc), await loadVip(acc)));
     return hello(ws, m, conn, null);
   }
   const s = conn.s; if (!s) return ws.send(JSON.stringify({ id: m.id, ok: false, error: 'Envie hello primeiro.' }));
