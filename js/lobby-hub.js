@@ -52,7 +52,7 @@ S.register('hub', { title: 'Lobby', sticky: true, noFocus: true, build(p) {
   const kd = e => { if (e.target && e.target.tagName === 'INPUT') return; if (['ArrowLeft', 'ArrowRight', 'KeyA', 'KeyD'].includes(e.code)) { keys.add(e.code); e.preventDefault(); } else if (e.key === 'Escape') S.close(); }, ku = e => keys.delete(e.code);
   addEventListener('keydown', kd); addEventListener('keyup', ku);
   function frame(now) {
-    raf = requestAnimationFrame(frame); const dt = Math.min(.05, (now - last) / 1000); last = now; t += dt;
+    raf = requestAnimationFrame(frame); if (window.SLPerf) SLPerf.tick(now); const dt = Math.min(.05, (now - last) / 1000); last = now; t += dt;
     const k = (keys.has('ArrowRight') || keys.has('KeyD') || fs.pad.right ? 1 : 0) - (keys.has('ArrowLeft') || keys.has('KeyA') || fs.pad.left ? 1 : 0);
     if (jumpV || jumpY) { jumpY = Math.max(0, jumpY + jumpV * dt); jumpV -= 1500 * dt; if (jumpY <= 0) { jumpY = 0; jumpV = 0; } }
     const SPD = 520;   // px do mundo por segundo
@@ -98,6 +98,6 @@ S.register('hub', { title: 'Lobby', sticky: true, noFocus: true, build(p) {
     sprite(me.character, pos, face, moving, me.name, true, svc.myTag);
   }
   raf = requestAnimationFrame(frame);
-  return () => { cancelAnimationFrame(raf); if (joined) svc.hubLeave(); svc.off('hub', onHub); svc.off('status', onStatus); svc.off('chat', onChat); ro.disconnect(); removeEventListener('keydown', kd); removeEventListener('keyup', ku); hud.remove(); };
+  return () => { cancelAnimationFrame(raf); if (joined) svc.hubLeave(); svc.off('hub', onHub); svc.off('status', onStatus); svc.off('chat', onChat); ro.disconnect(); removeEventListener('keydown', kd); removeEventListener('keyup', ku); hud.remove(); removeEventListener('resize', fs._rl); };
 } });
 })();

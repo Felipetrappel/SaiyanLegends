@@ -15,7 +15,7 @@ G.initCustomize = function (root, host) {
   this.ctlRoot = root; this.ctlHost = host; this.btns = [...root.querySelectorAll('.cbtn')]; this.editing = false; this.selId = null;
   this.btns.forEach(b => { b.dataset.id = [...b.classList].find(c => c !== 'cbtn' && c !== 'on'); this._wireEdit(b); });
   try { const d = JSON.parse(localStorage.getItem(KEY) || 'null'); if (d && d.v === 4 && d.b) this.layout = d; } catch (e) { /* sem storage */ }
-  this.applyLayout();
+  this.applyLayout(); requestAnimationFrame(() => this.applyLayout()); addEventListener('resize', this._rl = () => this.applyLayout());
 };
 G.saveLayout = function () { try { if (this.layout) localStorage.setItem(KEY, JSON.stringify(this.layout)); else localStorage.removeItem(KEY); } catch (e) {} };
 G.snapshotLayout = function () {
@@ -31,6 +31,12 @@ G.applyLayout = function () {
     b.style.left = (c.x * 100) + '%'; b.style.top = (c.y * 100) + '%'; b.style.setProperty('--s', `calc(${base} * ${(c.k * L.scale).toFixed(3)})`);
   }
   this.ctlRoot.style.setProperty('--op', L.op);
+  /* segurança: nenhum botão (nem o joystick) fica cortado fora da tela, mesmo com layout salvo em outra tela */
+  const R = this.ctlRoot.getBoundingClientRect(); if (R.width > 50 && R.height > 50) for (const b of this.btns) {
+    const c = L.b[b.dataset.id], r = b.getBoundingClientRect(); if (!c || !r.width) continue;
+    let dx = 0, dy = 0; if (r.left < R.left + 2) dx = R.left + 2 - r.left; else if (r.right > R.right - 2) dx = R.right - 2 - r.right; if (r.top < R.top + 2) dy = R.top + 2 - r.top; else if (r.bottom > R.bottom - 2) dy = R.bottom - 2 - r.bottom;
+    if (dx || dy) { b.style.left = ((c.x * R.width + dx) / R.width * 100) + '%'; b.style.top = ((c.y * R.height + dy) / R.height * 100) + '%'; }
+  }
 };
 /* arrastar (só no modo edição); o listener do jogo ignora toques enquanto `editing` */
 G._wireEdit = function (b) {

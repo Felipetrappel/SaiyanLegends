@@ -668,5 +668,5 @@ button.rm-card{cursor:pointer;padding:0;text-align:center}
 .lobbywrap .lb-tg{right:14px;top:10px}
 .lobbywrap .lb-in{background:#0003;color:#fff}.lobbywrap .lb-in::placeholder{color:#fff;text-shadow:0 1px 3px #000,0 0 5px #000}
 .lobbywrap .lb-send{background:#0003;text-shadow:0 1px 3px #000}
-.sl-fps{position:fixed;top:6px;left:50%;transform:translateX(-50%);z-index:99999;padding:2px 10px;border-radius:8px;background:#000a;color:#6dff8a;font:800 13px ui-monospace,Menlo,Consolas,monospace;pointer-events:none;text-shadow:0 1px 2px #000}
+.sl-fps{position:fixed;bottom:4px;left:50%;transform:translateX(-50%);z-index:99999;padding:2px 10px;border-radius:8px;background:#000a;color:#6dff8a;font:800 13px ui-monospace,Menlo,Consolas,monospace;pointer-events:none;text-shadow:0 1px 2px #000}
 .sl-fps.mid{color:#ffd23a}.sl-fps.lo{color:#ff6b6b}
