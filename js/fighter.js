@@ -445,7 +445,6 @@ class Fighter {
     else if (this.state === 'dash') { const D = segAt(this.def.dash.seq, this.t) || { seg: this.def.dash.seq[this.def.dash.seq.length - 1], ts: 1 }, s = D.seg; fi = s.f[Math.floor(D.ts * s.fps) % s.f.length]; this._fx = s.fx ? s.fx[Math.min(s.fx.length - 1, Math.floor(D.ts * (s.fxFps || 12)))] : null; }
     else fi = frameAt(this.def, animOf(this, this.state), this.t);
     const flyMv = this.state === 'fly' && (b.flying || b.climbing) && this.def.anims.flyMove && Math.abs(b.vx) > 30; if (flyMv) fi = frameAt(this.def, 'flyMove', this.t);   // voando para o lado: quadro de voo em movimento (se o personagem tiver)
-    if (this.skin && this.state === 'idle') fi = this.skin.idle;   // parado: quadro oficial da forma
     const f = this.def.frames[fi];
     ctx.save(); if (this.flash > 0 && Math.floor(this.flash * 30) % 2) ctx.globalAlpha = .45;
     const k = this.state === 'charge' ? Math.min(1, this.t / CFG.charge.dur) : this.state === 'energy' ? Math.max(0, 1 - this.t / CFG.power.dur) : (this.state === 'transform' || this.state === 'meditate' || this.state === 'sun') ? Math.min(1, .35 + this.t) : 0;

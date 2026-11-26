@@ -36,12 +36,12 @@ S.register('characters', { title: 'Personagem', sticky: true, noFocus: true, bui
   hs([954, 6, 86, 42], 'Configurações', () => S.open('options')); hs([1062, 6, 134, 42], 'Fechar', () => S.close()); hs([24, 722, 184, 48], 'Voltar', () => S.close());
   /* transformações (SamuLord): compra com moedas e escolha da forma em uso */
   const fbtn = el('button', 'cs-forms-btn', { type: 'button', textContent: '⚡ TRANSFORMAÇÕES' }); fbtn.style.cssText = 'left:96px;top:300px;width:250px;height:46px'; st.append(fbtn);
-  const fov = el('div', 'cs-fov'); fov.style.cssText = 'left:300px;top:36px;width:610px;height:446px'; st.append(fov);
+  const fov = el('div', 'cs-fov'); fov.style.cssText = 'left:400px;top:90px;width:420px;height:auto'; st.append(fov);
   const fmsg = { t: '' };
   function drawForms() {
     fov.replaceChildren(); const F = SL.Forms; if (!F) return;
-    const head = el('div', 'cs-fh'); head.append(el('b', '', { textContent: 'TRANSFORMAÇÕES · SAMULORD' }), Object.assign(el('button', 'cs-fx', { type: 'button', textContent: '✕' }), { onclick: () => { fov.classList.remove('on'); } })); fov.append(head);
-    const grid = el('div', 'cs-fg'); fov.append(grid);
+    const head = el('div', 'cs-fh'); head.append(el('b', '', { textContent: 'TRANSFORMAÇÃO · SAMULORD' }), Object.assign(el('button', 'cs-fx', { type: 'button', textContent: '✕' }), { onclick: () => { fov.classList.remove('on'); } })); fov.append(head);
+    const grid = el('div', 'cs-fg'); grid.style.gridTemplateColumns = F.list.length > 3 ? '1fr 1fr' : '1fr'; fov.append(grid);
     F.list.forEach(f => { const own = F.owned(f.id), cur = F.sel() === f, r = el('div', 'cs-fr' + (cur ? ' cur' : '')), c = el('canvas', '', { width: 44, height: 56 }), info = el('div', 'cs-fi');
       const dr = () => { const x = c.getContext('2d'), fr = SL.SAMULORD.frames[f.idle]; x.imageSmoothingEnabled = false; x.clearRect(0, 0, 44, 56); if (f.img.complete && f.img.naturalWidth) x.drawImage(f.img, fr.x, fr.y, fr.w, fr.h, 22 - fr.w * .5 | 0, 55 - fr.h * 1.0 | 0, fr.w, fr.h); }; dr(); if (!f.img.complete) f.img.addEventListener('load', dr, { once: true });
       info.append(el('b', '', { textContent: f.name }), el('span', '', { textContent: 'Dano ×' + String(f.dmg).replace('.', ',') + ' · Vel. ×' + String(f.speed).replace('.', ',') }));
