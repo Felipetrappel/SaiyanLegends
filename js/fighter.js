@@ -208,7 +208,7 @@ class Fighter {
   muzzle() { const d = this.def, h = d.muzzle !== undefined ? this.hand(d.muzzle) : null; return h || this.chest(); }   // ponto de onde saem as esferas (mão do quadro de disparo, se o personagem definir)
   chest() { const f = this.def.frames[frameAt(this.def, 'idle', 0)]; return { x: this.body.x + this.face * 12, y: this.body.y - f.ay * .5 }; }
   setSkin(id) { const f = id && SL.Forms ? SL.Forms.byId(id) : null; this.skin = f; }   // forma comprada (SamuLord): troca a folha e o quadro parado
-  endForm() { if (!this.form) return; this.form = 0; this.dmgMul /= (this._fd || ABIL.form.dmg); this._fd = 0; this.setSkin(null); this.body.speed = this.baseSpeed; }
+  endForm() { if (!this.form) return; this.form = 0; this.dmgMul /= ABIL.form.dmg; this._fd = 0; this.setSkin(null); this.body.speed = this.baseSpeed; }
   get powerCost() { return this.def.cast ? this.def.cast.cost : CFG.powerCost; }
   get powerReady() { return !this.dead && !this.busy && this.energy >= this.powerCost && this.pcd <= 0; }
   /* ---- poder em etapas (STREET): carregar → preparar → segurar na mão → lançar. A etapa atual vem do tempo decorrido. ---- */
@@ -327,10 +327,7 @@ class Fighter {
       else if (p.big && this.hasBig && this.can('big')) { this.energy -= this.cost('big'); this.set('big'); this.missionKi(world); }                                  // PODER GRANDE: carrega e lança
       else if (p.big && !this.hasBig && this.can('sun')) { this.energy -= ABIL.sun.cost; this.set('sun'); }                                // personagem sem etapas de carga: usa a esfera solar
       else if (p.transform && this.form) { this.endForm(); this.acd.transform = ABIL.transform.cd; }      // Z de novo: volta ao normal
-      else if (p.transform && this.can('transform')) {
-        if (this.def.id === 'samulord' && SL.Forms) { const pick = this.me ? SL.Forms.current() : null; if (!pick) { if (this.me) SL.Forms.hint(SL.Forms.list.some(f => SL.Forms.owned(f.id)) ? 'Escolha uma transformação na loja (aba FORMAS).' : 'Compre uma transformação na loja (aba FORMAS).'); this.acd.transform = .6; }
-          else { this.energy -= ABIL.transform.cost; this._pick = pick; this.set('transform'); } }
-        /* outros personagens ainda não têm formas */ }
+
       else if (p.special && this.can('burst')) { this.energy -= this.cost('burst'); this.set(this.def.ice ? 'ice' : this.def.dash ? 'dash' : 'burst'); this.dashHit = new Set(); this.aoeHit = new Set(); this.beamHit = {}; this.aoeFx = false; }   // personagens com def.dash usam o movimento especial no lugar da onda de impacto
       else if (p.barrage && this.can('barrage')) { this.energy -= ABIL.barrage.cost; this.set('barrage'); this.shots = 0; }
       else if (p.sun && this.can('sun')) { this.energy -= ABIL.sun.cost; this.set('sun'); }

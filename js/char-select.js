@@ -34,23 +34,6 @@ S.register('characters', { title: 'Personagem', sticky: true, noFocus: true, bui
   /* topo */
   const tGold = box('cs-t gold', [96, 12, 136, 34]), tGem = box('cs-t gem', [532, 12, 118, 34]);
   hs([954, 6, 86, 42], 'Configurações', () => S.open('options')); hs([1062, 6, 134, 42], 'Fechar', () => S.close()); hs([24, 722, 184, 48], 'Voltar', () => S.close());
-  /* transformações (SamuLord): compra com moedas e escolha da forma em uso */
-  const fbtn = el('button', 'cs-forms-btn', { type: 'button', textContent: '⚡ TRANSFORMAÇÕES' }); fbtn.style.cssText = 'left:96px;top:300px;width:250px;height:46px'; st.append(fbtn);
-  const fov = el('div', 'cs-fov'); fov.style.cssText = 'left:400px;top:90px;width:420px;height:auto'; st.append(fov);
-  const fmsg = { t: '' };
-  function drawForms() {
-    fov.replaceChildren(); const F = SL.Forms; if (!F) return;
-    const head = el('div', 'cs-fh'); head.append(el('b', '', { textContent: 'TRANSFORMAÇÃO · SAMULORD' }), Object.assign(el('button', 'cs-fx', { type: 'button', textContent: '✕' }), { onclick: () => { fov.classList.remove('on'); } })); fov.append(head);
-    const grid = el('div', 'cs-fg'); grid.style.gridTemplateColumns = F.list.length > 3 ? '1fr 1fr' : '1fr'; fov.append(grid);
-    F.list.forEach(f => { const own = F.owned(f.id), cur = F.sel() === f, r = el('div', 'cs-fr' + (cur ? ' cur' : '')), c = el('canvas', '', { width: 44, height: 56 }), info = el('div', 'cs-fi');
-      const dr = () => { const x = c.getContext('2d'), fr = SL.SAMULORD.frames[f.idle]; x.imageSmoothingEnabled = false; x.clearRect(0, 0, 44, 56); if (f.img.complete && f.img.naturalWidth) x.drawImage(f.img, fr.x, fr.y, fr.w, fr.h, 22 - fr.w * .5 | 0, 55 - fr.h * 1.0 | 0, fr.w, fr.h); }; dr(); if (!f.img.complete) f.img.addEventListener('load', dr, { once: true });
-      info.append(el('b', '', { textContent: f.name }), el('span', '', { textContent: 'Dano ×' + String(f.dmg).replace('.', ',') + ' · Vel. ×' + String(f.speed).replace('.', ',') }));
-      const bt = el('button', 'cs-fb' + (cur ? ' cur' : own ? ' own' : ''), { type: 'button', textContent: cur ? '✓ EM USO' : own ? 'USAR' : fmt(f.price) + ' ●', disabled: cur });
-      bt.onclick = () => { if (own) { F.select(f.id); fmsg.t = f.name + ' em uso.'; } else { const res = F.buy(f.id); fmsg.t = res === 'ok' ? f.name + ' comprada!' : res === 'poor' ? 'Moedas insuficientes: faltam ' + fmt(f.price - P.gold) + '.' : 'Não foi possível comprar.'; } refresh(); };
-      r.append(c, info, bt); grid.append(r); });
-    fov.append(el('div', 'cs-fm', { textContent: fmsg.t || 'T (PC) ou botão TF (celular) assume a forma em uso por 25 s · custa 30 Ki.' }));
-  }
-  fbtn.addEventListener('click', () => { drawForms(); fov.classList.add('on'); });
   /* pedestal */
   const cv = el('canvas', 'cs-char'); cv.width = 420; cv.height = 340; cv.style.cssText = 'left:390px;top:66px;width:420px;height:340px'; st.append(cv);
   const q = box('cs-q', [560, 150, 80, 140]); q.textContent = '?';
@@ -93,7 +76,6 @@ S.register('characters', { title: 'Personagem', sticky: true, noFocus: true, bui
     cards.forEach((k, i) => { const idx = pg * PER + i, cid = list[idx], cd = cid && C.get(cid), ow = !!cid && P.isUnlocked(cid), ch = ow && P.picked && P.selected === cid;
       k.c.classList.toggle('on', idx === sel); k.c.classList.toggle('empty', !cd); k.c.classList.toggle('mine', ch); k.lock.style.display = !cd || !ow ? '' : 'none'; k.tag.style.display = ch ? '' : 'none';
       k.nm.textContent = cd ? String(cd.name || cid).toUpperCase() : '???'; k.sub.textContent = !cd ? 'Em breve' : ch ? 'Selecionado' : ow ? 'Nv. ' + Math.max(1, P.level) : '● ' + fmt(cd.price); k.c.setAttribute('aria-label', cd ? k.nm.textContent : 'Em breve'); k.c.onclick = () => { sel = idx; refresh(); }; });
-    const hasF = id === 'samulord' && owned && !!SL.Forms; fbtn.style.display = hasF ? '' : 'none'; if (!hasF) fov.classList.remove('on'); else if (fov.classList.contains('on')) drawForms();
     drawCards();
     dots.replaceChildren(...Array.from({ length: pages() }, (_, i) => el('i', i === pg ? 'on' : '')));
   }
