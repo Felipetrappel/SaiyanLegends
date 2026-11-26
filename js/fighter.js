@@ -207,7 +207,8 @@ class Fighter {
   can(a) { return !this.dead && !this.busy && this.energy >= this.cost(a) && !((this.acd[a] || 0) > 0); }
   muzzle() { const d = this.def, h = d.muzzle !== undefined ? this.hand(d.muzzle) : null; return h || this.chest(); }   // ponto de onde saem as esferas (mão do quadro de disparo, se o personagem definir)
   chest() { const f = this.def.frames[frameAt(this.def, 'idle', 0)]; return { x: this.body.x + this.face * 12, y: this.body.y - f.ay * .5 }; }
-  endForm() { if (!this.form) return; this.form = 0; this.dmgMul /= ABIL.form.dmg; this.body.speed = this.baseSpeed; }
+  setSkin(id) { const f = id && SL.Forms ? SL.Forms.byId(id) : null; this.skin = f; }   // forma comprada (SamuLord): troca a folha e o quadro parado
+  endForm() { if (!this.form) return; this.form = 0; this.dmgMul /= (this._fd || ABIL.form.dmg); this._fd = 0; this.setSkin(null); this.body.speed = this.baseSpeed; }
   get powerCost() { return this.def.cast ? this.def.cast.cost : CFG.powerCost; }
   get powerReady() { return !this.dead && !this.busy && this.energy >= this.powerCost && this.pcd <= 0; }
   /* ---- poder em etapas (STREET): carregar → preparar → segurar na mão → lançar. A etapa atual vem do tempo decorrido. ---- */
@@ -268,13 +269,13 @@ class Fighter {
   /* Multiplayer: estado enviado ao servidor (jogador local ou bot do host) e aplicado nas réplicas dos outros clientes. */
   netState() {
     const b = this.body, r = Math.round;
-    return { id: this.player.id, x: r(b.x * 10) / 10, y: r(b.y * 10) / 10, vx: r(b.vx), vy: r(b.vy), fl: (b.flying || b.climbing) ? 1 : 0, f: this.face, st: this.state, hp: r(this.hp * 10) / 10, en: r(this.energy), d: this.dead ? 1 : 0, fm: this.form > 0 ? 1 : 0,
+    return { id: this.player.id, x: r(b.x * 10) / 10, y: r(b.y * 10) / 10, vx: r(b.vx), vy: r(b.vy), fl: (b.flying || b.climbing) ? 1 : 0, f: this.face, st: this.state, hp: r(this.hp * 10) / 10, en: r(this.energy), d: this.dead ? 1 : 0, fm: this.form > 0 ? 1 : 0, fk: this.skin ? this.skin.id : '',
       ai: this.av && this.def.attacks ? this.atkList().indexOf(this.av) : -1 };
   }
   applyNet(s, first) {
     const b = this.body; this.net = s; this.netAge = 0;
     if (first || Math.abs(s.x - b.x) > 120 || Math.abs(s.y - b.y) > 120) { b.x = s.x; b.y = s.y; }
-    b.vx = s.vx; b.vy = s.vy; b.flying = !!s.fl; this.face = s.f; this.hp = s.hp; this.energy = s.en; this.form = s.fm ? 1 : 0;
+    b.vx = s.vx; b.vy = s.vy; b.flying = !!s.fl; this.face = s.f; this.hp = s.hp; this.energy = s.en; this.form = s.fm ? 1 : 0; this.setSkin(s.fm ? s.fk : null);
     if (s.d && !this.dead) { this.dead = true; this.set('idle'); } else if (!s.d && this.dead) { this.dead = false; this.set('idle'); b.x = s.x; b.y = s.y; }
     if (s.st !== this.state) { this.set(s.st); if (s.st === 'attack') this.av = s.ai >= 0 && this.def.attacks ? this.atkList()[s.ai] : null; }
   }
@@ -326,7 +327,10 @@ class Fighter {
       else if (p.big && this.hasBig && this.can('big')) { this.energy -= this.cost('big'); this.set('big'); this.missionKi(world); }                                  // PODER GRANDE: carrega e lança
       else if (p.big && !this.hasBig && this.can('sun')) { this.energy -= ABIL.sun.cost; this.set('sun'); }                                // personagem sem etapas de carga: usa a esfera solar
       else if (p.transform && this.form) { this.endForm(); this.acd.transform = ABIL.transform.cd; }      // Z de novo: volta ao normal
-      else if (p.transform && this.can('transform')) { this.energy -= ABIL.transform.cost; this.set('transform'); }
+      else if (p.transform && this.can('transform')) {
+        if (this.def.id === 'samulord' && SL.Forms) { const pick = this.me ? SL.Forms.current() : null; if (!pick) { if (this.me) SL.Forms.hint(SL.Forms.list.some(f => SL.Forms.owned(f.id)) ? 'Escolha uma transformação na loja (aba FORMAS).' : 'Compre uma transformação na loja (aba FORMAS).'); this.acd.transform = .6; }
+          else { this.energy -= ABIL.transform.cost; this._pick = pick; this.set('transform'); } }
+        /* outros personagens ainda não têm formas */ }
       else if (p.special && this.can('burst')) { this.energy -= this.cost('burst'); this.set(this.def.ice ? 'ice' : this.def.dash ? 'dash' : 'burst'); this.dashHit = new Set(); this.aoeHit = new Set(); this.beamHit = {}; this.aoeFx = false; }   // personagens com def.dash usam o movimento especial no lugar da onda de impacto
       else if (p.barrage && this.can('barrage')) { this.energy -= ABIL.barrage.cost; this.set('barrage'); this.shots = 0; }
       else if (p.sun && this.can('sun')) { this.energy -= ABIL.sun.cost; this.set('sun'); }
@@ -356,7 +360,7 @@ class Fighter {
       }
     }
     else if (this.state === 'transform') {                                                                       // Z: aura (anim. de carregar) → ganha a forma
-      if (this.t >= .05) { this.form = ABIL.form.dur; this.dmgMul *= ABIL.form.dmg; b.speed = this.baseSpeed * ABIL.form.speed; this.acd.transform = ABIL.transform.cd; (world.effects ||= []).push(new Ring(this.def, b.x, b.y - 20, 8, 70, .4, '#ffd34d')); this.set('idle'); }
+      if (this.t >= .05) { const pk = this._pick; this.form = ABIL.form.dur; this._fd = pk ? pk.dmg : ABIL.form.dmg; this.dmgMul *= this._fd; b.speed = this.baseSpeed * (pk ? pk.speed : ABIL.form.speed); if (pk) this.setSkin(pk.id); this.acd.transform = ABIL.transform.cd; (world.effects ||= []).push(new Ring(this.def, b.x, b.y - 20, 8, 70, .4, '#ffd34d')); this.set('idle'); }
     }
     else if (this.state === 'meditate') {                                                                       // meditar: segura para recarregar Ki
       if (!inp.meditate || !b.grounded || this.energy >= this.maxEn) this.set('idle'); else this.energy = Math.min(this.maxEn, this.energy + ABIL.meditateRate * (this.enMul || 1) * (this.form ? ABIL.form.regen : 1) * dt);
@@ -422,6 +426,7 @@ class Fighter {
     ctx.save(); ctx.translate(Math.round(b.x), Math.round(b.y - 20 + bob)); ctx.rotate(lean); drawFrame(ctx, img, this.def, fi, 0, 20, this.face); ctx.restore();
   }
   draw(ctx, img) {
+    if (this.skin && this.skin.img.complete && this.skin.img.naturalWidth) img = this.skin.img;   // forma do SamuLord: folha com o cabelo da forma
     if (this.dead) {                                                                                   // K.O.: quadro 'ko' se o personagem tiver; senão cai para trás e some aos poucos até renascer
       const b = this.body, A = this.def.anims.ko; ctx.save();
       if (A) drawFrame(ctx, img, this.def, frameAt(this.def, 'ko', this.t), b.x, b.y, this.face);
@@ -440,6 +445,7 @@ class Fighter {
     else if (this.state === 'dash') { const D = segAt(this.def.dash.seq, this.t) || { seg: this.def.dash.seq[this.def.dash.seq.length - 1], ts: 1 }, s = D.seg; fi = s.f[Math.floor(D.ts * s.fps) % s.f.length]; this._fx = s.fx ? s.fx[Math.min(s.fx.length - 1, Math.floor(D.ts * (s.fxFps || 12)))] : null; }
     else fi = frameAt(this.def, animOf(this, this.state), this.t);
     const flyMv = this.state === 'fly' && (b.flying || b.climbing) && this.def.anims.flyMove && Math.abs(b.vx) > 30; if (flyMv) fi = frameAt(this.def, 'flyMove', this.t);   // voando para o lado: quadro de voo em movimento (se o personagem tiver)
+    if (this.skin && this.state === 'idle') fi = this.skin.idle;   // parado: quadro oficial da forma
     const f = this.def.frames[fi];
     ctx.save(); if (this.flash > 0 && Math.floor(this.flash * 30) % 2) ctx.globalAlpha = .45;
     const k = this.state === 'charge' ? Math.min(1, this.t / CFG.charge.dur) : this.state === 'energy' ? Math.max(0, 1 - this.t / CFG.power.dur) : (this.state === 'transform' || this.state === 'meditate' || this.state === 'sun') ? Math.min(1, .35 + this.t) : 0;
@@ -449,7 +455,7 @@ class Fighter {
     if (this._fx != null) drawFrame(ctx, img, this.def, this._fx, b.x, b.y, this.face);   // efeito atrás do personagem (pilares da habilidade única)
     if (this.state === 'sprint') for (let g = 3; g >= 1; g--) { ctx.save(); ctx.globalAlpha = .13 * (4 - g); drawFrame(ctx, img, this.def, fi, b.x - this.dashDir * g * 9, b.y, this.face); ctx.restore(); }   // rastro do dash
     if (!this.def.bakedAura && !(this.def.bakedMeditate && this.state === 'meditate')) drawAura(ctx, img, this.def, fi, b.x + sh, b.y, this.face, k, this.t, this.state === 'meditate' ? '#4fd6ff' : (this.def.auraColor || '#c24bff'));   // personagens com aura desenhada no próprio sheet não ganham contorno extra
-    if (this.form > 0 && k === 0) drawAura(ctx, img, this.def, fi, b.x, b.y, this.face, .55, this.t, '#ffd34d');                                   // transformado: contorno dourado
+    if (this.form > 0 && k === 0) drawAura(ctx, img, this.def, fi, b.x, b.y, this.face, .55, this.t, this.skin ? this.skin.aura : '#ffd34d');                                   // transformado: contorno dourado
     if (this.state === 'meditate') drawKiFx(ctx, b.x, b.y, f.ay, this.t);                                  // CARREGAR KI: ondas, coluna de luz e faíscas
     if (behind) drawOrb(ctx, bl.x + sh, bl.y, bl.r, this.t);
     if ((b.flying || b.climbing) && this.state === 'fly') this.drawFly(ctx, img, fi, k);   // voo: balanço, inclinação, rastro e aura pulsante

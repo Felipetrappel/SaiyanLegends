@@ -82,7 +82,19 @@ S.register('store', { title: 'Loja', sticky: true, noFocus: true, build(p) {
       else info.append(el('span', 'dim', { textContent: 'Selecione um personagem para ver os dados dele.' }));
       side.append(info); return; }
     if (!d) { side.append(note(TABS.find(t => t[0] === tab)[1], 'Nenhum personagem escolhido.', 'Toque em um personagem da lista para ver esta seção.')); return; }
-    if (tab === 'forms') { side.append(note('FORMAS', 'Nenhuma forma disponível.', 'O jogo ainda não tem transformações ativas: o sistema existe no motor, mas não tem botão nem tecla. Quando for liberado, as formas de ' + (d.name || seen) + ' aparecem aqui.')); return; }
+    if (tab === 'forms') {
+      if (seen !== 'samulord' || !SL.Forms) { side.append(note('FORMAS', 'Sem transformações.', 'Este personagem ainda não tem formas à venda. Escolha o SamuLord na lista.')); return; }
+      if (!P.isUnlocked('samulord')) { side.append(note('FORMAS', 'Compre o SamuLord primeiro.', 'Depois você compra as transformações dele com moedas.')); return; }
+      const w = el('div', 'ns-forms'); w.append(el('h3', 'ns-h', { textContent: 'TRANSFORMAÇÕES' }));
+      const msg = el('div', 'ns-fmsg', { textContent: formMsg || 'Z (PC) ou botão TF (celular) assume a forma em uso por 25 s · custa 30 Ki.' });
+      SL.Forms.list.forEach(f => { const r = el('div', 'ns-fr'), c = el('canvas', 'ns-fc', { width: 56, height: 80 }), own = SL.Forms.owned(f.id), cur = SL.Forms.sel() === f, info = el('div', 'ns-fi');
+        const draw = () => { const x = c.getContext('2d'), fr = SL.SAMULORD.frames[f.idle]; x.imageSmoothingEnabled = false; x.clearRect(0, 0, 56, 80); if (f.img.complete && f.img.naturalWidth) x.drawImage(f.img, fr.x, fr.y, fr.w, fr.h, 28 - fr.w * 0.75 | 0, 78 - fr.h * 1.4 | 0, fr.w * 1.5, fr.h * 1.5); };
+        draw(); if (!f.img.complete) f.img.addEventListener('load', draw, { once: true });
+        info.append(el('b', '', { textContent: f.name }), el('span', '', { textContent: 'Dano ×' + String(f.dmg).replace('.', ',') + ' · Vel. ×' + String(f.speed).replace('.', ',') }));
+        const bt = el('button', 'ns-fb' + (cur ? ' cur' : own ? ' own' : ''), { type: 'button', textContent: cur ? '✓ EM USO' : own ? 'USAR' : fmt(f.price) + ' ●', disabled: cur });
+        bt.addEventListener('click', () => { if (own) { SL.Forms.select(f.id); formMsg = f.name + ' em uso.'; } else { const res = SL.Forms.buy(f.id); formMsg = res === 'ok' ? f.name + ' comprada!' : res === 'poor' ? 'Moedas insuficientes: faltam ' + fmt(f.price - P.gold) + '.' : 'Não foi possível comprar.'; } refresh(); });
+        r.append(c, info, bt); w.append(r); });
+      w.append(msg); side.append(w); return; }
     if (tab === 'upg') { const w = bars(d); w.firstChild.textContent = 'UPGRADE'; w.querySelectorAll('.ns-row').forEach(r => { const b = el('button', 'ns-up', { type: 'button', textContent: '+', disabled: true }); b.title = 'Melhorias ainda não existem no jogo'; r.append(b); });
       side.append(w, el('p', 'ns-small', { textContent: 'As melhorias de atributo ainda não existem no jogo. Os valores acima são os atuais de ' + (d.name || seen) + '.' })); return; }
     /* TÉCNICAS: slots reais do personagem (botões do combate) */
@@ -95,6 +107,7 @@ S.register('store', { title: 'Loja', sticky: true, noFocus: true, build(p) {
     side.append(w);
   }
 
+  let formMsg = '';
   function refresh() {
     const d = def(), owned = d && P.isUnlocked(seen), sel = d && P.picked && P.selected === seen;
     cg.v.textContent = fmt(P.gold); cd.v.textContent = fmt(P.gems);

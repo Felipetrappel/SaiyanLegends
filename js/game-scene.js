@@ -26,7 +26,7 @@ SL.ControlType = SL.ControlType || { KEY: 'sl.ctrltype',
   get() { try { return localStorage.getItem(this.KEY) === 'arrows' ? 'arrows' : 'joystick'; } catch (_) { return 'joystick'; } },
   set(v) { try { localStorage.setItem(this.KEY, v === 'joystick' ? 'joystick' : 'arrows'); } catch (_) {} } };
 const KEYS = { left: ['ArrowLeft', 'KeyA'], right: ['ArrowRight', 'KeyD'], up: ['ArrowUp', 'KeyW', 'Space'], down: ['ArrowDown', 'KeyS'], attack: ['KeyJ', 'KeyZ'], meditate: ['KeyM'] };
-const TAP_KEYS = { KeyF: 'fly', KeyK: 'power', KeyX: 'power', KeyE: 'power', KeyB: 'big', KeyR: 'special', KeyQ: 'barrage', KeyC: 'sun', };   // (a transformação não tem tecla nem botão: o sistema ainda não existe)   // teclado: um toque
+const TAP_KEYS = { KeyF: 'fly', KeyK: 'power', KeyX: 'power', KeyE: 'power', KeyB: 'big', KeyR: 'special', KeyQ: 'barrage', KeyC: 'sun', KeyT: 'transform', };   // T: transformação (só o SamuLord tem formas)   // teclado: um toque
 
 class GameScene {
   constructor(canvas, loaded, players, meId, opts = {}) {
@@ -93,7 +93,7 @@ class GameScene {
   held(k) { return KEYS[k].some(c => this.K.has(c)); }
   input() { // teclado + botões na tela; ações de um toque (voar/poder) chegam como "pressed"
     const P = this.pad, N = this.pend, inp = { left: this.held('left') || P.left, right: this.held('right') || P.right, up: this.held('up') || P.jump || N.jump || !!P.sUp, down: this.held('down') || !!P.sDown, guard: !!P.guard, meditate: this.held('meditate') || !!P.meditate,
-      pressed: { attack: this.held('attack') || P.attack || N.attack, fly: N.fly, power: N.power, big: N.big, special: N.special, barrage: N.barrage, sun: N.sun } };
+      pressed: { attack: this.held('attack') || P.attack || N.attack, fly: N.fly, power: N.power, big: N.big, special: N.special, barrage: N.barrage, sun: N.sun, transform: N.transform } };
     /* buffer de entrada: um toque de poder/ação dado enquanto o personagem ainda está ocupado (ex.: no fim de um soco) não se perde: vale por ~0,12 s */
     const me = this.me, B = this.buf || (this.buf = {});
     for (const k in inp.pressed) { if (inp.pressed[k]) B[k] = me && me.busy ? 7 : 0; else if (B[k] > 0) { if (me && !me.busy) { inp.pressed[k] = true; B[k] = 0; } else B[k]--; } }
@@ -121,7 +121,7 @@ class GameScene {
   attachControls(host) {
     const mk = (cls, key, mode, icon, label, text, o = {}) => {
       const b = Object.assign(document.createElement('button'), { type: 'button', className: 'cbtn ' + cls }); b.tabIndex = -1; b.setAttribute('aria-label', label); b.title = label;
-      const dm = { sp: 1, power: 1, md: 1, bt: 1, pk: 1, atk: 1, guard: 1, tp: 1 }[cls];   // botões em losango (arte nova)
+      const dm = { sp: 1, power: 1, md: 1, bt: 1, pk: 1, atk: 1, guard: 1, tp: 1, tf: 1 }[cls];   // botões em losango (arte nova)
       if (dm) { b.classList.add('dm'); b.innerHTML = `<img class="dmi" src="assets/ui/hud/${cls}.png" alt="" draggable="false"><i class="cd"></i><i class="fx"></i>`; }
       else b.innerHTML = `<svg class="ic" viewBox="0 0 100 100" aria-hidden="true">${ICONS[icon] || ICONS.star}</svg>` + (text ? `<span class="lbl">${text}</span>` : '') + '<i class="cd"></i><i class="fx"></i>';
       b.addEventListener('pointerdown', e => { if (this.editing) return; e.preventDefault(); try { b.setPointerCapture(e.pointerId); } catch (_) {} b.classList.add('on'); this.pend[key] = true;
@@ -139,7 +139,8 @@ class GameScene {
     const power = mk('power', 'big', 'tap', 'big', 'Poder grande: carrega e dispara (recarga longa)', 'GRANDE'), pk = mk('pk', 'power', 'tap', 'small', 'Poder pequeno: projétil rápido', 'PEQUENO'),
       md = mk('md', 'meditate', 'hold', 'charge', 'Carregar Ki (segure)', 'CARREGAR'), bt = mk('bt', 'jump', 'hold', 'wing', 'Voar: segure para subir, solte para cair (toque rápido = pulo)', 'VOAR'), atk = mk('atk', 'attack', 'hold', 'fist', 'Soco (toque várias vezes)', 'SOCO');
     if (!un) sp.classList.add('off');
-    acts.append(md, sp, power, bt, pk, atk); root.append(move, acts);   // 2 linhas × 3 colunas
+    acts.append(md, sp, power, bt, pk, atk);
+    if (this.me.def.id === 'samulord' && SL.Forms) acts.append(mk('tf', 'transform', 'tap', 'star', 'Transformação (escolha na loja › FORMAS)', 'TF')); root.append(move, acts);   // 2 linhas × 3 colunas
     const bars = document.createElement('div'); bars.className = 'bars';
     const P = SL.Profile;   // HUD com a moldura de arte (assets/ui/hud-frame.png): retrato no círculo, nome, barras de HP (vermelha), EN (azul) e XP do nível (dourada)
     bars.innerHTML = '<img class="gh-art" src="assets/ui/hud-frame.png" alt="" draggable="false"><canvas class="gh-pt" width="148" height="148"></canvas><div class="gh-nm"></div>' +

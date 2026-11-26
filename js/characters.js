@@ -37,10 +37,11 @@ const Profile = {
   /* rede de segurança: quem não tem nenhum personagem e não tem ouro para o mais barato ganha o mais barato (senão ficaria sem poder jogar) */
   ensureStarter() { if (this.unlocked.some(id => all[id])) return; const ids = Object.keys(all).sort((a, b) => all[a].price - all[b].price); if (ids.length && this.gold < all[ids[0]].price) { this.unlocked.push(ids[0]); this.save(); } },
   select(id) { if (!this.isUnlocked(id)) return false; this.selected = id; this.picked = true; this.save(); this._emit('select'); return true; },
-  save() { try { localStorage.setItem(KEY, JSON.stringify({ selected: this.selected, picked: this.picked, unlocked: this.unlocked, welcomed: this.welcomed, xp: this.xp, gold: this.gold, silver: this.silver, gems: this.gems, mp: this.mp, md: this.md })); } catch (e) {} },
+  save() { try { localStorage.setItem(KEY, JSON.stringify({ selected: this.selected, picked: this.picked, unlocked: this.unlocked, welcomed: this.welcomed, xp: this.xp, gold: this.gold, silver: this.silver, gems: this.gems, mp: this.mp, md: this.md, forms: this.forms || [] })); } catch (e) {} },
   load() {
     let raw = null; try { raw = localStorage.getItem(KEY); } catch (e) {}
     try { const d = JSON.parse(raw || '{}'); if (Array.isArray(d.unlocked)) this.unlocked = d.unlocked.filter(id => all[id]);   // ignora ids de personagens que não existem mais
+      if (Array.isArray(d.forms)) this.forms = d.forms.filter(x => typeof x === 'string');
       if (d.selected && this.isUnlocked(d.selected)) this.selected = d.selected;
       this.picked = !!d.picked || !!(d.selected && d.selected !== DEFAULT && this.isUnlocked(d.selected));   // perfis antigos que já usavam outro herói contam como escolhido
       for (const k of ['xp', 'gold', 'silver', 'gems']) if (Number.isFinite(d[k]) && d[k] > 0) this[k] = Math.floor(d[k]);

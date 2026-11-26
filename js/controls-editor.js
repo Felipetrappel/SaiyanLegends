@@ -6,7 +6,7 @@
 const KEY = SL.ControlType.get() === 'joystick' ? 'sl.controls.joy' : 'sl.controls', BASE_MOVE = 'min(28vh,12.6vw)', BASE_ACT = 'min(22vh,10vw)';
 /* Layout padrão (HUD novo): centros em fração da tela e tamanho relativo (k) */
 const DEF = { v: 4, scale: 1, op: 1, b: { joy: { x: .153, y: .695, k: 1 }, l: { x: .075, y: .71, k: .6 }, r: { x: .175, y: .71, k: .6 }, guard: { x: .53, y: .88, k: .72 }, tp: { x: .452, y: .88, k: .72 },
-  pk: { x: .826, y: .608, k: 1 }, atk: { x: .938, y: .608, k: 1 }, sp: { x: .615, y: .844, k: 1 }, power: { x: .714, y: .844, k: 1 }, md: { x: .826, y: .861, k: 1 }, bt: { x: .938, y: .861, k: 1 } } };
+  pk: { x: .826, y: .608, k: 1 }, atk: { x: .938, y: .608, k: 1 }, sp: { x: .615, y: .844, k: 1 }, power: { x: .714, y: .844, k: 1 }, md: { x: .826, y: .861, k: 1 }, tf: { x: .714, y: .608, k: 1 }, bt: { x: .938, y: .861, k: 1 } } };
 const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
 const el = (t, c, o) => Object.assign(document.createElement(t), c ? { className: c } : {}, o || {});
 const G = SL.GameScene.prototype;
@@ -26,7 +26,7 @@ G.snapshotLayout = function () {
 G.applyLayout = function () {
   const L = this.layout || DEF; this.ctlRoot.classList.add('custom');
   for (const b of this.btns) {
-    const c = L.b[b.dataset.id]; if (!c) continue;
+    const c = L.b[b.dataset.id] || (L.b[b.dataset.id] = { ...(DEF.b[b.dataset.id] || { x: .5, y: .5, k: 1 }) });
     const base = b.dataset.id === 'l' || b.dataset.id === 'r' || b.dataset.id === 'joy' ? BASE_MOVE : BASE_ACT;
     b.style.left = (c.x * 100) + '%'; b.style.top = (c.y * 100) + '%'; b.style.setProperty('--s', `calc(${base} * ${(c.k * L.scale).toFixed(3)})`);
   }
