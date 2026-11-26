@@ -265,7 +265,7 @@ class Fighter {
     else if (!guarded && A.hurt && (!this.busy || this.state === 'hurt')) this.set(dmg >= 20 && A.hurtH ? 'hurtH' : 'hurt');
   }
   recoil(force) { if (this.remote || this.dead) return; const r = -this.face * force; if (Math.abs(r) > Math.abs(this.kb) || Math.sign(r) !== Math.sign(this.kb)) this.kb = r; }   // RECOIL: empurra o próprio lutador para trás (respeita a colisão)
-  launch(world, proj, d) { const k = (proj.cfg && proj.cfg.kb) || (proj.o && proj.o.kb) || (proj.I && proj.I.kb) || 120; this.recoil(Math.min(240, 50 + k * .5)); if (this.me && world) world.kick = Math.max(world.kick || 0, .012); world.projectiles.push(proj); if (world.net && !this.remote) world.net.proj(this, { ...d, face: this.face }); }
+  launch(world, proj, d) { const k = (proj.cfg && proj.cfg.kb) || (proj.o && proj.o.kb) || (proj.I && proj.I.kb) || 120; this.recoil(Math.min(320, 70 + k * .6)); if (this.me && world) world.kick = Math.max(world.kick || 0, .018), world.shake = Math.max(world.shake || 0, 2); world.projectiles.push(proj); if (world.net && !this.remote) world.net.proj(this, { ...d, face: this.face }); }
   /* Multiplayer: estado enviado ao servidor (jogador local ou bot do host) e aplicado nas réplicas dos outros clientes. */
   netState() {
     const b = this.body, r = Math.round;
@@ -317,7 +317,7 @@ class Fighter {
     if (this.bot || this.dummy) this.energy = Math.min(this.maxEn, this.energy + CFG.regen * (this.form ? ABIL.form.regen : 1) * dt);   // Ki NÃO recarrega sozinho: o jogador carrega na mão (botão MEDITAR / tecla M). Só bots e o boneco de treino recarregam sozinhos.
     for (const k in this.acd) if (this.acd[k] > 0) this.acd[k] -= dt;
     if (this.form > 0 && (this.form -= dt) <= 0) this.endForm();                                        // a transformação acaba sozinha
-    if (Math.abs(this.kb) > 5) { b.moveX(this.kb * dt); this.kb *= Math.pow(.001, dt); } else this.kb = 0;   // recuo (respeita a colisão)
+    if (Math.abs(this.kb) > 5) { b.moveX(this.kb * dt); this.kb *= Math.pow(.0004, dt); } else this.kb = 0;   // recuo (respeita a colisão)
     const dir = (inp.right ? 1 : 0) - (inp.left ? 1 : 0);
     /* Dash (toque duplo) e teleporte (defesa + seta) foram REMOVIDOS do jogo. */
     if (!this.busy) {
