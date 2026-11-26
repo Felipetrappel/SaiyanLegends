@@ -118,7 +118,7 @@ S.register('characters', { title: 'Personagem', build(p) {
     }
   }
   render(); const off = P.on(() => render());
-  const r = el('div', 'row'); r.append(S.btn('Loja', () => S.open('store')), S.btn('Voltar', () => S.close(), true)); p.append(r);
+  const r = el('div', 'row'); r.append(S.btn('Voltar', () => S.close(), true)); p.append(r);
   return off;
 } });
 })();

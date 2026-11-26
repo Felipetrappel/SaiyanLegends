@@ -15,8 +15,6 @@ const fmt = n => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
 /* áreas clicáveis (coordenadas da arte): [x, y, w, h], raio do canto, texto para leitor de tela, ação */
 const HS = [
   { id: 'rank',   r: [5, 12, 257, 123],    rad: 40, label: 'VIP',                   go: 'vip' },
-  { id: 'pcoin',  r: [1088, 30, 86, 72],   rad: 18, label: 'Mais moedas',           go: 'store' },
-  { id: 'pgem',   r: [1672, 30, 92, 72],   rad: 18, label: 'Mais diamantes',        go: 'store' },
   { id: 'exit',   r: [1636, 138, 220, 84], rad: 34, label: 'Sair',                  go: () => M.exit() },
   { id: 'sound',  r: [1662, 232, 90, 90],  rad: 16, label: 'Som',                   go: () => window.SaiyanAudio && SaiyanAudio.toggleMute() },
   { id: 'config', r: [1766, 232, 86, 90],  rad: 16, label: 'Configurações',         go: 'options' },

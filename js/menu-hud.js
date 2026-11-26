@@ -42,7 +42,7 @@ S.register('chat', { title: 'Chat global', build(p) {
 S.register('rewards', { title: 'Presentes', build(p) {
   p.classList.add('wide'); p.append(el('h2', '', { textContent: 'Presentes e recompensas' }), el('p', 'sumline', { textContent: summary() }),
     el('p', '', { textContent: 'Presentes diários e baús ainda não existem no jogo. Por enquanto, a recompensa é: derrotar um oponente que você acertou rende +25 XP e +10 de ouro.' }));
-  const r = el('div', 'row'); r.append(S.btn('Missões', () => S.open('missions')), S.btn('Eventos', () => S.open('events')), S.btn('Passe', () => S.open('pass')), S.btn('Loja', () => S.open('store')), S.btn('Voltar', () => S.close(), true)); p.append(r);
+  const r = el('div', 'row'); r.append(S.btn('Missões', () => S.open('missions')), S.btn('Eventos', () => S.open('events')), S.btn('Passe', () => S.open('pass')), S.btn('Voltar', () => S.close(), true)); p.append(r);
 } });
 
 /* ── ajuda ── */

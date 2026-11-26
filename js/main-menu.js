@@ -89,7 +89,6 @@ const SVGNS = 'http://www.w3.org/2000/svg';
 const BIG = [
   { id: 'play',      label: 'JOGAR',         sub: 'ENTRE NA BATALHA',  screen: 'play',       x: 1196, y: 326, w: 462, h: 136, pal: 'gold',   ico: 'play',  deco: 'ball' },
   { id: 'character', label: 'LOBBY',         sub: 'ENTRE NA CIDADE',   screen: 'hub', x: 1198, y: 468, w: 458, h: 128, pal: 'purple', ico: 'group', deco: 'sil' },
-  { id: 'shop',      label: 'LOJA',          sub: 'COMPRE E EVOLUA',   screen: 'store',      x: 1198, y: 600, w: 456, h: 132, pal: 'green',  ico: 'cart' },
   { id: 'settings',  label: 'CONFIGURAÇÕES', sub: 'AJUSTE SEU JOGO',   screen: 'options',    x: 1203, y: 736, w: 455, h: 130, pal: 'blue',   ico: 'gear' }
 ];
 const PAL = { gold: ['#ffe27a', '#f4a712', '#c46a00'], purple: ['#9a62ff', '#5f27c4', '#35107e'], green: ['#5fe06e', '#22a83e', '#0e6b24'], blue: ['#48a8ff', '#1766dc', '#0b3f9a'] };
@@ -108,8 +107,6 @@ const TOP = [
 ];
 /* ── Botões redondos "+" dos contadores e área do perfil ── */
 const MISC = [
-  { id: 'plusGold', label: 'Mais moedas',     screen: 'store', cx: 735,  cy: 64, plus: true },
-  { id: 'plusGem',  label: 'Mais diamantes',  screen: 'store', cx: 1025, cy: 64, plus: true },
   { id: 'profile',  label: 'Perfil',  screen: 'characters', rect: [8, 8, 470, 152] }
 ];
 const ICONS = {   // desenhados em um quadrado de -26..26

@@ -678,3 +678,16 @@ button.rm-card{cursor:pointer;padding:0;text-align:center}
 .ns-fb{min-width:92px;padding:8px 10px;border-radius:8px;border:2px solid #8a5a10;background:linear-gradient(#ffe27a,#e0a52a);color:#2a1200;font-size:13px}
 .ns-fb.own{background:linear-gradient(#8fe0ff,#3a9bd8);border-color:#1a5a8a}.ns-fb.cur{background:#2c7a3a;color:#fff;border-color:#1c5a28}
 .ns-fmsg{font-size:11px;color:#ffe27a;min-height:1.2em}
+/* seleção de personagens › transformações */
+.cs-forms-btn{position:absolute;border-radius:10px;border:2px solid #f3c744;background:linear-gradient(#5a2cc8,#2a1070);color:#ffe27a;font-size:18px;cursor:pointer;box-shadow:0 0 14px #8a5cff88}
+.cs-fov{position:absolute;display:none;flex-direction:column;border-radius:14px;border:3px solid #f3c744;background:#0b0620f2;padding:10px 12px;box-sizing:border-box;z-index:5;gap:6px}
+.cs-fov.on{display:flex}
+.cs-fh{display:flex;justify-content:space-between;align-items:center;color:#ffe27a;font-size:20px}
+.cs-fx{width:36px;height:34px;border-radius:8px;border:2px solid #f3c744;background:#7a1020;color:#fff;font-size:18px}
+.cs-fg{display:grid;grid-template-columns:1fr 1fr;gap:6px;overflow:auto;flex:1}
+.cs-fr{display:flex;align-items:center;gap:8px;padding:5px 8px;border-radius:10px;background:#1a0b3d;border:1px solid #6a3fd0}.cs-fr.cur{border-color:#4ade80}
+.cs-fr canvas{width:44px;height:56px;image-rendering:pixelated;flex:none}
+.cs-fi{display:flex;flex-direction:column;flex:1;min-width:0;gap:2px}.cs-fi b{font-size:14px;color:#ffe27a}.cs-fi span{font-size:11px;color:#cdbcff}
+.cs-fb{min-width:88px;padding:7px 8px;border-radius:8px;border:2px solid #8a5a10;background:linear-gradient(#ffe27a,#e0a52a);color:#2a1200;font-size:13px;cursor:pointer}
+.cs-fb.own{background:linear-gradient(#8fe0ff,#3a9bd8);border-color:#1a5a8a}.cs-fb.cur{background:#2c7a3a;color:#fff;border-color:#1c5a28}
+.cs-fm{font-size:12px;color:#ffe27a;min-height:1.3em}
