@@ -31,7 +31,13 @@
   function close() {
     if (done) return; done = true;
     try { if (window.SaiyanSFX && SaiyanSFX.click) SaiyanSFX.click(); } catch (e) {}
-    root.classList.add('out'); setTimeout(function () { root.remove(); removeEventListener('resize', layout); }, 450);
+    intro(function () { root.classList.add('out'); setTimeout(function () { root.remove(); removeEventListener('resize', layout); }, 450); });
+  }
+  /* INTRODUÇÃO (GIF animado, tela cheia, sem desfoque): toca 2 voltas (4,5 s) logo após o toque; toque/tecla pula. */
+  function intro(next) {
+    var v = document.createElement('div'); v.id = 'sp-intro'; var im = document.createElement('img'); im.alt = ''; im.draggable = false; im.src = 'assets/ui/intro.gif?' + Date.now(); v.appendChild(im); document.body.appendChild(v);
+    var end = false, tm, fin = function () { if (end) return; end = true; clearTimeout(tm); removeEventListener('keydown', fin); v.classList.add('out'); setTimeout(function () { v.remove(); }, 450); next(); };
+    requestAnimationFrame(function () { v.classList.add('on'); }); tm = setTimeout(fin, 4500); v.addEventListener('click', fin); addEventListener('keydown', fin);
   }
   root.addEventListener('click', function (e) {
     var f = e.target.closest && e.target.closest('.sp-flag');
