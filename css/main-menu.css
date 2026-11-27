@@ -691,3 +691,13 @@ button.rm-card{cursor:pointer;padding:0;text-align:center}
 .cs-fb{min-width:88px;padding:7px 8px;border-radius:8px;border:2px solid #8a5a10;background:linear-gradient(#ffe27a,#e0a52a);color:#2a1200;font-size:13px;cursor:pointer}
 .cs-fb.own{background:linear-gradient(#8fe0ff,#3a9bd8);border-color:#1a5a8a}.cs-fb.cur{background:#2c7a3a;color:#fff;border-color:#1c5a28}
 .cs-fm{font-size:12px;color:#ffe27a;min-height:1.3em}
+
+/* GERADOR DE CÓDIGOS — arte (assets/ui/codegen.png) + campos vivos por cima */
+.cgwrap{background:none!important;backdrop-filter:none!important;display:flex;align-items:center;justify-content:center}.panel.shopwrap.cgwrap{background:none!important}.screen:has(.cgwrap){background:rgba(0,0,0,.25)!important;backdrop-filter:none!important}
+.cg-box{position:relative;display:block;grid-template-columns:none;padding:0;gap:0;border:0;border-radius:0;background:none;box-shadow:none;overflow:visible;max-height:none;width:min(94vw,calc(90vh*1672/941));aspect-ratio:1672/941;container-type:inline-size;filter:drop-shadow(0 8px 24px rgba(0,0,0,.55))}
+.cg-art{position:absolute;inset:0;width:100%;height:100%;display:block;user-select:none;-webkit-user-drag:none}
+.cg-hs{position:absolute;background:transparent;border:0;padding:0;cursor:pointer;border-radius:16px}.cg-hs:hover{background:rgba(255,255,255,.1)}.cg-hs:active{background:rgba(255,255,255,.2)}
+.cg-box .cg-i{position:absolute;box-sizing:border-box;background:#011238!important;border:0!important;border-radius:6px!important;color:#fff!important;padding:0 2cqw!important;font:700 3.2cqw 'Upheaval',monospace!important;text-transform:uppercase;outline:none;text-align:left}.cg-box .cg-i::placeholder{color:#8a93a8}.cg-box .cg-i:focus{box-shadow:0 0 0 2px #35c8ff}
+.cg-list{position:absolute;box-sizing:border-box;background:#001343;overflow:auto;display:flex;flex-direction:column;gap:2px;color:#fff;font:700 1.9cqw 'Upheaval',monospace}.cg-empty{color:#0fe6f5;font-size:2.4cqw;line-height:1.4}
+.cg-row{display:flex;align-items:center;gap:1cqw}.cg-row b{color:#ffd23a}.cg-row small{flex:1;color:#9fd2ff;font-size:1.6cqw}.cg-d{background:transparent;border:0;cursor:pointer;font-size:2cqw;padding:0}
+.cg-out{position:absolute;text-align:center;display:flex;align-items:center;justify-content:center;font:800 2.2cqw 'Upheaval',system-ui;text-shadow:0 2px 0 #000,0 0 6px #000;pointer-events:none}.cg-out.ok{color:#8dff9a}.cg-out.bad{color:#ff9a9a}

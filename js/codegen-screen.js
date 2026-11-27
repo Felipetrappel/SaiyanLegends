@@ -8,19 +8,20 @@ window.SLCodeGen = { can, open: () => { if (can()) S.open('codegen'); } };
 S.register('codegen', { title: 'Gerador de Códigos', sticky: true, noFocus: true, build(p) {
   p.classList.add('shopwrap', 'cgwrap');
   if (!can()) { setTimeout(() => S.close(), 0); return () => {}; }
-  const box = el('div', 'cg-box'), h = el('div', 'cg-h', { textContent: 'GERADOR DE CÓDIGOS' }), x = el('button', 'cg-x', { type: 'button', textContent: '✕', ariaLabel: 'Fechar' });
-  const fld = (lbl, ph, num) => { const w = el('label', 'cg-f'), i = el('input', 'cg-i', { type: num ? 'number' : 'text', placeholder: ph, min: 0, inputMode: num ? 'numeric' : 'text', autocomplete: 'off' }); if (!num) i.maxLength = 32; w.append(el('span', '', { textContent: lbl }), i); ['keydown', 'keyup'].forEach(n => i.addEventListener(n, e => e.stopPropagation())); return [w, i]; };
-  const [w0, code] = fld('Código (vazio = aleatório)', 'EX: NATAL2026'), [w1, gems] = fld('💎 Diamantes', '0', 1), [w2, gold] = fld('🪙 Moedas', '0', 1), [w3, xp] = fld('⭐ XP', '0', 1), [w4, max] = fld('Usos máximos (0 = ilimitado)', '0', 1);
-  const gen = el('button', 'cg-go', { type: 'button', textContent: 'GERAR CÓDIGO' }), out = el('div', 'cg-out'), list = el('div', 'cg-list');
-  const form = el('div', 'cg-form'); const g2 = el('div', 'cg-g2'); g2.append(w1, w2, w3, w4); form.append(w0, g2, gen, out);
-  const side = el('div', 'cg-side'); side.append(el('div', 'cg-sh', { textContent: 'Códigos criados' }), list);
-  box.append(h, x, form, side); p.append(box);
+  const W = 1672, H = 941, pos = (n, r) => { n.style.left = r[0] / W * 100 + '%'; n.style.top = r[1] / H * 100 + '%'; n.style.width = r[2] / W * 100 + '%'; n.style.height = r[3] / H * 100 + '%'; };
+  const box = el('div', 'cg-box'), img = el('img', 'cg-art', { src: 'assets/ui/codegen.png', alt: '', draggable: false });
+  const x = el('button', 'cg-hs', { type: 'button', ariaLabel: 'Fechar' }), gen = el('button', 'cg-hs', { type: 'button', ariaLabel: 'Gerar código' });
+  const inp = (num, ph, r) => { const i = el('input', 'cg-i', { type: num ? 'number' : 'text', placeholder: ph, min: 0, inputMode: num ? 'numeric' : 'text', autocomplete: 'off' }); if (!num) i.maxLength = 32; ['keydown', 'keyup'].forEach(n => i.addEventListener(n, e => e.stopPropagation())); pos(i, r); return i; };
+  const code = inp(0, 'EX: NATAL2026', [92, 222, 780, 78]), gems = inp(1, '0', [196, 429, 440, 64]), gold = inp(1, '0', [812, 429, 440, 64]), xp = inp(1, '0', [196, 616, 440, 64]), max = inp(1, '0', [840, 616, 436, 64]);
+  const list = el('div', 'cg-list'), out = el('div', 'cg-out');
+  pos(x, [1550, 30, 100, 100]); pos(gen, [262, 740, 1150, 140]); pos(list, [1082, 236, 515, 76]); pos(out, [150, 890, 1370, 46]);
+  box.append(img, list, code, gems, gold, xp, max, gen, x, out); p.append(box);
   const say = (t, ok) => { out.textContent = t; out.className = 'cg-out ' + (ok ? 'ok' : 'bad'); };
-  const fmt = c => [c.gems && c.gems + '💎', c.gold && c.gold + '🪙', c.xp && c.xp + '⭐'].filter(Boolean).join(' ') + ' · ' + c.used + '/' + (c.maxUses || '∞') + ' usos';
-  const load = async () => { try { const r = await svc.codeList(); list.textContent = ''; if (!r.codes.length) list.append(el('div', 'cg-empty', { textContent: 'Nenhum código ainda.' }));
-    r.codes.forEach(c => { const row = el('div', 'cg-row'), t = el('div', 'cg-t'), d = el('button', 'cg-d', { type: 'button', textContent: '🗑', title: 'Apagar' });
-      t.append(el('b', '', { textContent: c.code }), el('small', '', { textContent: fmt(c) + (c.by ? ' · ' + c.by : '') }));
-      d.addEventListener('click', async () => { try { await svc.codeDel(c.code); load(); } catch (e) { say(e.message, false); } }); row.append(t, d); list.append(row); }); }
+  const fmt = c => [c.gems && c.gems + '💎', c.gold && c.gold + '🪙', c.xp && c.xp + '⭐'].filter(Boolean).join(' ') + ' · ' + c.used + '/' + (c.maxUses || '∞');
+  const load = async () => { try { const r = await svc.codeList(); list.textContent = ''; if (!r.codes.length) list.append(el('div', 'cg-empty', { textContent: 'NENHUM CÓDIGO AINDA.' }));
+    r.codes.forEach(c => { const row = el('div', 'cg-row'), d = el('button', 'cg-d', { type: 'button', textContent: '🗑', title: 'Apagar' });
+      row.append(el('b', '', { textContent: c.code }), el('small', '', { textContent: fmt(c) }), d);
+      d.addEventListener('click', async () => { try { await svc.codeDel(c.code); load(); } catch (e) { say(e.message, false); } }); list.append(row); }); }
     catch (e) { list.textContent = e.message || 'Erro ao listar.'; } };
   let busy = false;
   gen.addEventListener('click', async () => { if (busy) return; busy = true; gen.disabled = true;
