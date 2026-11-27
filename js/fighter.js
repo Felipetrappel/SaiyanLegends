@@ -126,12 +126,13 @@ class KiBall {
   draw(ctx) { ctx.save(); ctx.globalAlpha = this.ending ? Math.max(0, 1 - this.fade / .1) : 1; drawOrb(ctx, this.x, this.y, this.o.r, this.life, this.o.pal); ctx.restore(); }
 }
 /* PODER x PODER: dois projéteis de donos diferentes que se encontram se chocam. O mais forte vence e segue com a força que sobrou; o mais fraco some; força parecida → os dois somem. */
+const grow = (r, m) => ({ l: r.l - m, r: r.r + m, t: r.t - m, b: r.b + m });
 function clashShots(world) {
   const L = world.projectiles.filter(q => q.power && !q.ending && !q.dead);
   for (let i = 0; i < L.length; i++) for (let j = i + 1; j < L.length; j++) {
-    const a = L[i], b = L[j]; if (a.owner === b.owner || a.ending || b.ending || !overlap(a.rect(), b.rect())) continue;
+    const a = L[i], b = L[j]; if (a.owner === b.owner || a.ending || b.ending || !overlap(grow(a.rect(), 12), grow(b.rect(), 12))) continue;
     const pa = a.power(), pb = b.power(), hi = Math.max(pa, pb), x = (a.x !== undefined ? a.x : a.head) / 2 + (b.x !== undefined ? b.x : b.head) / 2, y = (a.yc !== undefined ? a.yc : a.y) / 2 + (b.yc !== undefined ? b.yc : b.y) / 2;
-    (world.effects ||= []).push(new Ring(a.owner.def, x, y, 6, 42, .28, '#ffffff'));
+    (world.effects ||= []).push(new Ring(a.owner.def, x, y, 6, 42, .28, '#ffffff'), new Ring(a.owner.def, x, y, 3, 70, .4, '#ffe9a0')); world.shake = Math.max(world.shake || 0, 5); world.kick = Math.max(world.kick || 0, .02);
     if (Math.abs(pa - pb) < hi * .12) { a.end(world, false); b.end(world, false); }
     else { const w = pa > pb ? a : b, l = w === a ? b : a; w.rem = Math.max(.15, (w.rem || 1) * (1 - Math.min(pa, pb) / hi)); l.end(world, false); }
   }
