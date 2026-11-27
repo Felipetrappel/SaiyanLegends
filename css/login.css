@@ -145,4 +145,4 @@ html.au-open, html.au-open body { overflow: hidden; }
 
 #sp-intro { position: fixed; inset: 0; z-index: 100001; background: #05061a; opacity: 0; transition: opacity .35s; cursor: pointer; overflow: hidden; }
 #sp-intro.on { opacity: 1; } #sp-intro.out { opacity: 0; pointer-events: none; }
-#sp-intro img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; image-rendering: pixelated; user-select: none; -webkit-user-drag: none; }
+#sp-intro img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: center; image-rendering: pixelated; user-select: none; -webkit-user-drag: none; }
